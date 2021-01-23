@@ -6,9 +6,8 @@
 # 1: Channel name (e.g Brisppy)
 
 # Check if arguments have been supplied
-if [ $# -ne 2 ]
-  then
-    echo "Incorrect number of arguments supplied. Channel name and directory are required."
+if [ $# -eq 0 ]; then
+	echo "No arguments were supplied."
 	exit 1
 fi
 
@@ -30,7 +29,7 @@ echo User $CHANNEL ID is $USER_ID
 # Return a list of available VODs from $CHANNEL
 AVAILABLE_VODS=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET "https://api.twitch.tv/helix/videos?user_id=$USER_ID&first=100&type=archive" | jq '.data[].id' | sed 's/"//g' | sed 's/ /\n/g')
 # Return a list of downloaded VODs
-DOWNLOADED_VODS=$(cat $VOD_DIRECTORY/downloaded_vods)
+DOWNLOADED_VODS=$(cat $VOD_DIRECTORY/$CHANNEL/downloaded_vods)
 echo Available VODS:
 echo "$AVAILABLE_VODS"
 echo Downloaded VODS:
@@ -81,7 +80,7 @@ for VOD in $NEW_VODS; do
 	if [ "$DOWNLOADED_DURATION" -ge "$((VOD_DURATION_SECONDS - 10))" ] && [ "$DOWNLOADED_DURATION" -le "$((VOD_DURATION_SECONDS + 10))" ]; then
 		echo Files are within 10 seconds.
 		# Add VOD to file to keep track of what has been downloaded
-		echo $VOD >> $VOD_DIRECTORY/downloaded_vods
+		echo $VOD >> $VOD_DIRECTORY/$CHANNEL/downloaded_vods
 	else
 		echo Files have different durations, removing the VOD folder, sending a notification and exiting...
 		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
