@@ -89,7 +89,7 @@ for VOD in $NEW_VODS; do
 		echo $VOD >> $VOD_DIRECTORY/$CHANNEL/downloaded_vods
 	else
 		echo Files have different durations, removing the VOD folder, sending a notification and exiting...
-		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
+		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
 		rm -drf "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
 		exit 1
 	fi
