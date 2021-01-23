@@ -19,8 +19,8 @@ Modify the variables in twitch-vod-archiver.sh
 |```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv.
 |```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv.
 |```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Do NOT end with a slash(/)**.
-|```SEND_PUSHBULLET```|0/1 Whether or not you wish to send a pushbullet notification on download failure.
-|```PUSHBULLET_KEY```|Your Pushbullet API key.
+|```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure.
+|```PUSHBULLET_KEY```|**OPTIONAL** Your Pushbullet API key.
 
 # Usage
 Run the script, supplying the channel name. I use a crontab entry to run it nightly to grab any new VODs.
