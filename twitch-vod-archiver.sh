@@ -5,12 +5,6 @@
 # ARGUMENTS:
 # 1: Channel name (e.g Brisppy)
 
-# Check if arguments have been supplied
-if [ $# -eq 0 ]; then
-	echo "No arguments were supplied."
-	exit 1
-fi
-
 CLIENT_ID= # From channel user
 OAUTH_TOKEN= # From channel user
 APP_CLIENT_ID= # From dev.twitch.tv
@@ -18,6 +12,18 @@ APP_CLIENT_SECRET= # From dev.twitch.tv
 VOD_DIRECTORY= # Path to VOD Directory, do NOT end with a slash (/). Users are stored in separate folders within.
 SEND_PUSHBULLET= # 0/1, send Pushbullet notificaiton
 PUSHBULLET_KEY= # Pushbullet API key
+
+# Check if arguments have been supplied
+if [ $# -eq 0 ]; then
+	echo "No arguments were supplied."
+	exit 1
+fi
+
+# Check if VOD directory was set
+if [ -z "$VOD_DIRECTORY" ]; then
+	echo "No VOD directory set, exiting."
+	exit 1
+fi
 
 # DO NOT MODIFY
 CHANNEL=$1 # Channel name
