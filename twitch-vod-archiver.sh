@@ -2,12 +2,23 @@
 # Automatically grabs all video IDs from Twitch for the specified channel, compares them to a list of downloaded
 # VODs and downloads any that are missing.
 
-CHANNEL= # Channel name
+# ARGUMENTS:
+# 1: Channel name (e.g Brisppy)
+# 2: VOD directory path. DO NOT END WITH '/'' (e.g /opt/Brisppy)
+
+# Check if arguments have been supplied
+if [ $# -ne 2 ]
+  then
+    echo "Incorrect number of arguments supplied. Channel name and directory are required."
+	exit 1
+fi
+
+CHANNEL=$1 # Channel name
 CLIENT_ID= # From channel user
 OAUTH_TOKEN= # From channel user
 APP_CLIENT_ID= # From dev.twitch.tv
 APP_CLIENT_SECRET= # From dev.twitch.tv
-VOD_DIRECTORY= # Path to VOD Directory, do NOT end with a slash (/)
+VOD_DIRECTORY=$2 # Path to VOD Directory, do NOT end with a slash (/)
 SEND_PUSHBULLET= # 0/1, send Pushbullet notificaiton
 PUSHBULLET_KEY= # Pushbullet API key
 
@@ -16,7 +27,7 @@ USER_ID=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT
 echo User $CHANNEL ID is $USER_ID
 
 # Return a list of available VODs from $CHANNEL
-AVAILABLE_VODS=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET https://api.twitch.tv/helix/videos?user_id=$USER_ID | jq '.data[].id' | sed 's/"//g' | sed 's/ /\n/g')
+AVAILABLE_VODS=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET "https://api.twitch.tv/helix/videos?user_id=$USER_ID&first=100&type=archive" | jq '.data[].id' | sed 's/"//g' | sed 's/ /\n/g')
 # Return a list of downloaded VODs
 DOWNLOADED_VODS=$(cat $VOD_DIRECTORY/downloaded_vods)
 echo Available VODS:
@@ -49,7 +60,7 @@ for VOD in $NEW_VODS; do
 	# Download the chat logs for the VOD
 	tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_DIRECTORY/$VOD - $VOD_NAME/"
 	# Download the VOD to the desired directory
-	streamlink --hls-segment-threads 4 https://twitch.tv/videos/$VOD best -o "$VOD_DIRECTORY/$VOD - $VOD_NAME/$VOD_NAME.mp4" --twitch-oauth-token=$OAUTH_TOKEN
+	streamlink --hls-segment-threads 4 https://twitch.tv/videos/$VOD best -o "$VOD_DIRECTORY/$VOD - $VOD_NAME/$VOD_NAME.mp4"
 	# Count the number of columns within the VOD_DURATION variable
 	VOD_DURATION_SPLIT=$(echo $VOD_DURATION | sed 's/h/:/g' | sed 's/m/:/g' | sed 's/s//g')
 	VOD_DURATION_COLUMNS=$(echo $VOD_DURATION_SPLIT | tr ':' '\n' | wc -l)
