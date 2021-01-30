@@ -3,7 +3,7 @@ A script for archiving past Twitch VODs as well as the corresponding chat log.
 
 # Requirements
 * **Python 3.8**
-* **ffmpeg** (ffprobe is used to verify the download was successful)
+* **[ffmpeg](https://ffmpeg.org/)** (ffprobe is used to verify the download was successful)
 * **[tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader)** (pip3 install tcd)
 * **[Streamlink](https://streamlink.github.io/)** (pip3 install streamlink)
 
