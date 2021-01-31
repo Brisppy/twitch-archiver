@@ -88,7 +88,7 @@ for VOD in $NEW_VODS; do
 	echo "Duration in seconds of VOD is $VOD_DURATION_SECONDS"
 	# Get the length of the downloaded file
 	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
-	echo "Expected duration is $VOD_DURATION_SECONDSs, downloaded duration is $DOWNLOADED_DURATIONs"
+	echo "Expected duration is "$VOD_DURATION_SECONDS"s, downloaded duration is "$DOWNLOADED_DURATION"s"
 	# Compare the length of the VOD to the downloaded file
 	if [ "$DOWNLOADED_DURATION" -ge "$((VOD_DURATION_SECONDS - 3))" ] && [ "$DOWNLOADED_DURATION" -le "$((VOD_DURATION_SECONDS + 3))" ]; then
 		echo "Files are within 3 seconds."
@@ -97,7 +97,7 @@ for VOD in $NEW_VODS; do
 	else
 		echo "Files have different durations, removing the VOD folder, sending a notification and exiting..."
 		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
-		rm -drf "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
+		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
 		exit 1
 	fi
 done
