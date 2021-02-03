@@ -65,7 +65,7 @@ for VOD in $NEW_VODS; do
 	echo "$VOD_JSON" > "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/vod.json"
 	# Download the chat logs for the VOD
 	tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/"
-	# Catch error based on last returned code
+	# Catch error downloading chat log based on last returned code
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		echo "Error downloading chat log, removing the VOD folder, sending a notification and exiting..."
@@ -73,14 +73,17 @@ for VOD in $NEW_VODS; do
 		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
 		exit 1
 	fi
-	# Move to the desired VOD output directory
-	cd "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
+	# The method for downloading the actual VOD is quite convoluted and gone through numerous iterations. This is because of VOD 864884048, a 28HR VOD which caused issues.
+	# For some reason the downloaded .ts files have incorrect timestamps, piece 09531.ts has a 'start' value of 95376.766, with the following
+	# piece (09532.ts) having a 'start' value of -56.951689. When combining, this produces an error (non-monotonous dts in output stream) which results in an output file
+	# with a different duration than the original, cutting off a large amount of the VOD.
+	# To resolve this, the .ts files have to be combined with ffmpegm, using their numbered order rather than included start value or .m3u8 playlist.
 	# Download the VOD via twitch-dl
-	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download -q source $VOD
+	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download --no-join -q source $VOD
+	# Combine the .ts files
+	cat "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl/*/chunked/"*.ts | ffmpeg  -i pipe: -c:a copy -c:v copy "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
 	# Remove the 'twitch-dl' directory created by twitch-dl
 	rm -r "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl"
-	# Rename the output file
-	mv "$(find . -name *.mkv -print -quit)" "./$VOD_NAME.mkv"
 	# Count the number of columns within the VOD_DURATION variable
 	VOD_DURATION_SPLIT=$(echo $VOD_DURATION | sed 's/h/:/g' | sed 's/m/:/g' | sed 's/s//g')
 	VOD_DURATION_COLUMNS=$(echo $VOD_DURATION_SPLIT | tr ':' '\n' | wc -l)
@@ -94,7 +97,7 @@ for VOD in $NEW_VODS; do
 	fi
 	echo "Duration in seconds of VOD is $VOD_DURATION_SECONDS"
 	# Get the length of the downloaded file
-	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mkv" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
+	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
 	echo "Expected duration is "$VOD_DURATION_SECONDS"s, downloaded duration is "$DOWNLOADED_DURATION"s"
 	# Compare the length of the VOD to the downloaded file
 	if [ "$DOWNLOADED_DURATION" -ge "$((VOD_DURATION_SECONDS - 3))" ] && [ "$DOWNLOADED_DURATION" -le "$((VOD_DURATION_SECONDS + 3))" ]; then
