@@ -73,11 +73,11 @@ for VOD in $NEW_VODS; do
 		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
 		exit 1
 	fi
-	# The method for downloading the actual VOD is quite convoluted and gone through numerous iterations. This is because of VOD 864884048, a 28HR VOD which caused issues.
-	# For some reason the downloaded .ts files have incorrect timestamps, piece 09531.ts has a 'start' value of 95376.766, with the following
-	# piece (09532.ts) having a 'start' value of -56.951689. When combining, this produces an error (non-monotonous dts in output stream) which results in an output file
-	# with a different duration than the original, cutting off a large amount of the VOD.
-	# To resolve this, the .ts files have to be combined with ffmpegm, using their numbered order rather than included start value or .m3u8 playlist.
+	# The method for downloading the actual VOD is quite convoluted in order to resolve an issue with VOD 864884048, a 28HR long VOD which when downloaded, never was the correct length.
+	# For some reason the downloaded .ts files have incorrect timestamps, with piece 09531.ts having a 'start' value of 95376.766, and the following piece (09532.ts) having a 
+	# 'start' value of -56.951689. When combining all of the pieces this produces an error (non-monotonous dts in output stream), resulting in an output file with a shorter duration
+	# than the original VOD.
+	# To resolve this, the .ts files are combined with ffmpeg using their numbered order rather than included start value or .m3u8 playlist.
 	# Download the VOD via twitch-dl
 	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download --no-join -q source $VOD
 	# Combine the .ts files
