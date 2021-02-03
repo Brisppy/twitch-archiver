@@ -65,15 +65,22 @@ for VOD in $NEW_VODS; do
 	echo "$VOD_JSON" > "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/vod.json"
 	# Download the chat logs for the VOD
 	tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/"
-	# Check that the chat log was downloaded
-	if [ ! -f "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD.log" ]; then
-		echo "Chat log not found, exiting..."
+	# Catch error based on last returned code
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		echo "Error downloading chat log, removing the VOD folder, sending a notification and exiting..."
+		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
+		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
 		exit 1
-	else
-		echo "Chat log downloaded, moving onto video..."
 	fi
-	# Download the VOD to the desired directory
-	streamlink --hls-segment-threads 4 --hls-segment-timeout 10 --hls-segment-attempts 10 https://twitch.tv/videos/$VOD best -o "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
+	# Move to the desired VOD output directory
+	cd "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
+	# Download the VOD via twitch-dl
+	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download -q source $VOD
+	# Remove the 'twitch-dl' directory created by twitch-dl
+	rm -r "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl"
+	# Rename the output file
+	mv "$(find . -name *.mkv -print -quit)" "./$VOD_NAME.mkv"
 	# Count the number of columns within the VOD_DURATION variable
 	VOD_DURATION_SPLIT=$(echo $VOD_DURATION | sed 's/h/:/g' | sed 's/m/:/g' | sed 's/s//g')
 	VOD_DURATION_COLUMNS=$(echo $VOD_DURATION_SPLIT | tr ':' '\n' | wc -l)
@@ -87,7 +94,7 @@ for VOD in $NEW_VODS; do
 	fi
 	echo "Duration in seconds of VOD is $VOD_DURATION_SECONDS"
 	# Get the length of the downloaded file
-	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
+	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mkv" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
 	echo "Expected duration is "$VOD_DURATION_SECONDS"s, downloaded duration is "$DOWNLOADED_DURATION"s"
 	# Compare the length of the VOD to the downloaded file
 	if [ "$DOWNLOADED_DURATION" -ge "$((VOD_DURATION_SECONDS - 3))" ] && [ "$DOWNLOADED_DURATION" -le "$((VOD_DURATION_SECONDS + 3))" ]; then
