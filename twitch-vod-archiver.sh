@@ -81,7 +81,7 @@ for VOD in $NEW_VODS; do
 	# Download the VOD via twitch-dl
 	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download --no-join -q source $VOD
 	# Combine the .ts files
-	cat "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl/*/chunked/"*.ts | ffmpeg  -i pipe: -c:a copy -c:v copy "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
+	cat "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl/"*"/chunked/"*.ts | ffmpeg  -i pipe: -c:a copy -c:v copy "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
 	# Remove the temporary twitch-dl directory containing the .ts files
 	rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl"
 	# Count the number of columns within the VOD_DURATION variable
