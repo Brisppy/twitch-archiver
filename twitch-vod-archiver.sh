@@ -68,9 +68,8 @@ for VOD in $NEW_VODS; do
 	# Catch error downloading chat log based on last returned code
 	ret=$?
 	if [ $ret -ne 0 ]; then
-		echo "Error downloading chat log, removing the VOD folder, sending a notification and exiting..."
-		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
-		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
+		echo "Error downloading chat log. Sending a notification and exiting."
+		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE. Chat log download error." -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
 		exit 1
 	fi
 	# The method for downloading the actual VOD is quite convoluted in order to resolve an issue with VOD 864884048, a 28HR long VOD which when downloaded, never was the correct length.
@@ -80,10 +79,13 @@ for VOD in $NEW_VODS; do
 	# To resolve this, the .ts files are combined with ffmpeg using their numbered order rather than included start value or .m3u8 playlist.
 	# Download the VOD via twitch-dl
 	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download --no-join -q source $VOD
+	if [ $ret -ne 0 ]; then
+		echo "Error downloading VOD. Sending a notification and exiting."
+		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE. VOD download error." -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
+		exit 1
+	fi
 	# Combine the .ts files
-	cat "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl/"*"/chunked/"*.ts | ffmpeg  -i pipe: -c:a copy -c:v copy "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
-	# Remove the temporary twitch-dl directory containing the .ts files
-	rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl"
+	cat "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl/"*"/chunked/"*.ts | ffmpeg -y -i pipe: -c:a copy -c:v copy "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
 	# Count the number of columns within the VOD_DURATION variable
 	VOD_DURATION_SPLIT=$(echo $VOD_DURATION | sed 's/h/:/g' | sed 's/m/:/g' | sed 's/s//g')
 	VOD_DURATION_COLUMNS=$(echo $VOD_DURATION_SPLIT | tr ':' '\n' | wc -l)
@@ -102,12 +104,13 @@ for VOD in $NEW_VODS; do
 	# Compare the length of the VOD to the downloaded file
 	if [ "$DOWNLOADED_DURATION" -ge "$((VOD_DURATION_SECONDS - 3))" ] && [ "$DOWNLOADED_DURATION" -le "$((VOD_DURATION_SECONDS + 3))" ]; then
 		echo "Files are within 3 seconds."
+		# Remove the temporary twitch-dl directory containing the .ts files
+		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl"
 		# Add VOD to file to keep track of what has been downloaded
 		echo "$VOD" >> "$VOD_DIRECTORY/$CHANNEL/downloaded_vods"
 	else
-		echo "Files have different durations, removing the VOD folder, sending a notification and exiting..."
-		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE" -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
-		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
+		echo "Files have different durations. sending a notification and exiting."
+		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE. VOD duration mismatch." -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
 		exit 1
 	fi
 done
