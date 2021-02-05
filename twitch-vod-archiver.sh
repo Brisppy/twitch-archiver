@@ -58,13 +58,14 @@ for VOD in $NEW_VODS; do
 	VOD_NAME=$(echo $VOD_JSON | jq '.data[].title' | sed 's/"//g')
 	VOD_DATE=$(echo $VOD_JSON | jq '.data[].created_at' | sed 's/"//g')
 	VOD_DURATION=$(echo $VOD_JSON | jq '.data[].duration' | sed 's/"//g')
+	VOD_SUBDIR="$VOD_DIRECTORY/$CHANNEL/$VOD_DATE - $VOD_NAME - $VOD"
 	echo "VOD name is $VOD_NAME, created $VOD_DATE, and is $VOD_DURATION long."
 	# Create a directory for the VOD corresponding with its' id
-	mkdir -p "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME"
+	mkdir -p "$VOD_SUBDIR"
 	# Create a file containing the JSON and date.
-	echo "$VOD_JSON" > "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/vod.json"
+	echo "$VOD_JSON" > "$VOD_SUBDIR/vod.json"
 	# Download the chat logs for the VOD
-	tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/"
+	tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_SUBDIR/"
 	# Catch error downloading chat log based on last returned code
 	ret=$?
 	if [ $ret -ne 0 ]; then
@@ -78,14 +79,14 @@ for VOD in $NEW_VODS; do
 	# than the original VOD.
 	# To resolve this, the .ts files are combined with ffmpeg using their numbered order rather than included start value or .m3u8 playlist.
 	# Download the VOD via twitch-dl
-	TMP="$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME" twitch-dl download --no-join -q source $VOD
+	TMP="$VOD_SUBDIR" twitch-dl download --no-join -q source $VOD
 	if [ $ret -ne 0 ]; then
 		echo "Error downloading VOD. Sending a notification and exiting."
 		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE. VOD download error." -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
 		exit 1
 	fi
 	# Combine the .ts files
-	cat "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl/"*"/chunked/"*.ts | ffmpeg -y -i pipe: -c:a copy -c:v copy "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4"
+	cat "$VOD_SUBDIR/twitch-dl/"*"/chunked/"*.ts | ffmpeg -y -i pipe: -c:a copy -c:v copy "$VOD_SUBDIR/$VOD_NAME.mp4"
 	# Count the number of columns within the VOD_DURATION variable
 	VOD_DURATION_SPLIT=$(echo $VOD_DURATION | sed 's/h/:/g' | sed 's/m/:/g' | sed 's/s//g')
 	VOD_DURATION_COLUMNS=$(echo $VOD_DURATION_SPLIT | tr ':' '\n' | wc -l)
@@ -99,13 +100,13 @@ for VOD in $NEW_VODS; do
 	fi
 	echo "Duration in seconds of VOD is $VOD_DURATION_SECONDS"
 	# Get the length of the downloaded file
-	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/$VOD_NAME.mp4" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
+	DOWNLOADED_DURATION=$(ffprobe -i "$VOD_SUBDIR/$VOD_NAME.mp4" -show_format -v quiet | sed -n 's/duration=//p' | xargs printf %.0f)
 	echo "Expected duration is "$VOD_DURATION_SECONDS"s, downloaded duration is "$DOWNLOADED_DURATION"s"
 	# Compare the length of the VOD to the downloaded file
 	if [ "$DOWNLOADED_DURATION" -ge "$((VOD_DURATION_SECONDS - 3))" ] && [ "$DOWNLOADED_DURATION" -le "$((VOD_DURATION_SECONDS + 3))" ]; then
 		echo "Files are within 3 seconds."
 		# Remove the temporary twitch-dl directory containing the .ts files
-		rm -dr "$VOD_DIRECTORY/$CHANNEL/$VOD - $VOD_NAME/twitch-dl"
+		rm -dr "$VOD_SUBDIR/twitch-dl"
 		# Add VOD to file to keep track of what has been downloaded
 		echo "$VOD" >> "$VOD_DIRECTORY/$CHANNEL/downloaded_vods"
 	else
