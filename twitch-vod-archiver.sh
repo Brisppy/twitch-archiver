@@ -64,15 +64,32 @@ for VOD in $NEW_VODS; do
 	mkdir -p "$VOD_SUBDIR"
 	# Create a file containing the JSON and date.
 	echo "$VOD_JSON" > "$VOD_SUBDIR/vod.json"
-	# Download the chat logs for the VOD
-	tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_SUBDIR/"
-	# Catch error downloading chat log based on last returned code
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		echo "Error downloading chat log. Sending a notification and exiting."
-		[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE. Chat log download error." -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
-		exit 1
-	fi
+	# Chat downloader with retry function
+	ATTEMPT=0
+	while true; do
+		# Track attempt number and exit if it exceeds the maximum (5)
+		ATTEMPT=$((ATTEMPT+1))
+		if [ $ATTEMPT -gt 5 ]; then
+			echo "Error downloading chat log. Sending a notification and exiting."
+			[ $SEND_PUSHBULLET -eq 1 ] && curl -u $PUSHBULLET_KEY: -d type="note" -d body="Error archiving Twitch VOD $VOD from $CHANNEL on $VOD_DATE. Chat log download error." -d title="Twitch VOD Archiver Error" 'https://api.pushbullet.com/v2/pushes'
+			exit 1
+		fi
+		# Download the chat logs for the VOD
+		tcd --video $VOD --format irc --client-id $APP_CLIENT_ID --client-secret $APP_CLIENT_SECRET --output "$VOD_SUBDIR/"
+		# Catch error downloading chat log based on last returned code
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			echo "Chat log failed to download, retrying..."
+			# Remove the chat log if present
+			rm -f "$VOD_SUBDIR/$VOD.log"
+			sleep 10
+			continue
+		else
+			# Chat log downloaded successfully, move onto video
+			echo "Chat log downloaded successfully."
+			break
+		fi
+	done
 	# The method for downloading the actual VOD is quite convoluted in order to resolve an issue with VOD 864884048, a 28HR long VOD which when downloaded, never was the correct length.
 	# For some reason the downloaded .ts files have incorrect timestamps, with piece 09531.ts having a 'start' value of 95376.766, and the following piece (09532.ts) having a 
 	# 'start' value of -56.951689. When combining all of the pieces this produces an error (non-monotonous dts in output stream), resulting in an output file with a shorter duration
