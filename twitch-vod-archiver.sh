@@ -32,8 +32,23 @@ CHANNEL=$1 # Channel name
 USER_ID=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET https://api.twitch.tv/helix/users?login=$CHANNEL | jq '.data[].id' | sed 's/"//g')
 echo "User $CHANNEL ID is $USER_ID"
 
+# Check if the channel is currently live to determine what to do with the currently live VOD.
+if [ -z $(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET "https://api.twitch.tv/helix/streams?user_id=$USER_ID" | jq '.data[].id') ]; then
+	echo "Channel is currently offline."
+	CHANNEL_LIVE=false
+else
+	echo "Channel is currently live. Assuming the highest numbered VOD is still being generated and ignoring."
+	CHANNEL_LIVE=true
+fi
+
 # Return a list of available VODs from $CHANNEL
 AVAILABLE_VODS=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET "https://api.twitch.tv/helix/videos?user_id=$USER_ID&first=100&type=archive" | jq '.data[].id' | sed 's/"//g' | sed 's/ /\n/g')
+
+# If channel is live, remove the highest numbered VOD (Top of the list.)
+if $CHANNEL_LIVE; then
+	AVAILABLE_VODS=$(echo "$AVAILABLE_VODS" | tail -n +2)
+fi
+
 # Return a list of downloaded VODs
 DOWNLOADED_VODS=$(cat $VOD_DIRECTORY/$CHANNEL/downloaded_vods)
 echo "Available VODS:"
