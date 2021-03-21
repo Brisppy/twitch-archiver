@@ -70,7 +70,7 @@ for VOD in $NEW_VODS; do
 	echo "Current VOD: $VOD"
 	# Get the name of the stream
 	VOD_JSON=$(curl -s -H "Authorization: Bearer $OAUTH_TOKEN" -H "Client-Id: $CLIENT_ID" -X GET https://api.twitch.tv/helix/videos?id=$VOD)
-	VOD_NAME=$(echo $VOD_JSON | jq '.data[].title' | sed 's/"//g')
+	VOD_NAME=$(echo $VOD_JSON | jq '.data[].title' | sed 's/"//g' | sed -e 's/[^A-Za-z0-9._-]/_/g')
 	VOD_DATE=$(echo $VOD_JSON | jq '.data[].created_at' | sed 's/"//g')
 	VOD_DURATION=$(echo $VOD_JSON | jq '.data[].duration' | sed 's/"//g')
 	VOD_SUBDIR="$VOD_DIRECTORY/$CHANNEL/$VOD_DATE - $VOD_NAME - $VOD"
