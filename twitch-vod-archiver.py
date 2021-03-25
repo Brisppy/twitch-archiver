@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # A Python script for archiving Twitch VODs along with their corresponding chat logs.
-# Variables MUST be set within thje 'variables.py' file before use.
+# Variables MUST be set within the 'variables.py' file before use.
 
 # ARGUMENTS:
 # 1: Channel name (e.g Brisppy)
@@ -55,7 +55,7 @@ def CallTwitch(api_path):
 
 
 # This function is used to retrieve the chat logs for a particular VOD.
-# Takes VOD_INFO, APPCLIENT_ID, APP_CLIENT_SECRET and VOD_SUBDIR
+# Takes VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET and VOD_SUBDIR
 def RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR):
 	ATTEMPT = 0
 	while True:
@@ -78,7 +78,7 @@ def RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR):
 			return
 
 
-# This function is ued to retrieve the actual video files for the VOD and combine them.
+# This function is used to retrieve the actual video files for the VOD and combine them.
 # Takes VOD_INFO, VOD_SUBDIR and VOD_NAME.
 def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME):
 	# This must be set to choose where the VOD is downloaded to before merging
