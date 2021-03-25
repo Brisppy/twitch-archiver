@@ -3,6 +3,7 @@ A script for archiving past Twitch VODs as well as the corresponding chat log.
 
 Now rewritten in Python 3, allowing the script to work on MOST platforms.
 This is the first time I've fully rewritten a script in another language, there may be small issues so please let me know if you have any problems.
+Some filenames MAY have changed (Spaces are tolerated again in VOD names again), and sqlite3 is now used to store information about downloaded VODs.
 
 # Requirements
 * **Python 3.8**
