@@ -1,11 +1,13 @@
 ﻿# twitch-vod-archiver
 A script for archiving past Twitch VODs as well as the corresponding chat log.
+Now rewritten in Python 3, allowing the script to work on MOST platforms.
+This is the first time I've fully rewritten a script in another language, there may be small issues so please let me know if you encounter any issues.
 
 # Requirements
 * **Python 3.8**
-* **[ffmpeg](https://ffmpeg.org/)**
-* **[tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader)** (pip3 install tcd)
-* **[twitch-dl](https://github.com/ihabunek/twitch-dl)** (pip3 install twitch-dl)
+* **[ffmpeg](https://ffmpeg.org/)** (Must be accessible via PATH)
+* **[tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader)** (python -m pip install tcd) (Must be accessible via PATH)
+* **[twitch-dl](https://github.com/ihabunek/twitch-dl)** (python -m pip install twitch-dl) (Must be accessible via PATH)
 
 # Installation
 Clone the repository
@@ -18,14 +20,14 @@ Modify the variables in twitch-vod-archiver.sh
 |```OAUTH_TOKEN```|Twitch account OAuth token - A method for retrieving this is shown below (See Retrieving Tokens).
 |```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv.
 |```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv.
-|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Do NOT end with a slash(/)**.
-|```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure.
+|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **End with TWO backslashes on Windows (e.g 'Z:\\').**
+|```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure. **Do not surround with quotes.**
 |```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
 
 # Usage
 Run the script, supplying the channel name. I use a crontab entry to run it nightly to grab any new VODs.
 
-```./twitch-vod-archiver.sh brisppy```
+```python ./twitch-vod-archiver.py Brisppy```
 
 # Retrieving Tokens
 ### To retrieve your CLIENT_ID and OAUTH_TOKEN:
@@ -52,3 +54,6 @@ For some reason the some of the downloaded .ts files have incorrect timestamps, 
 
 # TODO
 * Swap tokens / client ID to the dev.twitch.tv application variant. Would require token creation / refreshing.
+
+# Limitations
+Only the 100 most recent VODs are retrieved - this can be fixed but wasn't necessary for my us case - I can add it if required though.
