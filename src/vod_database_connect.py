@@ -1,4 +1,5 @@
 # This file contains functions pertaining to the sqlite3 database used to store downloaded VOD information.
+import sys
 import sqlite3
 from sqlite3 import Error
 
@@ -24,9 +25,10 @@ def ExecuteQuery(connection, query, data=False):
             cursor.execute(query)
         connection.commit()
         print('INFO: SQLite query successful.')
+        return
     except Error as e:
         print('ERROR: SQLite query failed:', e)
-
+        return 1
 
 # This function is used to read data from the database.
 def ExecuteReadQuery(connection, query):
