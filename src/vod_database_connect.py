@@ -15,10 +15,13 @@ def CreateConnection(path):
 
 
 # This function is used to execute commands against the database.
-def ExecuteQuery(connection, query):
+def ExecuteQuery(connection, query, data=False):
     cursor = connection.cursor()
     try:
-        cursor.execute(query)
+        if data:
+            cursor.execute(query, data)
+        else:
+            cursor.execute(query)
         connection.commit()
         print('INFO: SQLite query successful.')
     except Error as e:
@@ -54,6 +57,8 @@ CREATE TABLE IF NOT EXISTS vods (
   view_count INTEGER,
   language TEXT,
   type TEXT,
-  duration TEXT
+  duration TEXT,
+  vod_subdirectory TEXT,
+  vod_title TEXT
 );
 """
