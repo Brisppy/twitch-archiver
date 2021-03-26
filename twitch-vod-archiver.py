@@ -245,7 +245,7 @@ def main():
 		# First we download the chat logs
 		RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR)
 		# Then we grab the video
-		#RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['data'][0]['title'])
+		RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['data'][0]['title'])
 		# Now we make sure the VOD length is within 2 seconds
 		VerifyVODLength(VOD_INFO, VOD_INFO['data'][0]['title'], VOD_SUBDIR)
 		# If we've made it to this point, all files have been downloaded and the VOD can be added to the database.
