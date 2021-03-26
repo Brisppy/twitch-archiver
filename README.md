@@ -59,12 +59,6 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 3. The provided Client ID is used as the APP_CLIENT_ID variable
 4. The provided Client Secret is used as the APP_CLIENT_SECRET
 
-# Download method
-Streamlink was originally used for downloading the VODs, but doesn't give much control over how the pieces are combined. Instead twitch-dl is used with the --no-join argument to allow the script to do the joining of the downloaded pieces in order to solve the issue outlined below.
-
-The method for downloading the actual VOD is quite convoluted in order to resolve an issue with VOD 864884048, a 28HR long VOD which when downloaded, never was the correct length. 
-For some reason the some of the downloaded .ts files have incorrect timestamps, with piece 09531.ts having a 'start' value of 95376.766, and the following piece (09532.ts) having a 'start' value of -56.951689. When combining all of the pieces this produces an error (non-monotonous dts in output stream), resulting in an output file with a shorter duration than the original VOD. To resolve this, the .ts files are combined with ffmpeg using their numbered order rather than included start value or .m3u8 playlist.
-
 # Extra Info
 ### How does the script work?
 1. Upon being run, the script imports various Python modules, along with the 'variables.py' and 'src/vod_database_connect.py' files.
@@ -74,7 +68,7 @@ For some reason the some of the downloaded .ts files have incorrect timestamps, 
 5. We then get a list of VODs from the Channel via the Twitch API, and compare them with the downloaded VODs acquired from the sqlite database, adding NEW VODs to a queue.
 6. Now we process each VOD in the VOD queue, first retrieving the chat via twitch-chat-downloader, then the video via twitch-dl.
 7. After downloading the actual video files (Currently in the .ts format), we must combine them with ffmpeg.
-8. After combining the .ts files into a single .mp4, we check the video length against the expecetd length retrieved from the Twitch API.
+8. After combining the .ts files into a single .mp4, we check the video length against the expected length retrieved from the Twitch API.
 9. If the video length matches, we delete any temporary files, add the VOD information to the database and move onto the next VOD.
 
 ### How are the files stored?
@@ -95,6 +89,12 @@ Downloaded files are stored under one large directory which you provide in 'vari
                                  │         └─ VOD.mp4
                                  │
                                  └─ vod_db.sqlite
+
+### Download method
+Streamlink was originally used for downloading the VODs, but doesn't give much control over how the pieces are combined. Instead twitch-dl is used with the --no-join argument to allow the script to do the joining of the downloaded pieces in order to solve the issue outlined below.
+
+The method for downloading the actual VOD is quite convoluted in order to resolve an issue with VOD 864884048, a 28HR long VOD which when downloaded, never was the correct length. 
+For some reason the some of the downloaded .ts files have incorrect timestamps, with piece 09531.ts having a 'start' value of 95376.766, and the following piece (09532.ts) having a 'start' value of -56.951689. When combining all of the pieces this produces an error (non-monotonous dts in output stream), resulting in an output file with a shorter duration than the original VOD. To resolve this, the .ts files are combined with ffmpeg using their numbered order rather than included start value or .m3u8 playlist.
 
 # Limitations
 * Only the 100 most recent VODs are retrieved - this can be fixed but wasn't necessary for my us case - I can add it if required though.
