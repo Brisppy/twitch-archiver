@@ -15,6 +15,7 @@ import requests
 import shutil
 import glob
 import json
+import copy
 import sys
 import os
 import re
@@ -45,9 +46,6 @@ def CallTwitch(api_path):
 			print('ERROR: Status code ' + r.status_code + ' received from Twitch.')
 			print('ERROR:', r.text)
 			sys.exit(1)
-		# if not r.text:
-		# 	print('ERROR: No information was returned from twitch.')
-		# 	sys.exit(1)
 	except requests.exceptions.RequestException as e:
 		print('ERROR:', e)
 		sys.exit(1)
@@ -71,7 +69,6 @@ def RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR):
 		# Check if tcd returned an error
 		if p.returncode:
 			print('ERROR: twitch-chat-downloader exited with error.')
-			print('ERROR:', p.stdout)
 			continue
 		else:
 			print('INFO: Chat downloaded successfully.')
@@ -109,7 +106,6 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME):
 	# Catch any non-zero exit code
 	if p.returncode:
 		print('ERROR: VOD combining exited with error.')
-		print('ERROR:', p.stdout)
 		if SEND_PUSHBULLET:
 			SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Error Combining .ts Files.')
 		sys.exit(1)
@@ -135,13 +131,22 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
 	p = subprocess.run('ffprobe -i ' + '"' + str(Path(VOD_SUBDIR, VOD_NAME + '.mp4')) + '"' + ' -v quiet -show_entries \
 					   format=duration -of default=noprint_wrappers=1:nokey=1', shell=True, capture_output=True)
 	# The output must be converted to a string, trailing newline removed, then float, then int...
-	DOWNLOADED_VOD_LENGTH = int(float(p.stdout.decode('ascii').rstrip()))
+	try:
+		DOWNLOADED_VOD_LENGTH = int(float(p.stdout.decode('ascii').rstrip()))
+	except BaseException as e:
+		print('ERROR: Failed to fetch downloaded VOD length. VOD may not have downloaded correctly.')
+		print('ERROR:', e)
+		sys.exit(1)
 	print('INFO: Downloaded VOD length is ' + str(DOWNLOADED_VOD_LENGTH) + 's. Expected length is ' \
 		  + str(VOD_DURATION_SECONDS) + 's.')
 	# Check if downloaded VOD is within 10 seconds of the reported VOD length.
 	if DOWNLOADED_VOD_LENGTH > (VOD_DURATION_SECONDS - 10) and DOWNLOADED_VOD_LENGTH < (VOD_DURATION_SECONDS + 10):
 		print('INFO: Downloaded VOD duration within 10 seconds of reported duration.')
-		shutil.rmtree(Path(VOD_SUBDIR, 'twitch-dl'))
+		try:
+			shutil.rmtree(Path(VOD_SUBDIR, 'twitch-dl'))
+		except BaseException as e:
+			print('ERROR: Failed to delete temporary twitch-dl directory.')
+			print('ERROR:', e)
 		return
 	else:
 		print('ERROR: Downloaded VOD duration not within 10 seconds of reported duration.')
@@ -222,42 +227,38 @@ def main():
 	for vod_id in VOD_QUEUE:
 		print('INFO: Retrieving VOD:', vod_id)
 		VOD_INFO = CallTwitch('videos?id=' + str(vod_id))
+		RAW_VOD_INFO = copy.deepcopy(VOD_INFO)
 		# Sanitize the dates
 		VOD_INFO['data'][0]['created_at'] = VOD_INFO['data'][0]['created_at'].replace(':', '_')
 		VOD_INFO['data'][0]['published_at'] = VOD_INFO['data'][0]['published_at'].replace(':', '_')
 		# Sanitize the VOD name - I'm not great with regex, but this works so... ¯\_(ツ)_/¯
-		VOD_NAME = re.sub('[^A-Za-z0-9.,_\-\(\)\[\] ]', '_', VOD_INFO['data'][0]['title'])
+		VOD_INFO['data'][0]['title'] = re.sub('[^A-Za-z0-9.,_\-\(\)\[\] ]', '_', VOD_INFO['data'][0]['title'])
 		# Sanitize the VOD descripton
 		VOD_INFO['data'][0]['description'] = re.sub('[^A-Za-z0-9.,_\-\(\)\[\] ]', '_', VOD_INFO['data'][0]
 																							   ['description'])
 		# Create a directory for the VOD.
-		VOD_SUBDIR = Path(VOD_DIRECTORY, CHANNEL, VOD_INFO['data'][0]['created_at'] + ' - ' + VOD_NAME + ' - ' +
-						  str(vod_id))
+		VOD_SUBDIR = Path(VOD_DIRECTORY, CHANNEL, VOD_INFO['data'][0]['created_at'] + ' - ' + 
+												  VOD_INFO['data'][0]['title'] + ' - ' + str(vod_id))
 		if not os.path.isdir(Path(VOD_SUBDIR)):
 			print('INFO: Creating individual VOD directory.')
 			os.mkdir(Path(VOD_SUBDIR))
 		# First we download the chat logs
 		RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR)
 		# Then we grab the video
-		RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME)
+		#RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['data'][0]['title'])
 		# Now we make sure the VOD length is within 2 seconds
-		VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR)
+		VerifyVODLength(VOD_INFO, VOD_INFO['data'][0]['title'], VOD_SUBDIR)
 		# If we've made it to this point, all files have been downloaded and the VOD can be added to the database.
+		RAW_VOD_INFO['data'][0]['vod_subdirectory'] = VOD_INFO['data'][0]['created_at'] + ' - ' + \
+													  VOD_INFO['data'][0]['title'] + ' - ' + str(vod_id)
+		RAW_VOD_INFO['data'][0]['vod_title'] = VOD_INFO['data'][0]['title'] + '.mp4'
 		create_vod = """
 		INSERT INTO
 		vods (id, user_id, user_login, user_name, title, description, created_at, published_at, url, thumbnail_url, 
-				viewable, view_count, language, type, duration)
+				viewable, view_count, language, type, duration, vod_subdirectory, vod_title)
 		VALUES
-		({0}, {1}, '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{10}', {11}, '{12}', '{13}', '{14}');
+		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 		"""
-		create_vod = create_vod.format(VOD_INFO['data'][0]['id'], VOD_INFO['data'][0]['user_id'],
-										VOD_INFO['data'][0]['user_login'], VOD_INFO['data'][0]['user_name'], 
-										VOD_INFO['data'][0]['title'], VOD_INFO['data'][0]['description'], 
-										VOD_INFO['data'][0]['created_at'], VOD_INFO['data'][0]['published_at'], 
-										VOD_INFO['data'][0]['url'], VOD_INFO['data'][0]['thumbnail_url'], 
-										VOD_INFO['data'][0]['viewable'], VOD_INFO['data'][0]['view_count'], 
-										VOD_INFO['data'][0]['language'], VOD_INFO['data'][0]['type'], 
-										VOD_INFO['data'][0]['duration'])
-		ExecuteQuery(connection, create_vod)
+		ExecuteQuery(connection, create_vod, list(RAW_VOD_INFO['data'][0].values()))
 
 main()
