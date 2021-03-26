@@ -1,6 +1,9 @@
 ﻿# twitch-vod-archiver
 A script for archiving past Twitch VODs as well as the corresponding chat log.
 
+# NOTE
+This version of twitch-vod-archiver IS NOT and WILL NOT be updated - it is only here for preservation and NOT recommended to be run. The 'master' branch contains various improvement and is the recommended version to use.
+
 # Requirements
 * **Python 3.8**
 * **[ffmpeg](https://ffmpeg.org/)**
