@@ -139,9 +139,11 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
         sys.exit(1)
     print('INFO: Downloaded VOD length is ' + str(DOWNLOADED_VOD_LENGTH) + 's. Expected length is ' \
           + str(VOD_DURATION_SECONDS) + 's.')
-    # Check if downloaded VOD is within 10 seconds of the reported VOD length.
-    if DOWNLOADED_VOD_LENGTH > (VOD_DURATION_SECONDS - 10) and DOWNLOADED_VOD_LENGTH < (VOD_DURATION_SECONDS + 10):
-        print('INFO: Downloaded VOD duration within 10 seconds of reported duration.')
+    # Check if downloaded VOD is not shorter than the reported VOD length.
+    # It seems that using CONCAT to merge the ts files results in ffmpeg errors about Non-monotonous audio output
+    # This results in a timestamp LONGER than what is advertised by twitch which seems to be fine.
+    if DOWNLOADED_VOD_LENGTH > (VOD_DURATION_SECONDS - 2):
+        print('INFO: Downloaded VOD duration no shorter than 2 seconds of reported duration.')
         try:
             shutil.rmtree(Path(VOD_SUBDIR, 'twitch-dl'))
         except BaseException as e:
@@ -149,7 +151,7 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
             print('ERROR:', e)
         return
     else:
-        print('ERROR: Downloaded VOD duration not within 10 seconds of reported duration.')
+        print('ERROR: Downloaded VOD duration not within 2 seconds of reported duration.')
         # Remove the .mp4
         os.remove(Path(VOD_SUBDIR, VOD_NAME + '.mp4'))
         if SEND_PUSHBULLET:
