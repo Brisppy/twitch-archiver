@@ -259,6 +259,13 @@ def main():
 		VALUES
 		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 		"""
-		ExecuteQuery(connection, create_vod, list(RAW_VOD_INFO['data'][0].values()))
-
+		if ExecuteQuery(connection, create_vod, list(RAW_VOD_INFO['data'][0].values())):
+			print('ERROR: Failed to add VOD information to database.')
+			if SEND_PUSHBULLET:
+				SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Downloaded VOD duration not within 10 seconds of reported \
+													      duration.')
+			sys.exit(1)
+		else:
+			print('INFO: VOD ' + VOD_INFO['data'][0]['id'] + ' successfully downloaded.')
+			
 main()
