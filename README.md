@@ -80,19 +80,19 @@ For some reason the some of the downloaded .ts files have incorrect timestamps, 
 ### How are the files stored?
 Downloaded files are stored under one large directory which you provide in 'variables.py' (VOD_DIRECTORY).
 
-    VOD_DIRECTORY ─┬─ CHANNEL#1 ─┬─ VOD#1 ─── CHAT.log
-                   │             │            VOD.mp4
+    VOD_DIRECTORY ─┬─ CHANNEL#1 ─┬─ VOD#1 ─┬─ CHAT.log
+                   │             │         └─ VOD.mp4
                    │             │
-                   │             ├─ VOD#2 ─── CHAT.log
-                   │             │            VOD.mp4
+                   │             ├─ VOD#2 ─┬─ CHAT.log
+                   │             │         └─ VOD.mp4
                    │             │
                    │             └─ vod_db.sqlite
                    │
-                   └─ CHANNEL#2 ─┬─ VOD#1 ─── CHAT.log
-                                 │            VOD.mp4
+                   └─ CHANNEL#2 ─┬─ VOD#1 ─┬─ CHAT.log
+                                 │         └─ VOD.mp4
                                  │
-                                 ├─ VOD#2 ─── CHAT.log
-                                 │            VOD.mp4
+                                 ├─ VOD#2 ─┬─ CHAT.log
+                                 │         └─ VOD.mp4
                                  │
                                  └─ vod_db.sqlite
 
