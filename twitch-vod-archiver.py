@@ -185,7 +185,7 @@ def main():
     USER_ID = CallTwitch('users?login=' + CHANNEL)['data'][0]['id']
     print('INFO: User ' + CHANNEL +' ID is ' + USER_ID + '.')
     # Check if the channel is currently live - if so we must ignore the most recent VOD as it is still being added to.
-    CHANNEL_STATUS = CallTwitch('streams?user_id=' + CHANNEL)
+    CHANNEL_STATUS = CallTwitch('streams?user_id=' + USER_ID)
     if CHANNEL_STATUS['data']:
         if CHANNEL_STATUS['data'][0]['type'] == 'live':
             print('INFO: Channel is currently live. Assuming the highest numbered VOD is still being generated and \
@@ -206,7 +206,7 @@ def main():
     print('INFO: Available VODs:', AVAILABLE_VODS)
     # Remove highest numbered VOD is channel is currently live
     if CHANNEL_LIVE:
-        AVAILABLE_VODS.remove(max(AVAIL_VODS))
+        AVAILABLE_VODS.remove(max(AVAILABLE_VODS))
     # Retrieve currently downloaded VODs from VOD database
     select_vods = 'SELECT * from vods'
     DOWN_VODS = ExecuteReadQuery(connection, select_vods)
