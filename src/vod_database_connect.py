@@ -1,5 +1,4 @@
 # This file contains functions pertaining to the sqlite3 database used to store downloaded VOD information.
-import sys
 import sqlite3
 from sqlite3 import Error
 
