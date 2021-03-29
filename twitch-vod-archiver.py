@@ -112,7 +112,11 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME):
     else:
         print('INFO: VOD combined successfully.')
     # Delete the temporary tsfile.txt file
-    os.remove(Path(VOD_SUBDIR, 'tsfile.txt'))
+    try:
+        os.remove(Path(VOD_SUBDIR, 'tsfile.txt'))
+    except BaseException as e:
+        print('ERROR: Failed to delete temporary tsfile.txt.')
+        print('ERROR:', e)
     return
 
 
@@ -151,7 +155,7 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
             print('ERROR:', e)
         return
     else:
-        print('ERROR: Downloaded VOD duration not within 2 seconds of reported duration.')
+        print('ERROR: Downloaded VOD duration not within 2 seconds of expected duration.')
         # Remove the .mp4
         os.remove(Path(VOD_SUBDIR, VOD_NAME + '.mp4'))
         if SEND_PUSHBULLET:
@@ -169,6 +173,7 @@ def SendPushbullet(PUSHBULLET_KEY, VOD_INFO, ERROR):
     headers = {"content-type": "application/json", "Authorization": 'Bearer '+token}
     data_send = {"type": "note", "title": 'Error Archiving Twitch VOD ' + VOD_INFO['data'][0]['id'], "body": ERROR}
     _r = requests.post(url, headers=headers, data=json.dumps(data_send))
+
 
 # This is the main function used for retrieving VOD information.
 def main():
@@ -264,10 +269,9 @@ def main():
         if ExecuteQuery(connection, create_vod, list(RAW_VOD_INFO['data'][0].values())):
             print('ERROR: Failed to add VOD information to database.')
             if SEND_PUSHBULLET:
-                SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Downloaded VOD duration not within 10 seconds of reported \
-                                                          duration.')
+                SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database.')
             sys.exit(1)
         else:
             print('INFO: VOD ' + VOD_INFO['data'][0]['id'] + ' successfully downloaded.')
-            
+
 main()
