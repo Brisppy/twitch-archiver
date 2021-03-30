@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # A Python script for archiving Twitch VODs along with their corresponding chat logs.
+# Created by https://github.com/Brisppy
 # Variables MUST be set within the 'variables.py' file before use.
 
 # ARGUMENTS:
@@ -65,7 +66,8 @@ def RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR):
             sys.exit(1)
         # Call twitch-chat-downloader
         p = subprocess.run('tcd --video ' + VOD_INFO['data'][0]['id'] + ' --format irc --client-id ' + APP_CLIENT_ID + 
-            ' --client-secret ' + APP_CLIENT_SECRET + ' --output ' + '"' + str(VOD_SUBDIR) + '"', shell=True)
+                           ' --client-secret ' + APP_CLIENT_SECRET + ' --output ' + '"' + str(VOD_SUBDIR) + '"',
+                           shell=True)
         # Check if tcd returned an error
         if p.returncode:
             print('ERROR: twitch-chat-downloader exited with error.')
@@ -94,15 +96,18 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME):
         print('INFO: VOD download successful.')
     # Create a list containing all VOD .ts files - requires glob as the pathnames are difficult to decipher, and so
     # a wildcard is the preferred choice.
-    VOD_PARTS = [Path(p) for p in glob.glob(str(VOD_SUBDIR) + '/twitch-dl/*/chunked/*.ts')]
+    VOD_PARTS = [Path(p) for p in sorted(glob.glob(str(VOD_SUBDIR) + '/twitch-dl/*/chunked/*.ts'))]
     # Create a file with the list of .ts files for ffmpeg to concat
     with open(Path(VOD_SUBDIR, 'tsfile.txt'), mode='wt', encoding='utf-8') as tsfile:
         for part in VOD_PARTS:
             # We append 'file' as its required by ffmpeg...
             tsfile.write("file " + "'" + str(part) + "'" + "\n")
-    # Combine the TS files with ffmpeg
-    p = subprocess.run('ffmpeg -y -f concat -safe 0 -i ' + '"' + str(Path(VOD_SUBDIR, 'tsfile.txt')) + '"' + 
-                       ' -c:a copy -c:v copy ' + '"' + str(Path(VOD_SUBDIR, VOD_NAME + '.mp4')) + '"', shell=True)
+    # Combine the TS files with ffmpeg into a single .ts file
+    p = subprocess.run('ffmpeg -y -safe 0 -f concat -i ' + '"' + str(Path(VOD_SUBDIR, 'tsfile.txt')) + '"' + 
+                       ' -c copy ' + '"' + str(Path(VOD_SUBDIR, 'temp.ts')) + '"', shell=True)
+    # Remux the combined .ts file into a .mp4 file
+    p = subprocess.run('ffmpeg -y -i ' + '"' + str(Path(VOD_SUBDIR, 'temp.ts')) + '"' + ' -map 0 -c copy ' + '"' +
+                       str(Path(VOD_SUBDIR, VOD_NAME + '.mp4')) + '"', shell=True)
     # Catch any non-zero exit code
     if p.returncode:
         print('ERROR: VOD combining exited with error.')
@@ -111,11 +116,12 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME):
         sys.exit(1)
     else:
         print('INFO: VOD combined successfully.')
-    # Delete the temporary tsfile.txt file
+    # Delete the temporary tsfile.txt file and temp.ts file
     try:
         os.remove(Path(VOD_SUBDIR, 'tsfile.txt'))
+        os.remove(Path(VOD_SUBDIR, 'temp.ts'))
     except BaseException as e:
-        print('ERROR: Failed to delete temporary tsfile.txt.')
+        print('ERROR: Failed to delete temporary file.')
         print('ERROR:', e)
     return
 
@@ -132,8 +138,9 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
     elif len(VOD_LENGTH) == 3:
         VOD_DURATION_SECONDS = (int(VOD_LENGTH[0]) * 3600) + (int(VOD_LENGTH[1]) * 60) + int(VOD_LENGTH[2])
     # Retrieve the duration of the downloaded VOD
-    p = subprocess.run('ffprobe -i ' + '"' + str(Path(VOD_SUBDIR, VOD_NAME + '.mp4')) + '"' + ' -v quiet -show_entries \
-                       format=duration -of default=noprint_wrappers=1:nokey=1', shell=True, capture_output=True)
+    p = subprocess.run('ffprobe -i ' + '"' + str(Path(VOD_SUBDIR, VOD_NAME + '.mp4')) + '"' +
+                       ' -v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1', 
+                       shell=True, capture_output=True)
     # The output must be converted to a string, trailing newline removed, then float, then int...
     try:
         DOWNLOADED_VOD_LENGTH = int(float(p.stdout.decode('ascii').rstrip()))
@@ -141,13 +148,25 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
         print('ERROR: Failed to fetch downloaded VOD length. VOD may not have downloaded correctly.')
         print('ERROR:', e)
         sys.exit(1)
-    print('INFO: Downloaded VOD length is ' + str(DOWNLOADED_VOD_LENGTH) + 's. Expected length is ' \
-          + str(VOD_DURATION_SECONDS) + 's.')
+    print('INFO: Downloaded VOD length is ' + str(DOWNLOADED_VOD_LENGTH) + 's. Expected length is ' +
+          str(VOD_DURATION_SECONDS) + 's.')
     # Check if downloaded VOD is not shorter than the reported VOD length.
-    # It seems that using CONCAT to merge the ts files results in ffmpeg errors about Non-monotonous audio output
-    # This results in a timestamp LONGER than what is advertised by twitch which seems to be fine.
-    if DOWNLOADED_VOD_LENGTH > (VOD_DURATION_SECONDS - 2):
-        print('INFO: Downloaded VOD duration no shorter than 2 seconds of reported duration.')
+    # It seems that using CONCAT to merge the ts files results in files with a in a timestamp LONGER than what is
+    # advertised by twitch, which SEEMS to be fine. We will ignore if the file is longer than expected, but notify
+    # if shorter (and leave the TEMPORARY twitch-dl directory alone), as this can either be atrributed to an error with
+    # ffmpeg, OR an error on Twitch's side, as SOME VODs are shorter than displayed on Twitch...
+    if DOWNLOADED_VOD_LENGTH >= VOD_DURATION_SECONDS:
+        print('INFO: Downloaded VOD duration is equal to or greater than expected.')
+        # Remove temporary directory
+        try:
+            shutil.rmtree(Path(VOD_SUBDIR, 'twitch-dl'))
+        except BaseException as e:
+            print('ERROR: Failed to delete temporary twitch-dl directory.')
+            print('ERROR:', e)
+        return
+    elif os.path.isfile(Path(VOD_SUBDIR, '.ignorelength')):
+        print('INFO: Downloaded VOD duration less than expected duration, but ".ignorelength" file found.')
+        # Remove temporary directory
         try:
             shutil.rmtree(Path(VOD_SUBDIR, 'twitch-dl'))
         except BaseException as e:
@@ -155,12 +174,9 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
             print('ERROR:', e)
         return
     else:
-        print('ERROR: Downloaded VOD duration not within 2 seconds of expected duration.')
-        # Remove the .mp4
-        os.remove(Path(VOD_SUBDIR, VOD_NAME + '.mp4'))
+        print('ERROR: Downloaded VOD duration less than expected duration.')
         if SEND_PUSHBULLET:
-            SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Downloaded VOD duration not within 10 seconds of reported \
-                                                      duration.')
+            SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Downloaded VOD duration shorter than expected.')
         sys.exit(1)
 
 
@@ -171,7 +187,8 @@ def SendPushbullet(PUSHBULLET_KEY, VOD_INFO, ERROR):
     token = PUSHBULLET_KEY
     url = "https://api.pushbullet.com/v2/pushes"
     headers = {"content-type": "application/json", "Authorization": 'Bearer '+token}
-    data_send = {"type": "note", "title": 'Error Archiving Twitch VOD ' + VOD_INFO['data'][0]['id'], "body": ERROR}
+    data_send = {"type": "note", "title": 'Error Archiving Twitch VOD ' + VOD_INFO['data'][0]['id'] + ' by ' +
+                 VOD_INFO['data'][0]['user_name'], "body": ERROR}
     _r = requests.post(url, headers=headers, data=json.dumps(data_send))
 
 
@@ -196,7 +213,7 @@ def main():
     if CHANNEL_STATUS['data']:
         if CHANNEL_STATUS['data'][0]['type'] == 'live':
             print('INFO: Channel is currently live. Assuming the highest numbered VOD is still being generated and \
-                ignoring.')
+                  ignoring.')
             CHANNEL_LIVE = True
         else:
             print('INFO: Channel is live, but may not be streaming (And creating a VOD).')
@@ -244,8 +261,8 @@ def main():
         VOD_INFO['data'][0]['description'] = re.sub('[^A-Za-z0-9.,_\-\(\)\[\] ]', '_', VOD_INFO['data'][0]
                                                                                                ['description'])
         # Create a directory for the VOD.
-        VOD_SUBDIR = Path(VOD_DIRECTORY, CHANNEL, VOD_INFO['data'][0]['created_at'] + ' - ' + 
-                                                  VOD_INFO['data'][0]['title'] + ' - ' + str(vod_id))
+        VOD_SUBDIR = Path(VOD_DIRECTORY, VOD_INFO['data'][0]['user_name'], VOD_INFO['data'][0]['created_at'] + ' - ' + 
+                                         VOD_INFO['data'][0]['title'] + ' - ' + str(vod_id))
         if not os.path.isdir(Path(VOD_SUBDIR)):
             print('INFO: Creating individual VOD directory.')
             os.mkdir(Path(VOD_SUBDIR))
