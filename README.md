@@ -1,14 +1,16 @@
 ﻿# 📁 Twitch Vod Archiver 📁
 A python script for archiving past Twitch VODs along with their corresponding chat logs for an entire Twitch channel.
-Chat logs are grabbed with [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl), before being remuxed with [ffmpeg](https://ffmpeg.org/).
+
+Chat logs are grabbed with [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/).
+
+VODs can be downloaded effectively as fast as your Internet speed can handle (Check the Notes to see how).
 
 My recommendation is to run this script on a schedule, allowing it to grab new VODs on a regular basis.
-
 
 ## Recent Changes
 ### **IMPORTANT (2021-03-30)**
 
-A large flaw in the code slipped past me, causing VODs downloaded with the Python version of the script to be a jumbled mess of various segments of the VODs. Sadly there isn't really a way of recovering the VOD, short of re-downloading it. This is an important lesson for me, and I'm sorry that I didn't catch this. I will be testing updates more thoroughly moving forward before pushing them. 
+A large flaw in the code slipped past me, causing VODs downloaded with the initial Python version of the script to be a jumbled mess of various segments of the VODs. Sadly there isn't really a way of recovering the VOD, short of re-downloading it. This is an important lesson for me, and I'm sorry that I didn't catch this. I will be testing updates more thoroughly moving forward before pushing them. 
 
 My recommendation is to basically nuke any VODs downloaded with the Python version (including the sqlite databse, or individually affected VODs contained within with an sqlite browser), and redownload them with this new version (Which I properly tested :P). You can tell if a VOD is broken by skipping to random points and watching for 20 or so seconds, if the video skips, the VOD is out of order.
 
