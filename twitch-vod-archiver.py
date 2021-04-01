@@ -38,15 +38,35 @@ CHANNEL = sys.argv[1] # Channel name
 # This function is used for retrieving information from the Twitch API, returning an array containing the retrieved
 # information.
 # Takes 'api_path' as a variable, defining the API endpoint to call.
-def CallTwitch(api_path):
+def CallTwitch(api_path, pagination=0):
     url = 'https://api.twitch.tv/helix/'
     headers = {'Authorization': 'Bearer ' + OAUTH_TOKEN, 'Client-Id': CLIENT_ID}
     try:
-        r = requests.get(url + api_path, headers=headers)
-        if r.status_code != 200:
-            print('ERROR: Status code ' + r.status_code + ' received from Twitch.')
-            print('ERROR:', r.text)
-            sys.exit(1)
+        # Loop for grabbing more than 100 VODs
+        if pagination:
+            cursor = ''
+            vods = {'data': []}
+            while True:
+                r = requests.get(url + api_path + cursor, headers=headers)
+                if r.status_code != 200:
+                    print('ERROR: Status code ' + r.status_code + ' received from Twitch.')
+                    print('ERROR:', r.text)
+                    sys.exit(1)
+                # If data is returned, add the returned VODs to the list
+                if json.loads(r.text)['data']:
+                    vods['data'].extend(json.loads(r.text)['data'][:])
+                    # Grab the cursor value from the data, which is used to grab the next page of VODs
+                    cursor = '&after=' + json.loads(r.text)['pagination']['cursor']
+                # If no data is returned, end the loop and return the VOD information
+                else:
+                    print('INFO: All VODs have been grabbed from Twitch.')
+                    return vods
+        else:
+            r = requests.get(url + api_path, headers=headers)
+            if r.status_code != 200:
+                print('ERROR: Status code ' + r.status_code + ' received from Twitch.')
+                print('ERROR:', r.text)
+                sys.exit(1)
     except requests.exceptions.RequestException as e:
         print('ERROR:', e)
         sys.exit(1)
@@ -222,7 +242,7 @@ def main():
         print('INFO: Channel is currently offline.')
         CHANNEL_LIVE = False
     # Return a list of available VODs from $CHANNEL
-    AVAIL_VODS = CallTwitch('videos?user_id=' + USER_ID + '&first=100&type=archive')
+    AVAIL_VODS = CallTwitch('videos?user_id=' + USER_ID + '&first=100&type=archive', 1)
     # Create a list of available VODs
     AVAILABLE_VODS = []
     for vod in AVAIL_VODS['data']:
