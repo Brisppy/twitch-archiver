@@ -1,11 +1,12 @@
 ﻿# 📁 Twitch Vod Archiver 📁
 A python script for archiving past Twitch VODs along with their corresponding chat logs for an entire Twitch channel.
+Chat logs are grabbed with [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl), before being remuxed with [ffmpeg](https://ffmpeg.org/).
 
-The script can be run on a schedule, grabbing new VODs as they appear.
+My recommendation is to run this script on a schedule, allowing it to grab new VODs on a regular basis.
 
 
 ## Recent Changes
-**IMPORTANT (2021-03-30)**
+### **IMPORTANT (2021-03-30)**
 
 A large flaw in the code slipped past me, causing VODs downloaded with the Python version of the script to be a jumbled mess of various segments of the VODs. Sadly there isn't really a way of recovering the VOD, short of re-downloading it. This is an important lesson for me, and I'm sorry that I didn't catch this. I will be testing updates more thoroughly moving forward before pushing them. 
 
@@ -28,6 +29,7 @@ If you wish to add VODs downloaded with previous versions to the new database, u
 * VODs may end up slightly longer than advertised on Twitch, I believe this is due to slight variations in the framerate. If anyone finds a fix for this, please let me know. (It can be avoided by PIPING a list of the .ts files into FFMPEG, but I can't figure out how to do this with Python's Subprocess module without using os-specific commands.)
 * We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the 'VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID' folder), you may also want to verify that the VODs are matching after archiving too.
 * If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option.
+* If you wish to speed up (or slow down) the downloading of VOD pieces, CTRL-F (Find) the line with '--max-workers 20' and change the number to however many pieces you wish to download at once.
 
 # Requirements
 * **Python 3.8**
@@ -40,7 +42,7 @@ Clone the repository (Or download via the 'Code' button on the top of the page):
 
 ```git clone https://github.com/Brisppy/twitch-vod-archiver```
 
-Modify the variables in twitch-vod-archiver.sh
+Modify the variables in 'variables.py'.
 | Variable | Function |
 |-------|------|
 |```CLIENT_ID```|Twitch account Client ID - A method for retrieving this is shown below (See Retrieving Tokens).
@@ -105,17 +107,7 @@ Downloaded files are stored under one large directory which you provide in 'vari
                                  │
                                  └─ vod_db.sqlite
 
-### Download method
-Streamlink was originally used for downloading the VODs, but doesn't give much control over how the pieces are combined. Instead twitch-dl is used with the --no-join argument to allow the script to do the joining of the downloaded pieces in order to solve the issue outlined below.
-
-The method for downloading the actual VOD is quite convoluted in order to resolve an issue with VOD 864884048, a 28HR long VOD which when downloaded, never was the correct length. 
-For some reason the some of the downloaded .ts files have incorrect timestamps, with piece 09531.ts having a 'start' value of 95376.766, and the following piece (09532.ts) having a 'start' value of -56.951689. When combining all of the pieces this produces an error (non-monotonous dts in output stream), resulting in an output file with a shorter duration than the original VOD. To resolve this, the .ts files are combined with ffmpeg using their numbered order rather than included start value or .m3u8 playlist.
-
-# Limitations
-* Only the 100 most recent VODs are retrieved - this can be fixed but wasn't necessary for my us case - I can add it if required though.
-* Only one VOD can be grabbed at a time PER channel which is being archived - You can increase the number of download threads though
-* VODs cannot be downloaded individually - only a channel may be supplied
-
-# TODO
-* Swap tokens / client ID to the dev.twitch.tv application variant. Would require token creation / refreshing.
-* Add ability to grab VODs past #100
+### Limitations
+* Only one VOD can be grabbed at a time PER channel which is being archived, but multiple scripts for different CHANNELS can be run simultaneously.
+* VODs cannot be downloaded individually - only a channel may be supplied.
+* Subscriber-only VODs cannot be archived yet as it's not supported by [twitch-dl](https://github.com/ihabunek/twitch-dl), the creater has expressed some [interest](https://github.com/ihabunek/twitch-dl/issues/48) in implementing though.
