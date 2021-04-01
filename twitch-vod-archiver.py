@@ -104,7 +104,7 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME):
     d = dict(os.environ)
     d['TMPDIR'] = str(VOD_SUBDIR)
     # Actual command for downloading the VOD
-    p = subprocess.run('twitch-dl download --no-join -q source ' + VOD_INFO['data'][0]['id'], shell=True, env=d)
+    p = subprocess.run('twitch-dl download --max-workers 20 --no-join -q source ' + VOD_INFO['data'][0]['id'], shell=True, env=d)
     # Catch any exit code other than 0
     if p.returncode:
         print('ERROR: VOD download exited with error.')
