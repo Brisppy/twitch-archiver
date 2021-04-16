@@ -67,10 +67,10 @@ def CallTwitch(api_path, pagination=0):
                 print('ERROR: Status code ' + r.status_code + ' received from Twitch.')
                 print('ERROR:', r.text)
                 sys.exit(1)
+            return json.loads(r.text)
     except requests.exceptions.RequestException as e:
         print('ERROR:', e)
         sys.exit(1)
-    return json.loads(r.text)
 
 
 # This function is used to retrieve the chat logs for a particular VOD.
@@ -225,8 +225,13 @@ def main():
     connection = CreateConnection(str(Path(VOD_DIRECTORY, CHANNEL, 'vod_db.sqlite')))
     # Create the VODs table if it doesn't already exist
     ExecuteQuery(connection, create_vods_table)
+    # Check database columns against what is expected
+    CompareDatabase(connection)
     # Retrieve the USER_ID
     USER_ID = CallTwitch('users?login=' + CHANNEL)['data'][0]['id']
+    if not USER_ID:
+        print('ERROR: No USER_ID received from Twitch, check your connection to Twitch and spelling of channel name.')
+        sys.exit(1)
     print('INFO: User ' + CHANNEL +' ID is ' + USER_ID + '.')
     # Check if the channel is currently live - if so we must ignore the most recent VOD as it is still being added to.
     CHANNEL_STATUS = CallTwitch('streams?user_id=' + USER_ID)
