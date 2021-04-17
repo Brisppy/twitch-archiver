@@ -303,10 +303,11 @@ def main():
         RAW_VOD_INFO['data'][0]['vod_title'] = VOD_INFO['data'][0]['title'] + '.mp4'
         create_vod = """
         INSERT INTO
-        vods (id, user_id, user_login, user_name, title, description, created_at, published_at, url, thumbnail_url, 
-                viewable, view_count, language, type, duration, vod_subdirectory, vod_title)
+        vods (id, stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url,
+              thumbnail_url, viewable, view_count, language, type, duration, muted_segments, vod_subdirectory,
+              vod_title)
         VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO['data'][0].values())):
             print('ERROR: Failed to add VOD information to database.')
