@@ -57,7 +57,7 @@ def CompareDatabase(connection):
     except Error as e:
         print('ERROR: SQLite read query failed:', e)
     # Compare the list of columns present to what is expected
-    if column_list == current_column_list:
+    if column_list == current_column_list.keys():
         print('DEBUG: Database columns match current version.')
     else:
         print('INFO: Database columns do not match current version, performing migration.')
@@ -69,6 +69,7 @@ def MigrateDatabase(connection, column_list):
     cursor = connection.cursor()
     # Compare columns and extarct any uniques
     missing_columns = [column for column in current_column_list.keys() if column not in column_list]
+    print('DEBUG: Missing columns: ', missing_columns)
     # Add any columns which are NOT present
     try:
         for column in missing_columns:
@@ -86,7 +87,9 @@ def MigrateDatabase(connection, column_list):
     ExecuteQuery(connection, create_vods_table)
     # Copy the data over
     try:
-        cursor.execute('INSERT INTO vods SELECT * FROM vods_old;')
+        cursor.execute('INSERT INTO vods SELECT id, stream_id, user_id, user_login, user_name, title, description, \
+                        created_at, published_at, url, thumbnail_url, viewable, view_count, language, type, duration, \
+                        muted_segments, vod_subdirectory, vod_title FROM vods_old;')
     except Error as e:
         print('ERROR: Error copying data to from old sqlite table:', e)
     print('INFO: Database migration successful.')
