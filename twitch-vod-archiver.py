@@ -222,11 +222,11 @@ def main():
         print('INFO: Creating VOD channel directory.')
         os.mkdir(Path(VOD_DIRECTORY, CHANNEL))
     # Setup database connection
-    connection = CreateConnection(str(Path(VOD_DIRECTORY, CHANNEL, 'vod_db.sqlite')))
+    database_file = str(Path(VOD_DIRECTORY, CHANNEL, 'vod_db.sqlite'))
     # Create the VODs table if it doesn't already exist
-    ExecuteQuery(connection, create_vods_table)
+    ExecuteQuery(database_file, create_vods_table)
     # Check database columns against what is expected
-    CompareDatabase(connection)
+    CompareDatabase(database_file)
     # Retrieve the USER_ID
     USER_ID = CallTwitch('users?login=' + CHANNEL)['data'][0]['id']
     if not USER_ID:
@@ -258,7 +258,7 @@ def main():
         AVAILABLE_VODS.remove(max(AVAILABLE_VODS))
     # Retrieve currently downloaded VODs from VOD database
     select_vods = 'SELECT * from vods'
-    DOWN_VODS = ExecuteReadQuery(connection, select_vods)
+    DOWN_VODS = ExecuteReadQuery(database_file, select_vods)
     DOWNLOADED_VODS = []
     for vod in DOWN_VODS:
         DOWNLOADED_VODS.append(vod[0])
@@ -308,7 +308,7 @@ def main():
         VALUES
         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
-        if ExecuteQuery(connection, create_vod, list(RAW_VOD_INFO['data'][0].values())):
+        if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO['data'][0].values())):
             print('ERROR: Failed to add VOD information to database.')
             if SEND_PUSHBULLET:
                 SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database.')

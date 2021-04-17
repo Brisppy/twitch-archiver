@@ -3,9 +3,9 @@
 # new vods. I will try to do this whenever a change is made, but if you with to make the modifications youreslf you can,
 # but I don't recommend this as it may conflict with future updates I push:
 #   1: Modify the 'create_vods_table' and 'current_column_list' variables to reflect the changed fields
-
 import sqlite3
 from sqlite3 import Error
+from shutil import copyfile
 
 
 # This function is used for connecting to the sqlite3 database.
@@ -13,14 +13,15 @@ def CreateConnection(path):
     connection = None
     try:
         connection = sqlite3.connect(path)
-        print('INFO: Connection to SQLite DB successful.')
+        # print('INFO: Connection to SQLite DB successful.')
     except Error as e:
         print('ERROR: Connection to SQLite DB failed:', e)
     return connection
 
 
 # This function is used to execute commands against the database.
-def ExecuteQuery(connection, query, data=False):
+def ExecuteQuery(database_file, query, data=False):
+    connection = CreateConnection(database_file)
     cursor = connection.cursor()
     try:
         if data:
@@ -28,14 +29,17 @@ def ExecuteQuery(connection, query, data=False):
         else:
             cursor.execute(query)
         connection.commit()
-        print('INFO: SQLite query successful.')
+        # print('INFO: SQLite query successful.')
         return
     except Error as e:
-        print('ERROR: SQLite query failed:', e)
+        print('ERROR: SQLite query failed: ' + query + '"', e)
         return 1
+    finally:
+        connection.close()
 
 # This function is used to read data from the database.
-def ExecuteReadQuery(connection, query):
+def ExecuteReadQuery(database_file, query):
+    connection = CreateConnection(database_file)
     cursor = connection.cursor()
     result = None
     try:
@@ -44,10 +48,13 @@ def ExecuteReadQuery(connection, query):
         return result
     except Error as e:
         print('ERROR: SQLite read query failed:', e)
+    finally:
+        connection.close()
 
 
 # Used to compare the current database columns to what we expect them to be.
-def CompareDatabase(connection):
+def CompareDatabase(database_file):
+    connection = CreateConnection(database_file)
     cursor = connection.cursor()
     # Create a list of columns
     try:
@@ -56,44 +63,43 @@ def CompareDatabase(connection):
         column_list = [column[0] for column in columns.description]
     except Error as e:
         print('ERROR: SQLite read query failed:', e)
+    finally:
+        connection.close()
     # Compare the list of columns present to what is expected
-    if column_list == current_column_list.keys():
+    if column_list == list(current_column_list.keys()):
         print('DEBUG: Database columns match current version.')
     else:
         print('INFO: Database columns do not match current version, performing migration.')
-        MigrateDatabase(connection, column_list)
+        MigrateDatabase(database_file, column_list)
 
 
 # This function allows us to migrate the database when Twitch decides to modify data they return (grr)
-def MigrateDatabase(connection, column_list):
-    cursor = connection.cursor()
-    # Compare columns and extarct any uniques
+def MigrateDatabase(database_file, column_list):
+    # First we make a copy of the database
+    copyfile(database_file, database_file + '.bak')
+    # Compare columns and extract any uniques
     missing_columns = [column for column in current_column_list.keys() if column not in column_list]
     print('DEBUG: Missing columns: ', missing_columns)
     # Add any columns which are NOT present
     try:
         for column in missing_columns:
-            cursor.execute('ALTER TABLE vods ADD COLUMN {col} {datatype};'.format(col=column, 
-                                                                                 datatype=current_column_list[column]))
+            exec_command = 'ALTER TABLE vods ADD COLUMN {col} {datatype};'.format(col=column, 
+                                                                                  datatype=current_column_list[column])
+            ExecuteQuery(database_file, exec_command)
     except Error as e:
         print('ERROR: Error adding column to sqlite table:', e)
     # Rename the 'vods' database
-    try:
-        cursor.execute('DROP TABLE IF EXISTS vods_old;')
-        cursor.execute('ALTER TABLE vods RENAME TO vods_old;')
-    except Error as e:
-            print('ERROR: Error renaming sqlite table:', e)
+    ExecuteQuery(database_file, 'ALTER TABLE vods RENAME TO vods_tmp;')
     # Now we recreate it using the 'create_vods_table' variable
-    ExecuteQuery(connection, create_vods_table)
+    ExecuteQuery(database_file, create_vods_table)
     # Copy the data over
-    try:
-        cursor.execute('INSERT INTO vods SELECT id, stream_id, user_id, user_login, user_name, title, description, \
-                        created_at, published_at, url, thumbnail_url, viewable, view_count, language, type, duration, \
-                        muted_segments, vod_subdirectory, vod_title FROM vods_old;')
-    except Error as e:
-        print('ERROR: Error copying data to from old sqlite table:', e)
+    ExecuteQuery(database_file, 'INSERT INTO vods SELECT id,stream_id,user_id,user_login,user_name,title,description,\
+                              created_at,published_at,url,thumbnail_url,viewable,view_count,language,type,duration,\
+                              muted_segments,vod_subdirectory,vod_title FROM vods_tmp')
     print('INFO: Database migration successful.')
-    connection.commit()
+    # Delete temp database
+    ExecuteQuery(database_file, 'DROP TABLE vods_tmp;')
+
 
 # Query vods table, and create if it doesn't already exist.
 create_vods_table = """
