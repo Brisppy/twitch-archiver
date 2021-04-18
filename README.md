@@ -8,6 +8,10 @@ VODs can be downloaded effectively as fast as your Internet speed can handle (Ch
 My recommendation is to run this script on a schedule, allowing it to grab new VODs on a regular basis.
 
 ## Recent Changes
+**(2021-04-17)**
+
+Twitch [modified](https://dev.twitch.tv/docs/change-log) their API which broke the database insertion - I've rewritten how the database is accessed / added to and added the new fields to the database. When new values are added by Twitch, the script WILL need to be updated to support them,  I'll try cand keep the script up to date, but there are instructions in `src/vod_database_connect.py` for updating this youself, although this may cause issues if your changes clash with the ones I make.
+
 ### **IMPORTANT (2021-03-30)**
 
 A large flaw in the code slipped past me, causing VODs downloaded with the initial Python version of the script to be a jumbled mess of various segments of the VODs. Sadly there isn't really a way of recovering the VOD, short of re-downloading it. This is an important lesson for me, and I'm sorry that I didn't catch this. I will be testing updates more thoroughly moving forward before pushing them. 
