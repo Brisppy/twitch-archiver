@@ -285,6 +285,8 @@ def main():
         # Sanitize the VOD descripton
         VOD_INFO['data'][0]['description'] = re.sub('[^A-Za-z0-9.,_\-\(\)\[\] ]', '_', VOD_INFO['data'][0]
                                                                                                ['description'])
+        # Convert the 'muted_segments' field to a string
+        RAW_VOD_INFO['data'][0]['muted_segments'] = str(RAW_VOD_INFO['data'][0]['muted_segments'])
         # Create a directory for the VOD.
         VOD_SUBDIR = Path(VOD_DIRECTORY, VOD_INFO['data'][0]['user_name'], VOD_INFO['data'][0]['created_at'] + ' - ' + 
                                          VOD_INFO['data'][0]['title'] + ' - ' + str(vod_id))
