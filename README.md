@@ -10,7 +10,7 @@ My recommendation is to run this script on a schedule, allowing it to grab new V
 ## Recent Changes
 **(2021-04-17)**
 
-Twitch [modified](https://dev.twitch.tv/docs/change-log) their API which broke the database insertion - I've rewritten how the database is accessed / added to and added the new fields to the database. When new values are added by Twitch, the script WILL need to be updated to support them,  I'll try cand keep the script up to date, but there are instructions in `src/vod_database_connect.py` for updating this youself, although this may cause issues if your changes clash with the ones I make.
+Twitch [modified](https://dev.twitch.tv/docs/change-log) their API which broke the database insertion - I've rewritten how the database is accessed / added to and added the new fields to the database. When new values are added by Twitch, the script WILL need to be updated to support them,  I'll try and keep the script up to date, but there are instructions in `src/vod_database_connect.py` for updating this youself, although this may cause issues if your changes clash with the ones I make.
 
 ### **IMPORTANT (2021-03-30)**
 
