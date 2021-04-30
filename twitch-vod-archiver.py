@@ -175,7 +175,7 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
     # advertised by twitch, which SEEMS to be fine. We will ignore if the file is longer than expected, but notify
     # if shorter (and leave the TEMPORARY twitch-dl directory alone), as this can either be atrributed to an error with
     # ffmpeg, OR an error on Twitch's side, as SOME VODs are shorter than displayed on Twitch...
-    if DOWNLOADED_VOD_LENGTH >= VOD_DURATION_SECONDS:
+    if DOWNLOADED_VOD_LENGTH >= (VOD_DURATION_SECONDS -1):
         print('INFO: Downloaded VOD duration is equal to or greater than expected.')
         # Remove temporary directory
         try:
