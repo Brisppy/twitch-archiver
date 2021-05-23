@@ -3,39 +3,23 @@ A python script for archiving past Twitch VODs along with their corresponding ch
 
 Chat logs are grabbed with [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/).
 
-VODs can be downloaded effectively as fast as your Internet speed can handle (Check the Notes to see how).
+VODs can be downloaded effectively as fast as your Internet speed can handle - See [Notes](#notes).
 
-My recommendation is to run this script on a schedule, allowing it to grab new VODs on a regular basis.
+My recommendation is to run this script on some sort of schedule, allowing it to grab any new VODs on a regular basis.
 
-## Recent Changes
-**(2021-04-17)**
 
-Twitch [modified](https://dev.twitch.tv/docs/change-log) their API which broke the database insertion - I've rewritten how the database is accessed / added to and added the new fields to the database. When new values are added by Twitch, the script WILL need to be updated to support them,  I'll try and keep the script up to date, but there are instructions in `src/vod_database_connect.py` for updating this youself, although this may cause issues if your changes clash with the ones I make.
+Table of Contents
+=================
 
-### **IMPORTANT (2021-03-30)**
-
-A large flaw in the code slipped past me, causing VODs downloaded with the initial Python version of the script to be a jumbled mess of various segments of the VODs. Sadly there isn't really a way of recovering the VOD, short of re-downloading it. This is an important lesson for me, and I'm sorry that I didn't catch this. I will be testing updates more thoroughly moving forward before pushing them. 
-
-My recommendation is to basically nuke any VODs downloaded with the Python version (including the sqlite databse, or individually affected VODs contained within with an sqlite browser), and redownload them with this new version (Which I properly tested :P). You can tell if a VOD is broken by skipping to random points and watching for 20 or so seconds, if the video skips, the VOD is out of order.
-
-I also modified how the .ts files are combined into the final .mp4 as the old method wasn't the 'proper' method (Even though it still worked). This shouldn't necessitate a redownload, but if you really want to be careful you probably should.
-
-The VOD subdirectory variable has also been slightly modified, so now the CHANNEL variable (Used to create the folder VOD_SUBDIRECTORY/CHANNEL) now uses the provided value from Twitch, rather than what is provided as an argument. This may not cause any issues as the only modification should be to the capitalization of the VOD_SUBDIRECTORY/CHANNEL folder, but you may still want to update this manually if your filesystem differentiates between capitalized and non-capitalized directory names.
-
-**(2021-03-25)**
-
-Now rewritten in Python 3, allowing the script to work on MOST platforms.
-This is the first time I've fully rewritten a script in another language, there may be small issues so please let me know if you have any problems.
-Some filenames MAY have changed (Spaces are tolerated again in VOD names again). Sqlite3 is also now used to store information about downloaded VODs.
-
-NOTE: If you used the previous shell only version, the script will re-download ALL VODs as I changed the way they are stored.
-If you wish to add VODs downloaded with previous versions to the new database, use this script: https://gist.github.com/Brisppy/5365d9cf816c1c45ab985032fd6976bf
-
-# Notes
-* VODs may end up slightly longer than advertised on Twitch, I believe this is due to slight variations in the framerate. If anyone finds a fix for this, please let me know. **(It can be avoided by PIPING a list of the .ts files into FFMPEG, but I can't figure out how to do this with Python's Subprocess module without using os-specific commands).**
-* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the 'VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID' folder), you may also want to verify that the VODs are matching after archiving too.
-* If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option.
-* If you wish to speed up (or slow down) the downloading of VOD pieces, CTRL-F (Find) the line with '--max-workers 20' and change the number to however many pieces you wish to download at once.
+  * [Requirements](#requirements)
+  * [Installation](#installation)
+  * [Usage](#usage)
+  * [Retrieving Tokens](#retrieving-tokens)
+  * [Notes](#notes)
+  * [Extra Info](#extra-info)
+    * [How does the script work?](#how-does-the-script-work)
+    * [How are the files stored?](#how-are-the-files-stored)
+    * [Limitations](#limitations)
 
 # Requirements
 * **Python 3.8**
@@ -44,18 +28,17 @@ If you wish to add VODs downloaded with previous versions to the new database, u
 * **[twitch-dl](https://github.com/ihabunek/twitch-dl)** (python -m pip install twitch-dl) (Must be accessible via PATH)
 
 # Installation
-Clone the repository (Or download via the 'Code' button on the top of the page):
+1. Clone the repository, download via the 'Code' button on the top of the page, or grab the latest [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
 
-```git clone https://github.com/Brisppy/twitch-vod-archiver```
+2. Modify the variables in 'variables.py'.
 
-Modify the variables in 'variables.py'.
 | Variable | Function |
 |-------|------|
-|```CLIENT_ID```|Twitch account Client ID - A method for retrieving this is shown below (See Retrieving Tokens).
-|```OAUTH_TOKEN```|Twitch account OAuth token - A method for retrieving this is shown below (See Retrieving Tokens).
-|```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv.
-|```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv.
-|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **End with TWO backslashes on Windows (e.g 'Z:\\').**
+|```CLIENT_ID```|Twitch account Client ID - (See [Retrieving Tokens](#retrieving-tokens)).
+|```OAUTH_TOKEN```|Twitch account OAuth token - (See [Retrieving Tokens](#retrieving-tokens)).
+|```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens).
+|```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens).
+|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Use TWO backslashes for Windows paths (e.g 'Z:\\twitch-archive').**
 |```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure. **Do not surround with quotes.**
 |```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
 
@@ -82,6 +65,11 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 3. The provided Client ID is used as the APP_CLIENT_ID variable
 4. The provided Client Secret is used as the APP_CLIENT_SECRET
 
+# Notes
+* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the 'VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID' folder), you may also want to verify that the VODs are matching after archiving too.
+* If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option.
+* If you wish to speed up (or slow down) the downloading of VOD pieces, edit  'twitch-vod-archiver.py' and find the line with '--max-workers 20' and change the number to however many pieces you wish to download at once.
+
 # Extra Info
 ### How does the script work?
 1. Upon being run, the script imports various Python modules, along with the 'variables.py' and 'src/vod_database_connect.py' files.
@@ -90,8 +78,9 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 4. Now we check if the channel is live, if so, we ignore the most recent VOD as it is not yet complete.
 5. We then get a list of VODs from the Channel via the Twitch API, and compare them with the downloaded VODs acquired from the sqlite database, adding NEW VODs to a queue.
 6. Now we process each VOD in the VOD queue, first retrieving the chat via twitch-chat-downloader, then the video via twitch-dl.
-7. After downloading the actual video files (Currently in the .ts format), we must combine them with ffmpeg.
-8. After combining the .ts files into a single .mp4, we check the video length against the expected length retrieved from the Twitch API.
+7. After downloading the actual video files (Currently in the .ts format), we must concat them (Combine into a single file).
+8. After concating all of the .ts files, we use ffmpeg to remux ito into an mp4.
+9. We now check the video length against the expected length retrieved from the Twitch API.
 9. If the video length matches, we delete any temporary files, add the VOD information to the database and move onto the next VOD.
 
 ### How are the files stored?
