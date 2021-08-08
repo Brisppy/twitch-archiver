@@ -38,7 +38,7 @@ Table of Contents
 |```OAUTH_TOKEN```|Twitch account OAuth token - (See [Retrieving Tokens](#retrieving-tokens)).
 |```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens).
 |```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens).
-|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Use TWO backslashes for Windows paths (e.g 'Z:\\twitch-archive').**
+|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Use TWO backslashes for Windows paths (e.g 'Z:\\\twitch-archive').**
 |```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure. **Do not surround with quotes.**
 |```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
 
