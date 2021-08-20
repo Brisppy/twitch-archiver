@@ -36,8 +36,8 @@ Table of Contents
 |-------|------|
 |```CLIENT_ID```|Twitch account Client ID - (See [Retrieving Tokens](#retrieving-tokens)).
 |```OAUTH_TOKEN```|Twitch account OAuth token - (See [Retrieving Tokens](#retrieving-tokens)).
-|```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens).
-|```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens).
+|```APP_CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens)).
+|```APP_CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens)).
 |```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Use TWO backslashes for Windows paths (e.g 'Z:\\\twitch-archive').**
 |```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure. **Do not surround with quotes.**
 |```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
@@ -52,12 +52,11 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 1. Navigate to your twitch.tv channel page
 2. Open the developer menu (F12 in Chrome)
 3. Select the 'Network' tab and refresh the page
-4. Press CTRL+F to bring up the search, and type in 'access_token' followed by ENTER
-5. Double-click on the line beginning with URL, and the Headers menu should appear
-6. Under 'Request Headers' you should find the line beginning with 'client-id:', this is used as the CLIENT_ID variable
-7. Under 'Query String Parameters' you should find the line beginning with 'oauth_token:', this is used as the OAUTH_TOKEN variable
+4. Press CTRL+F to bring up the search, and type in 'gql.twitch.tv' followed by ENTER
+5. Click on the line beginning with 'URL', and the Headers menu should appear
+6. Under 'Request Headers' you should find the line beginning with 'Authorization:', this is used as the OAUTH_TOKEN variable (Only copy the text AFTER 'OAuth'). Below this you will also find 'Client-ID:', this is used as the CLIENT_ID variable.
 
-![Chrome developer menu showing location of CLIENT_ID and OAUTH_TOKEN](https://i.imgur.com/zbDbbFF.jpg)
+![Chrome developer menu showing location of CLIENT_ID and OAUTH_TOKEN](https://i.imgur.com/YVHT7EU.jpg)
 
 ### To retrieve the APP_CLIENT_ID and APP_CLIENT_SECRET:
 1. Navigate to dev.twitch.tv
