@@ -56,7 +56,7 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 5. Click on the line beginning with 'URL', and the Headers menu should appear
 6. Under 'Request Headers' you should find the line beginning with 'Authorization:', this is used as the OAUTH_TOKEN variable (Only copy the text AFTER 'OAuth'). Below this you will also find 'Client-ID:', this is used as the CLIENT_ID variable.
 
-![Chrome developer menu showing location of CLIENT_ID and OAUTH_TOKEN](https://i.imgur.com/YVHT7EU.jpg)
+![Chrome developer menu showing location of CLIENT_ID and OAUTH_TOKEN](https://i.imgur.com/y3h1sRz.jpg)
 
 ### To retrieve the APP_CLIENT_ID and APP_CLIENT_SECRET:
 1. Navigate to dev.twitch.tv
