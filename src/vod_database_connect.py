@@ -3,7 +3,7 @@
 # new vods. I will try to do this whenever a change is made, but if you with to make the modifications youreslf you can,
 # but I don't recommend this as it may conflict with future updates I push:
 #   1: Modify the 'create_vods_table' and 'current_column_list' variables to reflect the changed fields
-#   2: Similarly, modify the ExecuteQuery on line 97, adding the new fields.
+#   2: Similarly, modify the ExecuteQuery on line 99, adding the new fields.
 #   3: Now in the 'twitch-vod-archiver.py' file, modify the 'create_vod' variable, adding the new fields, along with
 #      question marks (?) so there is an equal number of fields to ?'s.
 import sqlite3
