@@ -7,6 +7,7 @@
 # 1: Channel name (e.g Brisppy)
 
 # Import DB functions
+from typing_extensions import final
 from src.vod_database_connect import *
 from pathlib import Path
 # Retrieve variables from supplied file
@@ -114,6 +115,7 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
     # This must be set to choose where the VOD is downloaded to before merging
     d = dict(os.environ)
     d['TMPDIR'] = str(VOD_SUBDIR)
+    final_pass = 0
     # We grab the current duration of the VOD first to check against later.
     CUR_VOD_DURATION = VOD_INFO['duration']
     while True:
@@ -154,7 +156,19 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
                 print('INFO: VOD Duration has changed (Probably live) - attempting to download VOD again.')
                 print('DEBUG: Previous duration:', CUR_VOD_DURATION, 'New duration:', NEW_VOD_DURATION)
                 CUR_VOD_DURATION = NEW_VOD_DURATION
+                # Reset final pass in case the VOD duration changes after it meets the requirements for the stream
+                # ending, this can happen in error.
+                final_pass = 0
                 continue
+            # If the duration matches, we attempt to download the VOD one final time.
+            elif CUR_VOD_DURATION == NEW_VOD_DURATION and not final_pass:
+                print('INFO: VOD Duration has not changed, attempting to download once more then continuing.')
+                time.sleep(120)
+                final_pass = 1
+                continue
+            elif final_pass:
+                print('INFO: VOD download successful.')
+                break
         else:
             print('INFO: VOD download successful.')
             break
