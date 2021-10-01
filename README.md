@@ -68,6 +68,7 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 * We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the 'VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID' folder), you may also want to verify that the VODs are matching after archiving too.
 * If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option.
 * If you wish to speed up (or slow down) the downloading of VOD pieces, edit  'twitch-vod-archiver.py' and find the line with '--max-workers 20' and change the number to however many pieces you wish to download at once.
+* As of v1.1, multiple instances of this script can be run (I recommend a small delay inbetween). This is tracked through lock files located at the root of the channel folder. For example, 'Z:\\twitch-archive\\Brisppy\\.lock.1025444786', which is removed only upon successful download of the VOD. If an error occurs, the VOD will be skipped on future runs of the script until the lock file is removed MANUALLY. I recommend setting up pushbullet so that you can catch issues such as this easily.
 
 # Extra Info
 ### How does the script work?
@@ -102,6 +103,5 @@ Downloaded files are stored under one large directory which you provide in 'vari
                                  └─ vod_db.sqlite
 
 ### Limitations
-* Only one VOD can be grabbed at a time PER channel which is being archived, but multiple scripts for different CHANNELS can be run simultaneously.
 * VODs cannot be downloaded individually - only a channel may be supplied.
 * Subscriber-only VODs cannot be archived yet as it's not supported by [twitch-dl](https://github.com/ihabunek/twitch-dl), the creater has expressed some [interest](https://github.com/ihabunek/twitch-dl/issues/48) in implementing though.
