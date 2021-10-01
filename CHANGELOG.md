@@ -1,4 +1,12 @@
-(20210-05-23) Version 1.0
+(2021-10-01) Version 1.1
+
+Live streams can now be archived done by downloading the VOD as it currently stands and is still being updated, and adding new chunks as they are added to the VOD on twitch's servers.
+
+A VOD locking system is also now in place; if a VOD archive fails with an error, the VOD will NOT be downloaded again until the error is resolved by the user, and lockfile manually removed. Lock files are in the CHANNEL directory, using the format '.(VOD_ID)', for example 'Z:\\twitch-archive\\Brisppy\\.lock.1025444786'.
+
+I've spent quite a bit of time both working on and testing this new feature, there shouldn't be any major issues but if you do encounter any problems please create an issue and I will try to resolve it ASAP.
+
+(2021-05-23) Version 1.0
 
 Changed how the .ts files are combined, as the previous method using ffmpeg would create files of varying (and often incorrect) lengths.
 This change has FINALLY allowed the downloaded VODs to match the expected length, rather than being offset by any number of seconds with the old method.
