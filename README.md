@@ -52,28 +52,28 @@ Run the script, supplying the channel name. I use a crontab entry to run it nigh
 1. Navigate to your twitch.tv channel page
 2. Open the developer menu (F12 in Chrome)
 3. Select the 'Network' tab and refresh the page
-4. Press CTRL+F to bring up the search, and type in 'gql.twitch.tv' followed by ENTER
+4. Press CTRL+F to bring up the search, and type in ```gql.twitch.tv``` followed by ENTER
 5. Click on the line beginning with 'URL', and the Headers menu should appear
 6. Under 'Request Headers' you should find the line beginning with 'Authorization:', this is used as the OAUTH_TOKEN variable (Only copy the text AFTER 'OAuth'). Below this you will also find 'Client-ID:', this is used as the CLIENT_ID variable.
 
 ![Chrome developer menu showing location of CLIENT_ID and OAUTH_TOKEN](https://i.imgur.com/y3h1sRz.jpg)
 
 ### To retrieve the APP_CLIENT_ID and APP_CLIENT_SECRET:
-1. Navigate to dev.twitch.tv
+1. Navigate to 'dev.twitch.tv'
 2. Register a new app called VOD Archiver with any redirect URL and under any Category
 3. The provided Client ID is used as the APP_CLIENT_ID variable
 4. The provided Client Secret is used as the APP_CLIENT_SECRET
 
 # Notes
-* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the 'VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID' folder), you may also want to verify that the VODs are matching after archiving too.
+* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the ```VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID``` folder), you may also want to verify that the VODs are matching after archiving too.
 * If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option.
-* If you wish to speed up (or slow down) the downloading of VOD pieces, edit  'twitch-vod-archiver.py' and find the line with '--max-workers 20' and change the number to however many pieces you wish to download at once.
-* As of v1.1, multiple instances of this script can be run (I recommend a small delay inbetween). This is tracked through lock files located at the root of the channel folder. For example, 'Z:\\twitch-archive\\Brisppy\\.lock.1025444786', which is removed only upon successful download of the VOD. If an error occurs, the VOD will be skipped on future runs of the script until the lock file is removed MANUALLY. I recommend setting up pushbullet so that you can catch issues such as this easily.
+* If you wish to speed up (or slow down) the downloading of VOD pieces, edit ```twitch-vod-archiver.py``` and find the line with ```--max-workers 20``` and change the number to however many pieces you wish to download at once.
+* As of v1.1, multiple instances of this script can be run (I recommend a small delay inbetween). This is tracked through lock files located at the root of the channel folder. For example, ```Z:\\twitch-archive\\Brisppy\\.lock.1025444786```, which is removed only upon successful download of the VOD. If an error occurs, the VOD will be skipped on future runs of the script until the lock file is removed MANUALLY. I recommend setting up pushbullet so that you can catch issues such as this easily.
 
 # Extra Info
 ### How does the script work?
-1. Upon being run, the script imports various Python modules, along with the 'variables.py' and 'src/vod_database_connect.py' files.
-2. The main() function is then called which begins by creating directories if required, and setting up the sqlite database (Stored in the VOD_DIRECTORY/CHANNEL folder).
+1. Upon being run, the script imports various Python modules, along with the ```variables.py``` and ```src/vod_database_connect.py``` files.
+2. The main() function is then called which begins by creating directories if required, and setting up the sqlite database (Stored in the ```VOD_DIRECTORY/CHANNEL``` folder).
 3. The USER_ID is then requested via the Twitch API for later use.
 4. Now we check if the channel is live, if so, we ignore the most recent VOD as it is not yet complete.
 5. We then get a list of VODs from the Channel via the Twitch API, and compare them with the downloaded VODs acquired from the sqlite database, adding NEW VODs to a queue.
