@@ -72,10 +72,17 @@ def CallTwitch(api_path, pagination=0, live_mode=0):
                 # If operating in live mode, we must move onto combining the VOD which was most likely deleted.
                 if live_mode and r.status_code == 404:
                     return 404
+                print('ERROR: Twitch API returned an unexpected value.')
+                print('ERROR:', r.text)
+                if SEND_PUSHBULLET:
+                    SendPushbullet(PUSHBULLET_KEY, 'Twitch API returned an unexpected value. Check logs for more info.')
                 sys.exit(1)
             return json.loads(r.text)
     except requests.exceptions.RequestException as e:
+        print('ERROR: Twitch API call failed.')
         print('ERROR:', e)
+        if SEND_PUSHBULLET:
+            SendPushbullet(PUSHBULLET_KEY, 'Twitch API call failed. Check logs for more info.')
         sys.exit(1)
 
 
