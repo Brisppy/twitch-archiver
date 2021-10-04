@@ -3,6 +3,8 @@ A python script for archiving past Twitch VODs along with their corresponding ch
 
 Chat logs are grabbed with [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/).
 
+VODs can be downloaded effectively as fast as your Internet speed can handle - See [Notes](#notes).
+
 I recommend running this script on a semi-frequent interval (hourly), allowing it to grab any new VODs on a regular basis.
 
 
@@ -38,13 +40,13 @@ Table of Contents
 |```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
 
 # Usage
-Run the script, supplying the channel name. I use a crontab entry to run it nightly to grab any new VODs.
+Run the script, supplying the channel name. I use a crontab entry to run it hourly to grab any new VODs.
 
 ```python ./twitch-vod-archiver.py Brisppy```
 
 # Retrieving Tokens
 ### To retrieve the CLIENT_ID and CLIENT_SECRET:
-1. Navigate to 'dev.twitch.tv'
+1. Navigate to [dev.twitch.tv](https://dev.twitch.tv/) and log in
 2. Register a new app called Twitch VOD Archiver with any redirect URL and under any Category
 3. The provided Client ID is used as the CLIENT_ID variable
 4. The provided Client Secret is used as the CLIENT_SECRET variable
