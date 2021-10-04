@@ -1,3 +1,15 @@
+(2021-10-05) Version 1.2
+
+This is a bit of an emergency patch as Twitch changed their API slightly (Although it's mostly my fault for using an unsupported method of authenticating against their API).
+
+Completely redid how authentication is done as Twitch blocked the previous method using twitch account credentials. The old APP_CLIENT_ID and APP_CLIENT_SECRET are now the CLIENT_ID and CLIENT_SECRET, and no other credentials are required now.
+
+Added some more notifications for various errors, and would highly recommend configuring pushbullet.
+
+Fixed the lock file not being removed if adding the VOD information to the VOD database was unsuccessful.
+
+Modified the README to fit the new authentication scheme.
+
 (2021-10-01) Version 1.1
 
 Live streams can now be archived done by downloading the VOD as it currently stands and is still being updated, and adding new chunks as they are added to the VOD on twitch's servers.

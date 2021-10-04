@@ -9,6 +9,7 @@
 # Import DB functions
 from typing_extensions import final
 from src.vod_database_connect import *
+from src.twitch_auth import *
 from pathlib import Path
 # Retrieve variables from supplied file
 from variables import *
@@ -87,8 +88,8 @@ def CallTwitch(api_path, pagination=0, live_mode=0):
 
 
 # This function is used to retrieve the chat logs for a particular VOD.
-# Takes VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET and VOD_SUBDIR
-def RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE):
+# Takes VOD_INFO, CLIENT_ID, CLIENT_SECRET and VOD_SUBDIR
+def RetrieveVODChat(VOD_INFO, CLIENT_ID, CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE):
     ATTEMPT = 0
     while True:
         ATTEMPT += 1
@@ -99,8 +100,8 @@ def RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR, LIVE
                                                          'run')
             sys.exit(1)
         # Call twitch-chat-downloader
-        p = subprocess.run('tcd --video ' + VOD_INFO['id'] + ' --format irc --client-id ' + APP_CLIENT_ID + 
-                           ' --client-secret ' + APP_CLIENT_SECRET + ' --output ' + '"' + str(VOD_SUBDIR) + '"',
+        p = subprocess.run('tcd --video ' + VOD_INFO['id'] + ' --format irc --client-id ' + CLIENT_ID + 
+                           ' --client-secret ' + CLIENT_SECRET + ' --output ' + '"' + str(VOD_SUBDIR) + '"',
                            shell=True)
         # Check if tcd returned an error
         if p.returncode:
@@ -190,7 +191,7 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
             for ts_file in VOD_PARTS:
                 progress += 1
                 print('Processing ', progress, '/', len(VOD_PARTS), ' | {}% complete.'.format(
-                                                        math.floor(100 * progress / len(VOD_PARTS))), sep='', end='\r')
+                      math.floor(100 * progress / len(VOD_PARTS))), sep='', end='\r')
                 with open(ts_file, 'rb') as mergefile:
                     shutil.copyfileobj(mergefile, merged)
     except BaseException as e:
@@ -260,7 +261,7 @@ def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
         print('ERROR: Downloaded VOD duration less than expected duration.')
         if SEND_PUSHBULLET:
             SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Downloaded VOD duration shorter than expected. Check log '
-                          'and remove .lock.' + str(VOD_INFO['id']) + ' file.')
+                           'and remove .lock.' + str(VOD_INFO['id']) + ' file.')
         sys.exit(1)
 
 
@@ -287,8 +288,26 @@ def ConvertToSeconds(duration):
         return (int(duration[0]) * 3600) + (int(duration[1]) * 60) + int(duration[2])
 
 
+# Handles generation of new tokens, and storage of them
+def DoGenerateTwitchAuthToken(CLIENT_ID, CLIENT_SECRET, SCRIPT_DIR):
+    global OAUTH_TOKEN
+    print('INFO: Generating new API access token.')
+    # Generate a new token
+    OAUTH_TOKEN = GenerateTwitchAuthToken(CLIENT_ID, CLIENT_SECRET)
+    # Catch empty return, indicating an error ocurred
+    if not OAUTH_TOKEN:
+        if SEND_PUSHBULLET:
+            SendPushbullet(PUSHBULLET_KEY, 'OAUTH token generation failed, check the logs for more details.')
+        sys.exit(1)
+    # create the .token file and store the new token
+    with open(Path(SCRIPT_DIR, '.token'), 'w') as f:
+        f.write(OAUTH_TOKEN)
+        f.close()
+
+
 # This is the main function used for retrieving VOD information.
 def main():
+    global OAUTH_TOKEN
     # Check if VOD_DIRECTORY exists, if not, create it along with the CHANNEL directory
     if not os.path.isdir(Path(VOD_DIRECTORY)):
         print('INFO: Creating VOD archive directory.')
@@ -302,6 +321,27 @@ def main():
     ExecuteQuery(database_file, create_vods_table)
     # Check database columns against what is expected
     CompareDatabase(database_file)
+    # Store the location of the .token file
+    SCRIPT_DIR = Path(os.path.realpath(__file__)).parent
+    # Check if the .token file exists
+    if os.path.isfile(Path(SCRIPT_DIR, '.token')):
+        # Grab the current oauth token from the .token file
+        OAUTH_TOKEN = open(Path(SCRIPT_DIR, '.token')).readline().strip()
+        # Validate our current OAUTH token
+        validation = ValidateTwitchAuthToken(OAUTH_TOKEN)
+        # If nothing is returned, exit with error
+        if not validation:
+            if SEND_PUSHBULLET:
+                SendPushbullet(PUSHBULLET_KEY, 'OAUTH token validation exited with error, check the logs for details.')
+            sys.exit(1)
+        # If a '1' is returned, the token is invalid and a new one must be generated
+        elif validation == 'Invalid':
+            DoGenerateTwitchAuthToken(CLIENT_ID, CLIENT_SECRET, SCRIPT_DIR)
+        # Check if expiry countdown is less than 604800 seconds (1 week), if so, generate a new token
+        elif validation < 604800:
+            DoGenerateTwitchAuthToken(CLIENT_ID, CLIENT_SECRET, SCRIPT_DIR)
+    else:
+        DoGenerateTwitchAuthToken(CLIENT_ID, CLIENT_SECRET, SCRIPT_DIR)
     # Retrieve the USER_ID
     USER_ID = CallTwitch('users?login=' + CHANNEL)['data'][0]['id']
     if not USER_ID:
@@ -381,32 +421,32 @@ def main():
             print('INFO: Creating individual VOD directory.')
             os.mkdir(Path(VOD_SUBDIR))
         # First we grab video
-        RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['title'], LIVE_MODE)
+#        RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['title'], LIVE_MODE)
         # Then we download the chat logs after in case the download is in LIVE mode
-        RetrieveVODChat(VOD_INFO, APP_CLIENT_ID, APP_CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE)
+#        RetrieveVODChat(VOD_INFO, CLIENT_ID, CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE)
         # Now we make sure the VOD length matches what is expected
-        VerifyVODLength(VOD_INFO, VOD_INFO['title'], VOD_SUBDIR)
+#        VerifyVODLength(VOD_INFO, VOD_INFO['title'], VOD_SUBDIR)
         # If we've made it to this point, all files have been downloaded and the VOD can be added to the database.
-        RAW_VOD_INFO['vod_subdirectory'] = VOD_INFO['created_at'] + ' - ' + VOD_INFO['title'] + ' - ' + str(vod_id)
-        RAW_VOD_INFO['vod_title'] = VOD_INFO['title'] + '.mp4'
-        create_vod = """
-        INSERT INTO
-        vods (id, stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url,
-              thumbnail_url, viewable, view_count, language, type, duration, muted_segments, vod_subdirectory,
-              vod_title)
-        VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """
-        if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO.values())):
-            print('ERROR: Failed to add VOD information to database.')
-            if SEND_PUSHBULLET:
-                SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database. Lock file removed '
-                                                         'as the error may correct itself next run.')
-            sys.exit(1)
-        else:
-            print('INFO: VOD ' + VOD_INFO['id'] + ' successfully downloaded.')
-            # Remove lock file
-            if os.path.isfile(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.lock.' + str(vod_id))):
-                os.remove(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.lock.' + str(vod_id)))
+        # RAW_VOD_INFO['vod_subdirectory'] = VOD_INFO['created_at'] + ' - ' + VOD_INFO['title'] + ' - ' + str(vod_id)
+        # RAW_VOD_INFO['vod_title'] = VOD_INFO['title'] + '.mp4'
+        # create_vod = """
+        # INSERT INTO
+        # vods (id, stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url,
+        #       thumbnail_url, viewable, view_count, language, type, duration, muted_segments, vod_subdirectory,
+        #       vod_title)
+        # VALUES
+        # (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        # """
+        # if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO.values())):
+        #     print('ERROR: Failed to add VOD information to database.')
+        #     if SEND_PUSHBULLET:
+        #         SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database. Lock file removed '
+        #                                                  'as the error may correct itself next run.')
+        #     sys.exit(1)
+        # else:
+        #     print('INFO: VOD ' + VOD_INFO['id'] + ' successfully downloaded.')
+        # Remove lock file
+        if os.path.isfile(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.lock.' + str(vod_id))):
+            os.remove(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.lock.' + str(vod_id)))
 
 main()
