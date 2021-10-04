@@ -421,30 +421,30 @@ def main():
             print('INFO: Creating individual VOD directory.')
             os.mkdir(Path(VOD_SUBDIR))
         # First we grab video
-#        RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['title'], LIVE_MODE)
+        RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_INFO['title'], LIVE_MODE)
         # Then we download the chat logs after in case the download is in LIVE mode
-#        RetrieveVODChat(VOD_INFO, CLIENT_ID, CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE)
+        RetrieveVODChat(VOD_INFO, CLIENT_ID, CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE)
         # Now we make sure the VOD length matches what is expected
-#        VerifyVODLength(VOD_INFO, VOD_INFO['title'], VOD_SUBDIR)
+        VerifyVODLength(VOD_INFO, VOD_INFO['title'], VOD_SUBDIR)
         # If we've made it to this point, all files have been downloaded and the VOD can be added to the database.
-        # RAW_VOD_INFO['vod_subdirectory'] = VOD_INFO['created_at'] + ' - ' + VOD_INFO['title'] + ' - ' + str(vod_id)
-        # RAW_VOD_INFO['vod_title'] = VOD_INFO['title'] + '.mp4'
-        # create_vod = """
-        # INSERT INTO
-        # vods (id, stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url,
-        #       thumbnail_url, viewable, view_count, language, type, duration, muted_segments, vod_subdirectory,
-        #       vod_title)
-        # VALUES
-        # (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-        # """
-        # if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO.values())):
-        #     print('ERROR: Failed to add VOD information to database.')
-        #     if SEND_PUSHBULLET:
-        #         SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database. Lock file removed '
-        #                                                  'as the error may correct itself next run.')
-        #     sys.exit(1)
-        # else:
-        #     print('INFO: VOD ' + VOD_INFO['id'] + ' successfully downloaded.')
+        RAW_VOD_INFO['vod_subdirectory'] = VOD_INFO['created_at'] + ' - ' + VOD_INFO['title'] + ' - ' + str(vod_id)
+        RAW_VOD_INFO['vod_title'] = VOD_INFO['title'] + '.mp4'
+        create_vod = """
+        INSERT INTO
+        vods (id, stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url,
+              thumbnail_url, viewable, view_count, language, type, duration, muted_segments, vod_subdirectory,
+              vod_title)
+        VALUES
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO.values())):
+            print('ERROR: Failed to add VOD information to database.')
+            if SEND_PUSHBULLET:
+                SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database. Lock file removed '
+                                                         'as the error may correct itself next run.')
+            sys.exit(1)
+        else:
+            print('INFO: VOD ' + VOD_INFO['id'] + ' successfully downloaded.')
         # Remove lock file
         if os.path.isfile(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.lock.' + str(vod_id))):
             os.remove(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.lock.' + str(vod_id)))
