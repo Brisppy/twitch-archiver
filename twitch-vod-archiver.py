@@ -10,6 +10,7 @@
 from typing_extensions import final
 from src.vod_database_connect import *
 from src.twitch_auth import *
+from datetime import datetime
 from pathlib import Path
 # Retrieve variables from supplied file
 from variables import *
@@ -288,6 +289,14 @@ def ConvertToSeconds(duration):
         return (int(duration[0]) * 3600) + (int(duration[1]) * 60) + int(duration[2])
 
 
+# Returns the time in minutes since a specified date in the format "yyyy-mm-ddThh:mm:ssZ" where 'T', 'Z', '-', ':' are
+# the literal characters specified.
+def TimeSinceCreatedAt(created_at):
+	created_at = datetime.strptime(created_at.replace('-', '').replace(':', '').replace('T', '').replace('Z', ''), '%Y%m%d%H%M%S')
+	current_time = datetime.utcnow()
+	return(abs((current_time - created_at).seconds)/60)
+
+
 # Handles generation of new tokens, and storage of them
 def DoGenerateTwitchAuthToken(CLIENT_ID, CLIENT_SECRET, SCRIPT_DIR):
     global OAUTH_TOKEN
@@ -387,6 +396,12 @@ def main():
     for vod_id in VOD_QUEUE:
         print('INFO: Retrieving VOD:', vod_id)
         VOD_INFO = CallTwitch('videos?id=' + str(vod_id))['data'][0]
+        # Check if the VOD started uploading less than 10 minutes ago, if so, we will skip it.
+        # This is done because Twitch's API has a delay for seeing whether a channel is live or not, and so a VOD may
+        # appear as available, while the channel is offline according to Twitch which breaks things.
+        if TimeSinceCreatedAt(VOD_INFO['created_at']) < 10.0:
+            print('INFO: VOD was created less than 10 minutes ago, skipping until next run.')
+            continue
         # We need to modify the duration if the VOD is live from with in the RetrieveVODVideo function. There is
         # probably a better method of doing this than declaring a global variable.
         global RAW_VOD_INFO
