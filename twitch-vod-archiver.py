@@ -453,11 +453,13 @@ def main():
         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO.values())):
-            print('ERROR: Failed to add VOD information to database.')
+            print('ERROR: Failed to add VOD information to database. Creating .vodinfo file.')
+            with open(Path(VOD_DIRECTORY, VOD_INFO['user_name'], '.vodinfo'), 'w') as f:
+                f.write(str(RAW_VOD_INFO))
+                f.close()
             if SEND_PUSHBULLET:
                 SendPushbullet(PUSHBULLET_KEY, VOD_INFO, 'Failed to add VOD information to database. Lock file removed '
                                                          'as the error may correct itself next run.')
-            sys.exit(1)
         else:
             print('INFO: VOD ' + VOD_INFO['id'] + ' successfully downloaded.')
         # Remove lock file
