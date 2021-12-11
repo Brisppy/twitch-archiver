@@ -1,12 +1,8 @@
 ﻿# 📁 Twitch Vod Archiver 📁
-A python script for archiving past Twitch VODs along with their corresponding chat logs for an entire Twitch channel.
+A CLI-based Python3 script for Windows and Linux allowing the scheduled archiving of Twitch VODs (Video + Chat logs) for a specified Twitch channel.
 
-Chat logs are grabbed with [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/).
-
-VODs can be downloaded effectively as fast as your Internet speed can handle - See [Notes](#notes).
-
-I recommend running this script on a semi-frequent interval (hourly), allowing it to grab any new VODs on a regular basis.
-
+Chat logs are grabbed using [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/), with VODs being downloaded effectively as fast as your Internet speed can handle (see [notes](#notes)).  
+This script is designed to run on sort sort of schedule, personally I run the script every hour, allowing it to grab VODs as they go live.
 
 Table of Contents
 =================
@@ -54,7 +50,7 @@ Run the script, supplying the channel name. I use a crontab entry to run it hour
 # Extra Info
 ### Notes
 * We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the ```VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID``` folder), you may also want to verify that the VODs are matching after archiving too.
-* If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option.
+* If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux machines.
 * If you wish to speed up (or slow down) the downloading of VOD pieces, edit ```twitch-vod-archiver.py``` and find the line with ```--max-workers 20``` and change the number to however many pieces you wish to download at once.
 * As of v1.1, multiple instances of this script can be run (I recommend a small delay inbetween). This is tracked through lock files located at the root of the channel folder. For example, ```Z:\\twitch-archive\\Brisppy\\.lock.1025444786```, which is removed only upon successful download of the VOD. If an error occurs, the VOD will be skipped on future runs of the script until the lock file is removed MANUALLY. I recommend setting up pushbullet so that you can catch issues such as this easily.
 
