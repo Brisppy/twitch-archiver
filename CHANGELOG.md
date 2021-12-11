@@ -1,3 +1,15 @@
+(2021-12-11) Version 1.3
+
+Fixed an issue with how the CHANNEL directory is created using the supplied CLI argument, which mayu not match with the name provided by Twitch. - Thanks to MambaBoyy for bringing this to my attention.
+
+If database access fails when trying to write VOD_INFO, a new file named '.vodinfo' will be created containing this information. This is very important if a VOD is deleted as the data may no longer be available.
+
+Fixed an issue if the script was run too soon after a channel goes live.
+
+Fixed an issue with the SendPushbullet function, where some calls were missing required information.
+
+Other minor changes and formatting adjustments.
+
 (2021-10-05) Version 1.2
 
 This is a bit of an emergency patch as Twitch changed their API slightly (Although it's mostly my fault for using an unsupported method of authenticating against their API).
