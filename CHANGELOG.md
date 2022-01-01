@@ -8,6 +8,10 @@ Fixed an issue if the script was run too soon after a channel goes live.
 
 Fixed an issue with the SendPushbullet function, where some calls were missing required information.
 
+Fixed an issue with where temporary files were stored on Windows
+
+Fixed an issue with the vod duration not being properly updated for live downloads
+
 Other minor changes and formatting adjustments.
 
 (2021-10-05) Version 1.2

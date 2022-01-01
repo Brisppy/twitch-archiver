@@ -124,7 +124,8 @@ def RetrieveVODChat(VOD_INFO, CLIENT_ID, CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE):
 def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
     # This must be set to choose where the VOD is downloaded to before merging
     d = dict(os.environ)
-    d['TMPDIR'] = str(VOD_SUBDIR)
+    # Set the environment variables
+    d['TMP'] = d['TMPDIR'] = d['TEMP'] = str(VOD_SUBDIR)
     final_pass = 0
     # We grab the current duration of the VOD first to check against later.
     CUR_VOD_DURATION = VOD_INFO['duration']
@@ -157,6 +158,7 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
                 with open(Path(VOD_SUBDIR, '.ignorelength'), 'w') as ignorelength:
                     pass
                 # Also add the most recently grabbed duration to the RAW_VOD_DATA array
+                global RAW_VOD_INFO
                 RAW_VOD_INFO['duration'] = CUR_VOD_DURATION
                 break
             else: 
@@ -220,10 +222,10 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
 
 
 # This function is used to verify the VOD length.
-# Takes VOD_INFO, VOD_NAME and VOD_SUBDIR.
-def VerifyVODLength(VOD_INFO, VOD_NAME, VOD_SUBDIR):
+# Takes RAW_VOD_INFO, VOD_NAME and VOD_SUBDIR.
+def VerifyVODLength(RAW_VOD_INFO, VOD_NAME, VOD_SUBDIR):
     # First we convert the provided time from the format '00h00m00s' to just seconds
-    VOD_DURATION_SECONDS = ConvertToSeconds(VOD_INFO['duration'])
+    VOD_DURATION_SECONDS = ConvertToSeconds(RAW_VOD_INFO['duration'])
     # Retrieve the duration of the downloaded VOD
     p = subprocess.run('ffprobe -i ' + '"' + str(Path(VOD_SUBDIR, VOD_NAME + '.mp4')) + '"' +
                        ' -v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1', 
@@ -412,8 +414,7 @@ def main():
             print('INFO: VOD was created less than 10 minutes ago, skipping until next run.')
             continue
         # We need to modify the duration if the VOD is live from with in the RetrieveVODVideo function. There is
-        # probably a better method of doing this than declaring a global variable.
-        global RAW_VOD_INFO
+        # probably a better method of doing this than using a global variable.
         RAW_VOD_INFO = copy.deepcopy(VOD_INFO)
         # Check if lock file exists and move to the next VOD if it does
         if os.path.isfile(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id))):
@@ -449,7 +450,7 @@ def main():
         # Then we download the chat logs after in case the download is in LIVE mode
         RetrieveVODChat(VOD_INFO, CLIENT_ID, CLIENT_SECRET, VOD_SUBDIR, LIVE_MODE)
         # Now we make sure the VOD length matches what is expected
-        VerifyVODLength(VOD_INFO, VOD_INFO['title'], VOD_SUBDIR)
+        VerifyVODLength(RAW_VOD_INFO, VOD_INFO['title'], VOD_SUBDIR)
         # If we've made it to this point, all files have been downloaded and the VOD can be added to the database.
         RAW_VOD_INFO['vod_subdirectory'] = VOD_INFO['created_at'] + ' - ' + VOD_INFO['title'] + ' - ' + str(vod_id)
         RAW_VOD_INFO['vod_title'] = VOD_INFO['title'] + '.mp4'
