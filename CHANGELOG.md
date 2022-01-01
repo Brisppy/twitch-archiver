@@ -12,6 +12,8 @@ Fixed an issue with where temporary files were stored on Windows
 
 Fixed an issue with the vod duration not being properly updated for live downloads
 
+Removed possible race condition with lock files
+
 Other minor changes and formatting adjustments.
 
 (2021-10-05) Version 1.2

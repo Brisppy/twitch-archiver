@@ -417,14 +417,12 @@ def main():
         # probably a better method of doing this than using a global variable.
         RAW_VOD_INFO = copy.deepcopy(VOD_INFO)
         # Check if lock file exists and move to the next VOD if it does
-        if os.path.isfile(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id))):
+        try:
+            with open(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id)), 'x') as lockfile:
+                pass
+        except FileExistsError:
             print('INFO: Lock file present for vod ' + str(vod_id) + '. VOD either failed previously with an error, or '
                   'is still being processed by another instance of TVA.')
-            continue
-        else:
-            # Create lock file
-            with open(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id)), 'w') as lockfile:
-                pass
         if CHANNEL_LIVE and vod_id == VOD_QUEUE[0]:
             print('INFO: Selected VOD is still being updated, running in LIVE mode.')
             LIVE_MODE = True
@@ -473,8 +471,12 @@ def main():
         else:
             print('INFO: VOD ' + VOD_INFO['id'] + ' successfully downloaded.')
         # Remove lock file
-        if os.path.isfile(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id))):
+        try:
             os.remove(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id)))
+        except Exception as e:
+            print('ERROR: Failed to remove lock file for VOD ' + VOD_INFO['id'] + '.')
+            print('ERROR:', e)
+
 
 if __name__ == '__main__':
     main()
