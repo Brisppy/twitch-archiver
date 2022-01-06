@@ -1,6 +1,6 @@
-(2021-12-11) Version 1.3
+(2022-01-06) Version 1.3
 
-Fixed an issue with how the CHANNEL directory is created using the supplied CLI argument, which mayu not match with the name provided by Twitch. - Thanks to MambaBoyy for bringing this to my attention.
+Fixed an issue with how the CHANNEL directory is created using the supplied CLI argument, which may not match with the name provided by Twitch. - Thanks to MambaBoyy for bringing this to my attention.
 
 If database access fails when trying to write VOD_INFO, a new file named '.vodinfo' will be created containing this information. This is very important if a VOD is deleted as the data may no longer be available.
 
@@ -8,11 +8,15 @@ Fixed an issue if the script was run too soon after a channel goes live.
 
 Fixed an issue with the SendPushbullet function, where some calls were missing required information.
 
-Fixed an issue with where temporary files were stored on Windows
+Fixed an issue with where temporary files were stored on Windows.
 
-Fixed an issue with the vod duration not being properly updated for live downloads
+Fixed an issue with the vod duration not being properly updated for live downloads.
 
-Removed possible race condition with lock files
+Removed possible race condition with lock files.
+
+Fixed VOD download loop breaking at the wrong time.
+
+Fixed the VOD verificaiton length which was using the original VOD length rather than currently downloaded length.
 
 Other minor changes and formatting adjustments.
 

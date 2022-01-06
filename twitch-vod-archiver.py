@@ -10,7 +10,7 @@
 from typing_extensions import final
 from src.vod_database_connect import *
 from src.twitch_auth import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 # Retrieve variables from supplied file
 from variables import *
@@ -157,15 +157,14 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
                       'duration will most likely be incorrect.')
                 with open(Path(VOD_SUBDIR, '.ignorelength'), 'w') as ignorelength:
                     pass
+            else:
+                NEW_VOD_DURATION = NEW_VOD_INFO['data'][0]['duration']
                 # Also add the most recently grabbed duration to the RAW_VOD_DATA array
                 global RAW_VOD_INFO
-                RAW_VOD_INFO['duration'] = CUR_VOD_DURATION
-                break
-            else: 
-                NEW_VOD_DURATION = NEW_VOD_INFO['data'][0]['duration']
+                RAW_VOD_INFO['duration'] = NEW_VOD_DURATION
             # Compare the original duration to the newly fetched duration
             if CUR_VOD_DURATION != NEW_VOD_DURATION:
-                print('INFO: VOD Duration has changed (Probably live) - attempting to download VOD again.')
+                print('INFO: VOD Duration has changed - downloading new chunks.')
                 print('DEBUG: Previous duration:', CUR_VOD_DURATION, 'New duration:', NEW_VOD_DURATION)
                 CUR_VOD_DURATION = NEW_VOD_DURATION
                 # Reset final pass in case the VOD duration changes after it meets the requirements for the stream
@@ -175,7 +174,7 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
             # If the duration matches, we attempt to download the VOD one final time.
             elif CUR_VOD_DURATION == NEW_VOD_DURATION and not final_pass:
                 print('INFO: VOD Duration has not changed, attempting to download once more then continuing.')
-                time.sleep(120)
+                time.sleep(180)
                 final_pass = 1
                 continue
             elif final_pass:
@@ -265,7 +264,7 @@ def VerifyVODLength(RAW_VOD_INFO, VOD_NAME, VOD_SUBDIR):
         print('ERROR: Downloaded VOD duration less than expected duration.')
         if SEND_PUSHBULLET:
             SendPushbullet(PUSHBULLET_KEY, 1, 'Downloaded VOD duration shorter than expected. Check log '
-                           'and remove .lock.' + str(VOD_INFO['id']) + ' file.', VOD_INFO)
+                           'and remove .lock.' + str(RAW_VOD_INFO['id']) + ' file.', RAW_VOD_INFO)
         sys.exit(1)
 
 
@@ -275,7 +274,7 @@ def VerifyVODLength(RAW_VOD_INFO, VOD_NAME, VOD_SUBDIR):
 def SendPushbullet(PUSHBULLET_KEY, TYPE, ERROR, VOD_INFO = []):
     token = PUSHBULLET_KEY
     url = "https://api.pushbullet.com/v2/pushes"
-    headers = {"content-type": "application/json", "Authorization": 'Bearer '+token}
+    headers = {"content-type": "application/json", "Authorization": 'Bearer ' + token}
     if TYPE == 1:
         data_send = {"type": "note", "title": 'Error Archiving Twitch VOD ' + VOD_INFO['id'] + ' by ' +
                     VOD_INFO['user_name'], "body": ERROR}
@@ -407,15 +406,6 @@ def main():
     for vod_id in VOD_QUEUE:
         print('INFO: Retrieving VOD:', vod_id)
         VOD_INFO = CallTwitch('videos?id=' + str(vod_id))['data'][0]
-        # Check if the VOD started uploading less than 10 minutes ago, if so, we will skip it.
-        # This is done because Twitch's API has a delay for seeing whether a channel is live or not, and so a VOD may
-        # appear as available, while the channel is offline according to Twitch which breaks things.
-        if TimeSinceCreatedAt(VOD_INFO['created_at']) < 10.0:
-            print('INFO: VOD was created less than 10 minutes ago, skipping until next run.')
-            continue
-        # We need to modify the duration if the VOD is live from with in the RetrieveVODVideo function. There is
-        # probably a better method of doing this than using a global variable.
-        RAW_VOD_INFO = copy.deepcopy(VOD_INFO)
         # Check if lock file exists and move to the next VOD if it does
         try:
             with open(Path(VOD_DIRECTORY, USER_NAME, '.lock.' + str(vod_id)), 'x') as lockfile:
@@ -423,6 +413,19 @@ def main():
         except FileExistsError:
             print('INFO: Lock file present for vod ' + str(vod_id) + '. VOD either failed previously with an error, or '
                   'is still being processed by another instance of TVA.')
+            continue
+        # Check if the VOD started uploading less than 10 minutes ago, if so, we will skip it.
+        # This is done because Twitch's API has a delay for seeing whether a channel is live or not, and so a VOD may
+        # appear as available, while the channel is offline according to Twitch which breaks things.
+        if TimeSinceCreatedAt(VOD_INFO['created_at']) < 10.0:
+            print('INFO: VOD was created less than 10 minutes ago, pausing until ' +
+                  str((datetime.now() + timedelta(minutes=10)).time()))
+            time.sleep(600)
+            continue
+        # We need to modify the duration if the VOD is live from with in the RetrieveVODVideo function. There is
+        # probably a better method of doing this than using a global variable.
+        global RAW_VOD_INFO
+        RAW_VOD_INFO = copy.deepcopy(VOD_INFO)
         if CHANNEL_LIVE and vod_id == VOD_QUEUE[0]:
             print('INFO: Selected VOD is still being updated, running in LIVE mode.')
             LIVE_MODE = True
