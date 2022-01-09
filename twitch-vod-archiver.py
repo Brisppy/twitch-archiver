@@ -27,17 +27,16 @@ import os
 import re
 
 # Check if channel has been supplied
-if not sys.argv[1]:
-    print('ERROR: No channel supplied.')
-    sys.exit(1)
+try:
+    CHANNEL = sys.argv[1]
+except:
+    CHANNEL = input("Input the channel name to download: ")
+
 
 # Check if VOD directory was set
 if not VOD_DIRECTORY:
     print('ERROR: VOD directory not supplied.')
     sys.exit(1)
-
-# DO NOT MODIFY
-CHANNEL = sys.argv[1] # Channel name
 
 
 # This function is used for retrieving information from the Twitch API, returning an array containing the retrieved
@@ -405,6 +404,15 @@ def main():
     # Iterate through each VOD, downloading the individual parts
     for vod_id in VOD_QUEUE:
         print('INFO: Retrieving VOD:', vod_id)
+        # We must check if the VOD ID is now present in the downloaded vods database, as it may have been downloaded
+        # since the script was run.
+        DOWN_VODS = ExecuteReadQuery(database_file, select_vods)
+        DOWNLOADED_VODS = []
+        for vod in DOWN_VODS:
+            DOWNLOADED_VODS.append(vod[0])
+        if vod_id in DOWNLOADED_VODS:
+            print('INFO: VOD has been downloaded since the script was run, moving onto the next VOD.')
+            continue
         VOD_INFO = CallTwitch('videos?id=' + str(vod_id))['data'][0]
         # Check if lock file exists and move to the next VOD if it does
         try:
@@ -465,7 +473,7 @@ def main():
         """
         if ExecuteQuery(database_file, create_vod, list(RAW_VOD_INFO.values())):
             print('ERROR: Failed to add VOD information to database. Creating .vodinfo file.')
-            with open(Path(VOD_DIRECTORY, USER_NAME, '.vodinfo'), 'w') as f:
+            with open(Path(VOD_DIRECTORY, USER_NAME, '.vodinfo.' + str(vod_id)), 'w') as f:
                 f.write(str(RAW_VOD_INFO))
                 f.close()
             if SEND_PUSHBULLET:

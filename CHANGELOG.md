@@ -18,6 +18,8 @@ Fixed VOD download loop breaking at the wrong time.
 
 Fixed the VOD verificaiton length which was using the original VOD length rather than currently downloaded length.
 
+Fixed an issue where a VOD would be processed twice if multiple instances of TVA run in parallel.
+
 Other minor changes and formatting adjustments.
 
 (2021-10-05) Version 1.2
