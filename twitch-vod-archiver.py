@@ -352,7 +352,7 @@ def main():
         sys.exit(1)
     USER_ID = USER_DATA['data'][0]['id']
     USER_NAME = USER_DATA['data'][0]['display_name']
-    print('INFO: User ' + USER_NAME +' ID is ' + USER_ID + '.')
+    print('INFO: User ID of ' + USER_NAME +' is ' + USER_ID + '.')
     # Check if VOD_DIRECTORY exists, if not, create it along with the CHANNEL directory
     if not os.path.isdir(Path(VOD_DIRECTORY)):
         print('INFO: Creating VOD archive directory.')
@@ -366,13 +366,9 @@ def main():
     ExecuteQuery(database_file, create_vods_table)
     # Check database columns against what is expected
     CompareDatabase(database_file)
-    # Return a list of available VODs from USER_ID
-    AVAIL_VODS = CallTwitch('videos?user_id=' + USER_ID + '&first=100&type=archive', 1)
-    # Create a list of available VODs
-    AVAILABLE_VODS = []
-    for vod in AVAIL_VODS['data']:
-        AVAILABLE_VODS.append(int(vod['id']))
-    print('INFO: Available VODs:', AVAILABLE_VODS)
+    # Fetch a list of available VODs
+    AVAILABLE_VODS = [i['id'] for i in CallTwitch('videos?user_id=' + USER_ID + '&first=100&type=archive', 1)['data']]
+    print('INFO: Available VODs:', len(AVAILABLE_VODS))
     # Check if the channel is currently live.
     CHANNEL_STATUS = CallTwitch('streams?user_id=' + USER_ID)
     if CHANNEL_STATUS['data']:
@@ -387,11 +383,8 @@ def main():
         CHANNEL_LIVE = False
     # Retrieve currently downloaded VODs from VOD database
     select_vods = 'SELECT * from vods'
-    DOWN_VODS = ExecuteReadQuery(database_file, select_vods)
-    DOWNLOADED_VODS = []
-    for vod in DOWN_VODS:
-        DOWNLOADED_VODS.append(vod[0])
-    print('INFO: Downloaded VODs:', DOWNLOADED_VODS)
+    DOWNLOADED_VODS = [str(i[0]) for i in ExecuteReadQuery(database_file, select_vods)]
+    print('INFO: Downloaded VODs:', len(DOWNLOADED_VODS))
     # Create the VOD queue by removing AVAILABLE_VODS which have already been downloaded.
     VOD_QUEUE = []
     for vod in AVAILABLE_VODS:
@@ -406,10 +399,7 @@ def main():
         print('INFO: Retrieving VOD:', vod_id)
         # We must check if the VOD ID is now present in the downloaded vods database, as it may have been downloaded
         # since the script was run.
-        DOWN_VODS = ExecuteReadQuery(database_file, select_vods)
-        DOWNLOADED_VODS = []
-        for vod in DOWN_VODS:
-            DOWNLOADED_VODS.append(vod[0])
+        DOWNLOADED_VODS = [str(i[0]) for i in ExecuteReadQuery(database_file, select_vods)]
         if vod_id in DOWNLOADED_VODS:
             print('INFO: VOD has been downloaded since the script was run, moving onto the next VOD.')
             continue
