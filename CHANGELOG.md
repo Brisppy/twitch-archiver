@@ -1,4 +1,4 @@
-(2022-01-06) Version 1.3
+(2022-01-17) Version 1.3
 
 Fixed an issue with how the CHANNEL directory is created using the supplied CLI argument, which may not match with the name provided by Twitch. - Thanks to MambaBoyy for bringing this to my attention.
 

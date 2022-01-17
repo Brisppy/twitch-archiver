@@ -22,10 +22,13 @@ Table of Contents
 * **[tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader)** (python -m pip install tcd) (Must be accessible via PATH)
 * **[twitch-dl](https://github.com/ihabunek/twitch-dl)** (python -m pip install twitch-dl) (Must be accessible via PATH)
 
-# Installation
+# Installation & Usage
+### Install
 1. Clone the repository, download via the 'Code' button on the top of the page, or grab the latest [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
 
-2. Modify the variables in 'variables.py'.
+2. Install the requirements listed above.
+
+3. Modify the variables in 'variables.py'.
 
 | Variable | Function |
 |-------|------|
@@ -35,8 +38,8 @@ Table of Contents
 |```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure. **Do not surround with quotes.**
 |```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
 
-# Usage
-Run the script, supplying the channel name. I use a crontab entry to run it hourly to grab any new VODs.
+### Run
+Run the script via a terminal or command line, supplying the channel name. I use a crontab entry to run it hourly to grab any new VODs.
 
 ```python ./twitch-vod-archiver.py Brisppy```
 
