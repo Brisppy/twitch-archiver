@@ -8,8 +8,8 @@ Table of Contents
 =================
 
   * [Requirements](#requirements)
-  * [Installation](#installation)
-  * [Usage](#usage)
+  * [Installation](#installation--Usage)
+  * [Run](#run)
   * [Retrieving Tokens](#retrieving-tokens)
   * [Extra Info](#extra-info)
     * [Notes](#notes)
