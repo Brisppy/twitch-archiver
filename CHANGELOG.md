@@ -1,3 +1,7 @@
+(2022-01-23) Version 1.3.1
+
+Fixed an issue with vods created very recently
+
 (2022-01-17) Version 1.3
 
 Fixed an issue with how the CHANNEL directory is created using the supplied CLI argument, which may not match with the name provided by Twitch. - Thanks to MambaBoyy for bringing this to my attention.
@@ -16,7 +20,7 @@ Removed possible race condition with lock files.
 
 Fixed VOD download loop breaking at the wrong time.
 
-Fixed the VOD verificaiton length which was using the original VOD length rather than currently downloaded length.
+Fixed the VOD verification length which was using the original VOD length rather than currently downloaded length.
 
 Fixed an issue where a VOD would be processed twice if multiple instances of TVA run in parallel.
 
