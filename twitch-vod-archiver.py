@@ -36,6 +36,7 @@ except:
 # Check if VOD directory was set
 if not VOD_DIRECTORY:
     print('ERROR: VOD directory not supplied.')
+    time.sleep(5)
     sys.exit(1)
 
 
@@ -133,7 +134,6 @@ def RetrieveVODVideo(VOD_INFO, VOD_SUBDIR, VOD_NAME, LIVE_MODE):
         if LIVE_MODE and ConvertToSeconds(CallTwitch('videos?id=' + str(VOD_INFO['id']))['data'][0]['duration']) < 300:
             print('INFO: VOD is not currently long enough to download, pausing for 5 minutes.')
             time.sleep(300)
-            continue
         # Actual command for downloading the VOD
         p = subprocess.run('twitch-dl download --max-workers 20 --no-join -q source ' + VOD_INFO['id'], shell=True,
                                                                                                         env=d)
@@ -419,7 +419,6 @@ def main():
             print('INFO: VOD was created less than 10 minutes ago, pausing until ' +
                   str((datetime.now() + timedelta(minutes=10)).time()))
             time.sleep(600)
-            continue
         # We need to modify the duration if the VOD is live from with in the RetrieveVODVideo function. There is
         # probably a better method of doing this than using a global variable.
         global RAW_VOD_INFO
