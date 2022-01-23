@@ -2,7 +2,7 @@
 A CLI-based Python3 script for Windows and Linux allowing the scheduled archiving of Twitch VODs (Video + Chat logs) for a specified Twitch channel.
 
 Chat logs are grabbed using [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/), with VODs being downloaded effectively as fast as your Internet speed can handle (see [notes](#notes)).  
-This script is designed to run on sort sort of schedule, personally I run the script every hour, allowing it to grab VODs as they go live.
+This script is designed to run via some sort of scheduler, personally I run the script every hour, allowing it to grab VODs as they go live.
 
 Table of Contents
 =================
