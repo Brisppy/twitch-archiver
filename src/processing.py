@@ -34,7 +34,7 @@ class Processing:
 
     def get_channel(self, channels):
         """
-        Download all vods from a specified channel.
+        Download all vods from a specified channel or list of channels.
         """
         for channel in channels:
             self.log.info("Now archiving channel '" + channel + "'.")
@@ -77,7 +77,8 @@ class Processing:
             vod_queue = [vod_id for vod_id in available_vods if vod_id not in downloaded_vods]
             if not available_vods or not vod_queue:
                 self.log.info('No VODs are available for download.')
-                sys.exit(0)
+                continue
+
             self.log.info(str(len(vod_queue)) + ' VOD(s) in download queue.')
             self.log.debug('VOD queue: ' + str(vod_queue))
 
@@ -97,8 +98,7 @@ class Processing:
                 if vod_id in downloaded_vods:
                     self.log.info('VOD has been downloaded since database was last checked, skipping.')
 
-                l_vod_id = [vod_id]
-                vod_json = self.get_vods(l_vod_id)
+                vod_json = self.get_vods(vod_id)
 
                 # add to database
                 self.log.debug('Adding VOD info to database.')

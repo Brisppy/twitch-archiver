@@ -20,11 +20,11 @@ class Arguments:
 
         # generate list from comma-separated vods
         if Arguments.get('vod_id'):
-            Arguments.set('vod_id', [vod_id for vod_id in Arguments.get('vod_id').split(',')])
+            Arguments.set('vod_id', list([vod_id for vod_id in Arguments.get('vod_id').split(',')]))
 
         # generate list from comma-separated channels
         elif Arguments.get('channel'):
-            Arguments.set('channel', [channel for channel in Arguments.get('channel').split(',')])
+            Arguments.set('channel', list([channel for channel in Arguments.get('channel').split(',')]))
 
     @staticmethod
     def set(name, value):
