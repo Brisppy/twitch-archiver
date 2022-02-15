@@ -97,6 +97,7 @@ class Processing:
 
                 if vod_id in downloaded_vods:
                     self.log.info('VOD has been downloaded since database was last checked, skipping.')
+                    continue
 
                 vod_json = self.get_vods(vod_id)
 
