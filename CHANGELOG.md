@@ -5,15 +5,20 @@ For the past few weeks I've been working to completely refactor the code as the 
 And so I've created version 2.0, following proper guidelines, formatting and vastly improving the cleanliness and
 readability of the code. This isn't to say it's perfect, I am still learning and open to any feedback (especially in terms of industry standards)
 
-With all that said, I've tested this new codebase - but there still may be bugs.
+With all that said, I've tested this new code extensively - but there still may be bugs.
 
 * What's new:
-    * Developed internal method for downloading chat logs.
-    * Developed internal method for downloading video.
+    * Variables can now be passed as arguments rather than via a file.
+    * New video and chat download methods:
+      * Improved speed and reliability.
+      * Better error handling.
+      * More modularity.
+      * Easier integration and fewer requirements.
+      * Less reliance on external sources in case Twitch makes any sort of changes.
     * Implemented a configuration file for storing secrets for reuse.
+    * Added progress bars to download, conversion and export of video and chat logs.
     * Chat logs are now grabbed and saved while archiving a live VOD rather than after (meaning they are saved in case of VOD deletion).
-    * More verbose chat logs are now archived along with a readable version.
-    * New video and chat download methods to improve speed and reliability.
+    * A more verbose chat log is are now archived along with a readable version.
     * Implemented new methods for determining whether a VOD is live or not.
     * Transitioned to a single database for all archived channel data.
     * Allow the archiving of individual (or multiple) VODs.
@@ -21,6 +26,7 @@ With all that said, I've tested this new codebase - but there still may be bugs.
     * Removed erroneous characters from VOD directory names.
     * Modified database schema. See [this gist](https://gist.github.com/522bffef7bee7eb17c1eacbf1a35aadc) if you wish to migrate your TA v1.x database(s) to the new format and location. This needs to be done to seamlessly resume archiving channels.
     * Greatly enhanced documentation.
+    * Greatly improved logging.
     * Various smaller fixes and improvements.
     * Repository renamed (twitch-vod-archiver -> twitch-archiver).
     * Added a license (GNU Affero Public License).
