@@ -1,11 +1,11 @@
 ﻿```
- _______ ___ ___ ___ _______ _______ ___ ___   _______ _______ _______ ___ ___ ___ ___ ___ _______ _______ 
-|       |   Y   |   |       |   _   |   Y   | |   _   |   _   |   _   |   Y   |   |   Y   |   _   |   _   \
-|.|   | |.  |   |.  |.|   | |.  1___|.  1   | |.  1   |.  l   |.  1___|.  1   |.  |.  |   |.  1___|.  l   /
-`-|.  |-|. / \  |.  `-|.  |-|.  |___|.  _   | |.  _   |.  _   |.  |___|.  _   |.  |.  |   |.  __)_|.  _   1
-  |:  | |:      |:  | |:  | |:  1   |:  |   | |:  |   |:  |   |:  1   |:  |   |:  |:  1   |:  1   |:  |   |
-  |::.| |::.|:. |::.| |::.| |::.. . |::.|:. | |::.|:. |::.|:. |::.. . |::.|:. |::.|\:.. ./|::.. . |::.|:. |
-  `---' `--- ---`---' `---' `-------`--- ---' `--- ---`--- ---`-------`--- ---`---' `---' `-------`--- ---'
+ _______ ___ ___ ___ _______ _______ ___ ___  _______ _______ _______ ___ ___ ___ ___ ___ _______ _______ 
+|       |   Y   |   |       |   _   |   Y   ||   _   |   _   |   _   |   Y   |   |   Y   |   _   |   _   \
+|.|   | |.  |   |.  |.|   | |.  1___|.  1   ||.  1   |.  l   |.  1___|.  1   |.  |.  |   |.  1___|.  l   /
+`-|.  |-|. / \  |.  `-|.  |-|.  |___|.  _   ||.  _   |.  _   |.  |___|.  _   |.  |.  |   |.  __)_|.  _   1
+  |:  | |:      |:  | |:  | |:  1   |:  |   ||:  |   |:  |   |:  1   |:  |   |:  |:  1   |:  1   |:  |   |
+  |::.| |::.|:. |::.| |::.| |::.. . |::.|:. ||::.|:. |::.|:. |::.. . |::.|:. |::.|\:.. ./|::.. . |::.|:. |
+  `---' `--- ---`---' `---' `-------`--- ---'`--- ---`--- ---`-------`--- ---`---' `---' `-------`--- ---'
 ```
 <p align="center"><b>
 A simple, fast, platform-independent Python script for downloading past and present Twitch VODs and chat logs.</b><br/>
@@ -31,7 +31,7 @@ Primarily focused on data preservation, this script can be used to archive an en
   * [Disclaimer](#disclaimer)
 
 ## Features
-* Allows a single VOD, multiple VODs or a channel to be downloaded.
+* Allows any number of VODs or channel to be downloaded simultaneously.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
 * Allows the downloading of **live**[^2] VODs *before copyrighted audio is detected and muted*.
 * Generates and saves a readable chat log with timestamps and user badges.
