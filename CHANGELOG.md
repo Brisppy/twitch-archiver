@@ -1,3 +1,30 @@
+(2022-xx-xx) Version 2.0
+
+Completely refactored code:
+
+    Developed internal method for downloading chat logs.
+
+    Developed internal method for downloading video.
+
+Implemented custom exceptions.
+
+Chat logs are now grabbed and saved while archiving a live VOD rather than after.
+
+More verbose chat logs are now archived along with a readable version.
+
+New video and chat download methods to improve speed and reliability.
+
+Implemented new methods for determining whether a VOD is live or not.
+
+Transitioned to a single database for all channel archives.
+
+Removed erroneous characters from VOD directory names
+
+#####
+Modified database schema. See INSERT_GIST_URL if you wish to migrate your TA v1.x database(s) to the new format and location. Will need to be done to seamlessly resume archiving channels.
+
+Added a license (GNU Affero Public License).
+
 (2022-01-23) Version 1.3.1
 
 Fixed an issue with vods created very recently

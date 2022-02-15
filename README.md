@@ -1,81 +1,195 @@
-﻿# 📁 Twitch Vod Archiver 📁
-A CLI-based Python3 script for Windows and Linux allowing the scheduled archiving of Twitch VODs (Video + Chat logs) for a specified Twitch channel.
+﻿```
+           _______ ___ ___ ___ _______ _______ ___ ___     _______ _______ _______ ___ ___ ___ ___ ___ _______ _______ 
+          |       |   Y   |   |       |   _   |   Y   |   |   _   |   _   |   _   |   Y   |   |   Y   |   _   |   _   \
+          |.|   | |.  |   |.  |.|   | |.  1___|.  1   |   |.  1   |.  l   |.  1___|.  1   |.  |.  |   |.  1___|.  l   /
+          `-|.  |-|. / \  |.  `-|.  |-|.  |___|.  _   |   |.  _   |.  _   |.  |___|.  _   |.  |.  |   |.  __)_|.  _   1
+            |:  | |:      |:  | |:  | |:  1   |:  |   |   |:  |   |:  |   |:  1   |:  |   |:  |:  1   |:  1   |:  |   |
+            |::.| |::.|:. |::.| |::.| |::.. . |::.|:. |   |::.|:. |::.|:. |::.. . |::.|:. |::.|\:.. ./|::.. . |::.|:. |
+            `---' `--- ---`---' `---' `-------`--- ---'   `--- ---`--- ---`-------`--- ---`---' `---' `-------`--- ---'
+```
+<p align="center"><b>
+A simple, fast, platform-independent Python script for downloading past and present Twitch VODs and chat logs.</b><br/>
+Primarily focused on data preservation, this script can be used to archive an entire Twitch channel at once, or to quickly grab the chat log from a single VOD. Both archived, and live VODs can be downloaded with this script.
+</p>
 
-Chat logs are grabbed using [tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader), with VODs downloaded with [twitch-dl](https://github.com/ihabunek/twitch-dl) before being remuxed with [ffmpeg](https://ffmpeg.org/), with VODs being downloaded effectively as fast as your Internet speed can handle (see [notes](#notes)).  
-This script is designed to run via some sort of scheduler, personally I run the script every hour, allowing it to grab VODs as they go live.
+## Table of Contents
 
-Table of Contents
-=================
-
+  * [Features](#features)
   * [Requirements](#requirements)
-  * [Installation](#installation--Usage)
-  * [Run](#run)
+  * [Installation & Usage](#installation--usage)
+    * [Installation](#installation)
+    * [Usage](#usage)
+    * [Arguments](#arguments)
+    * [Configuration](#configuration)
   * [Retrieving Tokens](#retrieving-tokens)
   * [Extra Info](#extra-info)
     * [Notes](#notes)
-    * [How are the files stored?](#how-are-the-files-stored)
-    * [Limitations](#limitations)
+    * [How files are stored](#how-files-are-stored)
+    * [Planned Features](#planned-features)
+    * [Why?](#why)
+  * [Disclaimer](#disclaimer)
 
-# Requirements
-* **Python 3.8 (or newer)**
-* **[ffmpeg](https://ffmpeg.org/)** (Must be accessible via PATH)
-* **[tcd](https://github.com/PetterKraabol/Twitch-Chat-Downloader)** (python -m pip install tcd) (Must be accessible via PATH)
-* **[twitch-dl](https://github.com/ihabunek/twitch-dl)** (python -m pip install twitch-dl) (Must be accessible via PATH)
+## Features
+* Allows a single VOD, multiple VODs or a channel to be downloaded.
+* VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
+* Allows the downloading of **live**[^2] VODs *before copyrighted audio is detected and muted*.
+* Generates and saves a readable chat log with timestamps and user badges.
+* Allows the specifying of downloading only the video, chat or both.
+* Error reporting via pushbullet.
+* Supports automated archiving without any sort of user interaction.
+* Requires minimal setup or external programs.
 
-# Installation & Usage
-### Install
-1. Clone the repository, download via the 'Code' button on the top of the page, or grab the latest [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
+[^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
+[^2]: If a VOD is being archived while it is live and deleted, the archived video will contain everything up to a couple minutes before the deletion point. This is because streams are *currently* downloaded via their associated VOD which is a couple minutes behind.
 
-2. Install the requirements listed above.
 
-3. Modify the variables in 'variables.py'.
+## Requirements
+* **Python >= 3.7**
+* **[ffmpeg](https://ffmpeg.org/)** (Accessible via $PATH - see [Installation](#installation))
 
-| Variable | Function |
-|-------|------|
-|```CLIENT_ID```|Application Client ID retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens)).
-|```CLIENT_SECRET```|Application Secret retrieved from dev.twitch.tv - (See [Retrieving Tokens](#retrieving-tokens)).
-|```VOD_DIRECTORY```|Location in which VODs will be stored, users are stored in separate folders within - **Use TWO backslashes for Windows paths (e.g 'Z:\\\twitch-archive').**
-|```SEND_PUSHBULLET```|**OPTIONAL:** 0/1 Whether or not you wish to send a pushbullet notification on download failure. **Do not surround with quotes.**
-|```PUSHBULLET_KEY```|**OPTIONAL:** Your Pushbullet API key.
+## Installation & Usage
+### Installation
+1. Clone the repository via `git clone https://github.com/Brisppy/twitch-archiver` or grab the latest [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
 
-### Run
-Run the script via a terminal or command line, supplying the channel name. I use a crontab entry to run it hourly to grab any new VODs.
+2. Download [ffmpeg](https://ffmpeg.org/) and add to your PATH. See [this](https://www.wikihow.com/Install-FFmpeg-on-Windows) article if you are unsure how to do this.
 
-```python ./twitch-vod-archiver.py Brisppy```
+3. Install Python requirements `python -m pip install -r requirements.txt`.
 
-# Retrieving Tokens
+### Usage
+Run the script via your terminal of choice. Use ```python ./twitch-vod-archiver.py -h``` to view help text.
+
+#### Examples
+```python ./twitch-vod-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
+
+Would download **video and chat** of all VODs from the channel **Brisppy**, using the provided **client_id** and **client_secret**, to the directory **Z:\twitch-archive**.
+
+```python ./twitch-vod-archiver.py -v 1276315849,1275305106 -d "Z:\\twitch-archive" -V -t 10```
+
+Would download VODs **1276315849 and 1275305106** to the directory **Z:\twitch-archive**, only saving the **video**  using **10 download threads**.
+
+### Arguments
+```
+requires one of:
+    -c CHANNEL, --channel CHANNEL
+            Channel to download.
+    -v VOD_ID, --vod-id VOD_ID
+            VOD ID(s) to download, comma separated if multiple provided.
+
+credentials provided with:
+    -i CLIENT_ID, --client-id CLIENT_ID
+            Client ID retrieved from dev.twitch.tv
+    -s CLIENT_SECRET, --client-secret CLIENT_SECRET
+            Client secret retrieved from dev.twitch.tv
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CHANNEL, --channel CHANNEL
+                        Username of twitch channel to download.
+  -v VOD_ID, --vod-id VOD_ID
+                        A single VOD ID (-v 1276315849), or multiple comma-separated VOD IDs (-v 1276315849,1275305106)
+  -i CLIENT_ID, --client-id CLIENT_ID
+                        Client ID retrieved from dev.twitch.tv
+  -s CLIENT_SECRET, --client-secret CLIENT_SECRET
+                        Client secret retrieved from dev.twitch.tv
+  -d DIRECTORY, --directory DIRECTORY
+                        Directory to store archived VOD(s), use TWO slashes for Windows paths. (default: current directory)
+  -C, --chat            Only save chat logs.
+  -V, --video           Only save video.
+  -t THREADS, --threads THREADS
+                        Number of video download threads. (default: 20)
+  -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
+                        Pushbullet key for sending pushes on error. Enabled by supplying key.
+  -Q, --quiet           Disable all log output.
+  -D, --debug           Enable debug logs.
+  -L LOG_FILE, --log-file LOG_FILE
+                        Output logs to specified file.
+  -I CONFIG_DIR, --config-dir CONFIG_DIR
+                        Directory to store configuration, VOD database and lock files. (default: $HOME\.config\twitch-archiver)
+  --version             Show version number and exit
+```
+
+### Configuration
+By default, the configuration directory is `$HOME/.config/twitch-archiver`.
+
+This holds the config (config.ini), VOD database used for archiving channels (vods.db), and is where lock files are stored to prevent multiple instances of TA from overwriting each other.
+
+        CONFIG_DIR ─┬─ config.ini
+                    │
+                    ├─ vods.db
+                    │
+                    └─ .lock.xxxxxxx
+
+### config.ini
+Authentication tokens are stored in this format:
+```
+[settings]
+client_id = 
+client_secret = 
+oauth_token = 
+pushbullet_key = 
+```
+These are loaded into TA **first**, before being overwritten by any arguments passed to TA.
+This file will be created the first time you use TA and an OAuth token is successfully generated, with the provided credentials then saved in the ini.
+
+## Retrieving Tokens
 ### To retrieve the CLIENT_ID and CLIENT_SECRET:
 1. Navigate to [dev.twitch.tv](https://dev.twitch.tv/) and log in
 2. Register a new app called Twitch VOD Archiver with any redirect URL and under any Category
 3. The provided Client ID is used as the CLIENT_ID variable
 4. The provided Client Secret is used as the CLIENT_SECRET variable
 
-# Extra Info
+## Extra Info
 ### Notes
-* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the ```VOD_DIRECTORY/CHANNEL/DATE-VOD_NAME-VOD_ID``` folder), you may also want to verify that the VODs are matching after archiving too.
-* If your VOD_DIRECTORY is located on a SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux machines.
-* If you wish to speed up (or slow down) the downloading of VOD pieces, edit ```twitch-vod-archiver.py``` and find the line with ```--max-workers 20``` and change the number to however many pieces you wish to download at once.
-* As of v1.1, multiple instances of this script can be run (I recommend a small delay inbetween). This is tracked through lock files located at the root of the channel folder. For example, ```Z:\\twitch-archive\\Brisppy\\.lock.1025444786```, which is removed only upon successful download of the VOD. If an error occurs, the VOD will be skipped on future runs of the script until the lock file is removed MANUALLY. I recommend setting up pushbullet so that you can catch issues such as this easily.
+* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside of the VOD's directory (Within the ```DIRECTORY/CHANNEL/VOD``` folder), you may also want to verify that the VODs are matching after archiving too.
+* If a VOD is deleted while it is being archived, all of the data will still be saved and 
+* If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux machines.
 
-### How are the files stored?
-Downloaded files are stored under one large directory which you provide in 'variables.py' (VOD_DIRECTORY).
+### How files are stored
+VODs are downloaded to the specified directory. If downloading a channel, an individual folder will be created for that specific channel.
+When supplying just VOD ID(s), the vod is downloaded to a folder inside the supplied directory.
 
-    VOD_DIRECTORY ─┬─ CHANNEL#1 ─┬─ VOD#1 ─┬─ CHAT.log
-                   │             │         └─ VOD.mp4
+        DIRECTORY ─┬─ CHANNEL_a ─┬─ VOD_a ─┬─ vod.mp4
+                   │             │         │
+                   │             │         ├─ vod.json
+                   │             │         │
+                   │             │         ├─ verboseChat.json
+                   │             │         │
+                   │             │         └─ readableChat.log
                    │             │
-                   │             ├─ VOD#2 ─┬─ CHAT.log
-                   │             │         └─ VOD.mp4
-                   │             │
-                   │             └─ vod_db.sqlite
+                   │             └─ VOD_b ─── *
                    │
-                   └─ CHANNEL#2 ─┬─ VOD#1 ─┬─ CHAT.log
-                                 │         └─ VOD.mp4
-                                 │
-                                 ├─ VOD#2 ─┬─ CHAT.log
-                                 │         └─ VOD.mp4
-                                 │
-                                 └─ vod_db.sqlite
+                   ├─ CHANNEL_b ─┬─ VOD_c ─── *
+                   │             │
+                   │             └─ VOD_d ─── *
+                   │
+                   ├─ VOD_e ─┬─ vod.mp4
+                   │         │
+                   │         ├─ vod.json
+                   │         │
+                   │         ├─ verboseChat.json
+                   │         │
+                   │         └─ readableChat.log
+                   │
+                   └─ VOD_f ─── *
 
-### Limitations
-* VODs cannot be downloaded individually - only a channel may be supplied.
-* Subscriber-only VODs cannot be archived yet as it's not supported by [twitch-dl](https://github.com/ihabunek/twitch-dl), the creater has expressed some [interest](https://github.com/ihabunek/twitch-dl/issues/48) in implementing though.
+### Planned Features
+- [ ] Allow archiving of subscriber-only VODs (need an account with a subscription for development + testing).
+- [ ] Further improve VOD download speed using separate download and file move workers (may need someone to test with >1Gbit connection).
+- [ ] Release python package.
+- [x] .ts to .mp4 conversion progress bar.
+- [ ] Find a way to directly archive the stream - could be then spliced with downloaded vod parts to capture everything up to the point the VOD is deleted rather than just up to a couple minutes before. Both video and chat could be done this way.
+- [x] Speed up VOD part discovery by finding and removing downloaded parts from the 'to-download' list.
+
+### Why?
+To put it simply - **I don't like when data is deleted**.
+
+I originally began work on the first version of this script in response to the copyright storm in which most Twitch streamers purged their old VODs in fear of DMCA.
+
+At the time, and even now I could not find any script which would allow for the AUTOMATED archival of both the video AND chat for a particular VOD, and especially not one which can do this while the VOD is still live.
+
+This script seeks to cover this, while also offers other functionality for those with a penchant for archiving data, or who wish to download VODs for other reasons.
+
+## Disclaimer
+This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
+
+If your intent is to use this script to lazily rip and upload streams to another platform for your own gain without the permission of the streamer, I implore you to stop and have think about what you are doing and the possible effect of doing so, and politely request that you find another method with which to steal the work of others.
