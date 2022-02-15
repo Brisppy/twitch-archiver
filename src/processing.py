@@ -99,7 +99,7 @@ class Processing:
                     self.log.info('VOD has been downloaded since database was last checked, skipping.')
                     continue
 
-                vod_json = self.get_vods(vod_id)
+                vod_json = self.get_vods([vod_id])
 
                 # add to database
                 self.log.debug('Adding VOD info to database.')
