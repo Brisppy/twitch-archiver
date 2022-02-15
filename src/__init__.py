@@ -31,7 +31,7 @@ def main():
         -v VOD_ID, --vod-id VOD_ID
                 VOD ID(s) to download, comma separated if multiple provided.
 
-    credentials provided with: (or provided with config file)
+    credentials are grabbed from stored config, OR provided with:
         -i CLIENT_ID, --client-id CLIENT_ID
                 Client ID retrieved from dev.twitch.tv
         -s CLIENT_SECRET, --client-secret CLIENT_SECRET

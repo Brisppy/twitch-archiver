@@ -46,11 +46,12 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Requirements
 * **Python >= 3.7**
+* Python **requests** and **m3u8** modules - `pip install requests m3u8`
 * **[ffmpeg](https://ffmpeg.org/)** (Accessible via $PATH - see [Installation](#installation))
 
 ## Installation & Usage
 ### Installation
-1. Clone the repository via `git clone https://github.com/Brisppy/twitch-archiver` or grab the latest [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
+1. Download the most recent release via the green "Code" button on the top right, or grab the latest stable [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
 
 2. Download [ffmpeg](https://ffmpeg.org/) and add to your PATH. See [this](https://www.wikihow.com/Install-FFmpeg-on-Windows) article if you are unsure how to do this.
 
@@ -76,7 +77,7 @@ requires one of:
     -v VOD_ID, --vod-id VOD_ID
             VOD ID(s) to download, comma separated if multiple provided.
 
-credentials provided with:
+credentials are grabbed from stored config, OR provided with:
     -i CLIENT_ID, --client-id CLIENT_ID
             Client ID retrieved from dev.twitch.tv
     -s CLIENT_SECRET, --client-secret CLIENT_SECRET
