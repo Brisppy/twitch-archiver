@@ -1,14 +1,15 @@
 ﻿```
-           _______ ___ ___ ___ _______ _______ ___ ___     _______ _______ _______ ___ ___ ___ ___ ___ _______ _______ 
-          |       |   Y   |   |       |   _   |   Y   |   |   _   |   _   |   _   |   Y   |   |   Y   |   _   |   _   \
-          |.|   | |.  |   |.  |.|   | |.  1___|.  1   |   |.  1   |.  l   |.  1___|.  1   |.  |.  |   |.  1___|.  l   /
-          `-|.  |-|. / \  |.  `-|.  |-|.  |___|.  _   |   |.  _   |.  _   |.  |___|.  _   |.  |.  |   |.  __)_|.  _   1
-            |:  | |:      |:  | |:  | |:  1   |:  |   |   |:  |   |:  |   |:  1   |:  |   |:  |:  1   |:  1   |:  |   |
-            |::.| |::.|:. |::.| |::.| |::.. . |::.|:. |   |::.|:. |::.|:. |::.. . |::.|:. |::.|\:.. ./|::.. . |::.|:. |
-            `---' `--- ---`---' `---' `-------`--- ---'   `--- ---`--- ---`-------`--- ---`---' `---' `-------`--- ---'
+ _______ ___ ___ ___ _______ _______ ___ ___     _______ _______ _______ ___ ___ ___ ___ ___ _______ _______ 
+|       |   Y   |   |       |   _   |   Y   |   |   _   |   _   |   _   |   Y   |   |   Y   |   _   |   _   \
+|.|   | |.  |   |.  |.|   | |.  1___|.  1   |   |.  1   |.  l   |.  1___|.  1   |.  |.  |   |.  1___|.  l   /
+`-|.  |-|. / \  |.  `-|.  |-|.  |___|.  _   |   |.  _   |.  _   |.  |___|.  _   |.  |.  |   |.  __)_|.  _   1
+  |:  | |:      |:  | |:  | |:  1   |:  |   |   |:  |   |:  |   |:  1   |:  |   |:  |:  1   |:  1   |:  |   |
+  |::.| |::.|:. |::.| |::.| |::.. . |::.|:. |   |::.|:. |::.|:. |::.. . |::.|:. |::.|\:.. ./|::.. . |::.|:. |
+  `---' `--- ---`---' `---' `-------`--- ---'   `--- ---`--- ---`-------`--- ---`---' `---' `-------`--- ---'
 ```
 <p align="center"><b>
 A simple, fast, platform-independent Python script for downloading past and present Twitch VODs and chat logs.</b><br/>
+<br>
 Primarily focused on data preservation, this script can be used to archive an entire Twitch channel at once, or to quickly grab the chat log from a single VOD. Both archived, and live VODs can be downloaded with this script.
 </p>
 
@@ -84,7 +85,7 @@ credentials provided with:
 optional arguments:
   -h, --help            show this help message and exit
   -c CHANNEL, --channel CHANNEL
-                        Username of twitch channel to download.
+                        Channel(s) to download, comma separated if multiple provided.
   -v VOD_ID, --vod-id VOD_ID
                         A single VOD ID (-v 1276315849), or multiple comma-separated VOD IDs (-v 1276315849,1275305106)
   -i CLIENT_ID, --client-id CLIENT_ID

@@ -27,7 +27,7 @@ def main():
 
     requires one of:
         -c CHANNEL, --channel CHANNEL
-                Channel to download.
+                Channel(s) to download, comma separated if multiple provided.
         -v VOD_ID, --vod-id VOD_ID
                 VOD ID(s) to download, comma separated if multiple provided.
 
