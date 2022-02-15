@@ -29,7 +29,6 @@ class Processing:
 
         self.Api = Api(config['pushbullet_key'])
         self.callTwitch = Twitch(config)
-        self.Utils = Utils()
 
         self.vod_directory = Path(self.Args['directory'])
 
@@ -86,7 +85,7 @@ class Processing:
                 self.log.debug('Processing VOD ' + str(vod_id) + ' by ' + user_name)
                 self.log.debug('Creating lock file for VOD.')
 
-                if self.Utils.create_lock(self.Args['config_dir'], vod_id):
+                if Utils.create_lock(self.Args['config_dir'], vod_id):
                     self.log.info('Lock file present for VOD ' + str(vod_id) + ', skipping.')
                     continue
 
@@ -108,7 +107,7 @@ class Processing:
 
                 # remove lock
                 self.log.debug('Removing lock file.')
-                if self.Utils.remove_lock(self.Args['config_dir'], vod_id):
+                if Utils.remove_lock(self.Args['config_dir'], vod_id):
                     raise UnlockingError(self.Config['pushbullet_key'], vod_id)
 
     def get_vods(self, vods):
@@ -123,10 +122,10 @@ class Processing:
             self.log.info('Now processing VOD: ' + str(vod_id))
             vod_json = self.callTwitch.get_api('videos?id=' + str(vod_id))['data'][0]
             vod_json['muted_segments'] = str(vod_json['muted_segments'])
-            vod_json['store_directory'] = str(Path(self.vod_directory, self.Utils.sanitize_date(vod_json['created_at'])
-                                                   + ' - ' + self.Utils.sanitize_text(vod_json['title']) + ' - '
+            vod_json['store_directory'] = str(Path(self.vod_directory, Utils.sanitize_date(vod_json['created_at'])
+                                                   + ' - ' + Utils.sanitize_text(vod_json['title']) + ' - '
                                                    + str(vod_id)))
-            vod_json['duration_seconds'] = self.Utils.convert_to_seconds(vod_json['duration'])
+            vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
 
             # get vod status
             try:
@@ -182,10 +181,10 @@ class Processing:
                 vod_json = _r['data'][0]
                 vod_json['muted_segments'] = str(vod_json['muted_segments'])
                 vod_json['store_directory'] = str(Path(self.vod_directory,
-                                                       self.Utils.sanitize_date(vod_json['created_at'])
-                                                       + ' - ' + self.Utils.sanitize_text(vod_json['title'])
+                                                       Utils.sanitize_date(vod_json['created_at'])
+                                                       + ' - ' + Utils.sanitize_text(vod_json['title'])
                                                        + ' - ' + str(vod_json['id'])))
-                vod_json['duration_seconds'] = self.Utils.convert_to_seconds(vod_json['duration'])
+                vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
 
             except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                 self.log.debug('Error retrieving VOD json - VOD was likely deleted.')
@@ -226,10 +225,11 @@ class Processing:
                     # only try to grab more chat logs if we aren't past vod length
                     elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration_seconds']:
                         self.log.debug('Grabbing chat logs from offset: ' + str(chat_log[-1]['content_offset_seconds']))
-                        chat_log.extend([n for n in download.get_chat(floor(int(chat_log[-1]['content_offset_seconds'])))
-                                        if n['_id'] not in [m['_id'] for m in chat_log]])
+                        chat_log.extend(
+                            [n for n in download.get_chat(floor(int(chat_log[-1]['content_offset_seconds'])))
+                             if n['_id'] not in [m['_id'] for m in chat_log]])
 
-                    self.Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])
+                    Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])
 
                 except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, TwitchAPIErrorBadRequest):
                     self.log.debug('Error 400, 403 or 404 returned when downloading chat log - VOD was likely deleted.')
@@ -273,27 +273,27 @@ class Processing:
         if self.Args['video']:
             # combine all the 10s long .ts parts into a single file, then convert to .mp4
             try:
-                self.Utils.combine_vod_parts(vod_json)
-                self.Utils.convert_vod(vod_json)
+                Utils.combine_vod_parts(vod_json)
+                Utils.convert_vod(vod_json)
 
             except Exception as e:
                 raise VodMergeError(self.Config['pushbullet_key'], e, vod_json['id'])
 
             # verify vod length is equal to what is grabbed from twitch
-            if self.Utils.verify_vod_length(vod_json):
+            if Utils.verify_vod_length(vod_json):
                 raise VodMergeError(self.Config['pushbullet_key'], 'VOD length less than expected.', vod_json['id'])
 
             # delete temporary .ts parts and merged.ts file
             self.log.debug('Cleaning up temporary files...')
-            self.Utils.cleanup_vod_parts(vod_json['store_directory'])
+            Utils.cleanup_vod_parts(vod_json['store_directory'])
 
         if self.Args['chat']:
             # generate and export the readable chat log
             if chat_log:
                 try:
                     self.log.debug('Generating readable chat log and saving to disk...')
-                    r_chat_log = self.Utils.generate_readable_chat_log(chat_log)
-                    self.Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
+                    r_chat_log = Utils.generate_readable_chat_log(chat_log)
+                    Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
 
                 except Exception as e:
                     raise ChatExportError(self.Config['pushbullet_key'], e, vod_json['id'])
@@ -302,6 +302,6 @@ class Processing:
                 self.log.info('No chat messages found.')
 
         # export vod json to disk
-        self.Utils.export_json(vod_json)
+        Utils.export_json(vod_json)
 
         return vod_json
