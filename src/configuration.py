@@ -29,7 +29,8 @@ class Configuration:
 
         # if setting loaded from config differs from passed arg (and arg is not none), overwrite it
         for argument in args:
-            if argument in self.get() and args.get(argument) != self.get(argument) and args.get(argument) is not None:
+            if argument in self.get() and args.get(argument) != self.get(argument) \
+                    and args.get(argument) not in [None, False]:
                 self.set(argument, args.get(argument))
 
     def load_config(self, conf_file):
