@@ -13,13 +13,16 @@ class Arguments:
         for argument in args:
             Arguments.set(argument, args[argument])
 
+        # get both video and chat logs if neither selected
         if not Arguments.get('chat') and not Arguments.get('video'):
             Arguments.set('chat', True)
             Arguments.set('video', True)
 
+        # generate list from comma-separated vods
         if Arguments.get('vod_id'):
             Arguments.set('vod_id', [vod_id for vod_id in Arguments.get('vod_id').split(',')])
 
+        # generate list from comma-separated channels
         elif Arguments.get('channel'):
             Arguments.set('channel', [channel for channel in Arguments.get('channel').split(',')])
 
