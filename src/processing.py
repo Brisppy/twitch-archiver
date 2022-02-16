@@ -274,8 +274,8 @@ class Processing:
         if self.Args['video']:
             # combine all the 10s long .ts parts into a single file, then convert to .mp4
             try:
-                Utils.combine_vod_parts(vod_json)
-                Utils.convert_vod(vod_json)
+                Utils.combine_vod_parts(vod_json, print_progress=False if self.Args['quiet'] else True)
+                Utils.convert_vod(vod_json, print_progress=False if self.Args['quiet'] else True)
 
             except Exception as e:
                 raise VodMergeError(self.Config['pushbullet_key'], e, vod_json['id'])

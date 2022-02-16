@@ -39,6 +39,7 @@ def main():
     Both the video and chat logs are grabbed if neither are specified.
     """), formatter_class=argparse.RawTextHelpFormatter)
     mode = parser.add_mutually_exclusive_group(required=False if '--show-config' in sys.argv else True)
+    loglevel = parser.add_mutually_exclusive_group(required=False)
     mode.add_argument('-c', '--channel', type=str, action='store',
                       help='A single twitch channel to download, or multiple comma-separated channels.')
     mode.add_argument('-v', '--vod-id', type=str, action='store',
@@ -59,8 +60,8 @@ def main():
                         default=Path(os.path.expanduser("~"), '.config', 'twitch-archiver'))
     parser.add_argument('-p', '--pushbullet-key', action='store',
                         help='Pushbullet key for sending pushes on error. Enabled by supplying key.', default=False)
-    parser.add_argument('-Q', '--quiet', action='store_true', help='Disable all log output.', default=False)
-    parser.add_argument('-D', '--debug', action='store_true', help='Enable debug logs.', default=False)
+    loglevel.add_argument('-Q', '--quiet', action='store_const', help='Disable all log output.', const=50, default=0)
+    loglevel.add_argument('-D', '--debug', action='store_const', help='Enable debug logs.', const=10, default=0)
     parser.add_argument('--version', action='version', version=f'{__name__} v{__version__}',
                         help='Show version number and exit.')
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
@@ -70,7 +71,7 @@ def main():
     args.setup_args(parser.parse_args().__dict__)
 
     # setup logging
-    log = Logger.setupLogger(args.get('debug'), args.get('log_file'))
+    log = Logger.setupLogger(args.get('quiet') + args.get('debug'), args.get('log_file'))
     log.debug('Debug logging enabled.')
     log.debug('Arguments: ' + str(args.get()))
 

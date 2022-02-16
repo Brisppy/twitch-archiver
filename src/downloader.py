@@ -71,7 +71,8 @@ class Downloader:
                     continue
 
                 ct += 1
-                progress.print_progress(ct, len(ts_url_list))
+                if not self.Args['quiet']:
+                    progress.print_progress(ct, len(ts_url_list))
 
         if download_error:
             raise VodPartDownloadError(download_error)
@@ -160,7 +161,8 @@ class Downloader:
                 # vod duration in seconds is used as the total for progress bar
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
-                progress.print_progress(int(segment[-1]['content_offset_seconds']), self.vod_json['duration_seconds'])
+                if not self.Args['quiet']:
+                    progress.print_progress(int(segment[-1]['content_offset_seconds']), self.vod_json['duration_seconds'])
 
             except TwitchAPIErrorNotFound:
                 break

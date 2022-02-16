@@ -9,10 +9,10 @@ class Logger:
     Sets up logging for the script.
     """
     @staticmethod
-    def setupLogger(debug_enabled, log_file=None):
+    def setupLogger(level, log_file=None):
         """Sets up logging module.
 
-        :param debug_enabled: boolean whether debug arg passed
+        :param level: numeric log level
         :param log_file: location of log file if provided
         :return: python loggging object
         """
@@ -26,7 +26,7 @@ class Logger:
 
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
-        console.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
+        console.setLevel(20 if not level else level)
         console.setFormatter(console_formatter)
         logger.addHandler(console)
 

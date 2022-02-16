@@ -86,10 +86,11 @@ class Utils:
             json_out_file.write(json.dumps(vod_json))
 
     @staticmethod
-    def combine_vod_parts(vod_json):
+    def combine_vod_parts(vod_json, print_progress=True):
         """Combines the downloaded VOD .ts parts.
 
         :param vod_json: dict of vod parameters retrieved from twitch
+        :param print_progress: boolean whether to print progress bar
         """
         log.info('Merging VOD parts. This may take a while.')
 
@@ -97,7 +98,8 @@ class Utils:
         vod_parts = [Path(p) for p in sorted(glob(str(Path(vod_json['store_directory'], 'parts', '*.ts'))))]
         log.debug(vod_parts)
 
-        progress = Progress()
+        if print_progress:
+            progress = Progress()
 
         with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
             pr = 0
@@ -107,20 +109,23 @@ class Utils:
                 with open(ts_file, 'rb') as mergefile:
                     shutil.copyfileobj(mergefile, merged)
 
-                progress.print_progress(pr, len(vod_parts))
+                if print_progress:
+                    progress.print_progress(pr, len(vod_parts))
 
     @staticmethod
-    def convert_vod(vod_json):
+    def convert_vod(vod_json, print_progress=True):
         """Converts the VOD from a .ts format to .mp4.
 
         :param vod_json: dict of vod parameters retrieved from twitch
+        :param print_progress: boolean whether to print progress bar
         :raises vodConvertError: error encountered during conversion process
         """
         log.info('Converting VOD to mp4. This may take a while.')
 
         total_frames = Utils.get_vod_framecount(vod_json)
 
-        progress = Progress()
+        if print_progress:
+            progress = Progress()
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
@@ -133,7 +138,9 @@ class Utils:
                 if 'frame=' in line:
                     # extract framerate from output
                     current_frame = re.search('(?<=frame=).*(?= fps=)', line)
-                    progress.print_progress(int(current_frame.group(0)), total_frames)
+
+                    if print_progress:
+                        progress.print_progress(int(current_frame.group(0)), total_frames)
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
