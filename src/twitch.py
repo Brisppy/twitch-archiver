@@ -19,7 +19,7 @@ class Twitch:
 
         self.Config = config
 
-        self.Api = self.Config['pushbullet_key']
+        self.Api = Api(self.Config['pushbullet_key'])
 
     def get_api(self, api_path):
         """Retrieves information from the Twitch API.
