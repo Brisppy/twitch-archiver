@@ -71,10 +71,10 @@ Would download VODs **1276315849 and 1275305106** to the directory **Z:\twitch-a
 
 ### Arguments
 ```
-usage: twitch-archiver.py [-h] [-c CHANNEL] [-v VOD_ID] [-i CLIENT_ID]
-                          [-s CLIENT_SECRET] [-d DIRECTORY] [-C] [-V]
-                          [-t THREADS] [-p PUSHBULLET_KEY] [-Q] [-D]
-                          [-L LOG_FILE] [-I CONFIG_DIR] [--version]
+usage: twitch-archiver.py [-h] (-c CHANNEL | -v VOD_ID) [-i CLIENT_ID]
+                          [-s CLIENT_SECRET] [-C] [-V] [-t THREADS]
+                          [-d DIRECTORY] [-L LOG_FILE] [-I CONFIG_DIR]
+                          [-p PUSHBULLET_KEY] [-Q | -D] [--version]
                           [--show-config]
 
 requires one of:
@@ -89,6 +89,8 @@ credentials are grabbed from stored config, OR provided with:
     -s CLIENT_SECRET, --client-secret CLIENT_SECRET
             Client secret retrieved from dev.twitch.tv
 
+Both the video and chat logs are grabbed if neither are specified.
+
 optional arguments:
   -h, --help            show this help message and exit
   -c CHANNEL, --channel CHANNEL
@@ -99,25 +101,25 @@ optional arguments:
                         Client ID retrieved from dev.twitch.tv
   -s CLIENT_SECRET, --client-secret CLIENT_SECRET
                         Client secret retrieved from dev.twitch.tv
-  -d DIRECTORY, --directory DIRECTORY
-                        Directory to store archived VOD(s), use TWO slashes for Windows paths.
-                        (default: C:\Users\HC\Github\twitch-archiver)
   -C, --chat            Only save chat logs.
   -V, --video           Only save video.
   -t THREADS, --threads THREADS
                         Number of video download threads. (default: 20)
-  -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
-                        Pushbullet key for sending pushes on error. Enabled by supplying key.
-  -Q, --quiet           Disable all log output.
-  -D, --debug           Enable debug logs.
+  -d DIRECTORY, --directory DIRECTORY
+                        Directory to store archived VOD(s), use TWO slashes for Windows paths.
+                        (default: C:\Users\HC\Github\twitch-archiver)
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
                         Directory to store configuration, VOD database and lock files.
                         (default: C:\Users\HC\.config\twitch-archiver)
+  -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
+                        Pushbullet key for sending pushes on error. Enabled by supplying key.
+  -Q, --quiet           Disable all log output.
+  -D, --debug           Enable debug logs.
   --version             Show version number and exit.
   --show-config         Show saved config and exit.
-  ```
+```
 
 ### Configuration
 By default, the configuration directory is `$HOME/.config/twitch-archiver`.
