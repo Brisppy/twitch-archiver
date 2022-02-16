@@ -62,6 +62,7 @@ def main():
                         default=Path(os.path.expanduser("~"), '.config', 'twitch-archiver'))
     parser.add_argument('--version', action='version', version=f'{__name__} v{__version__}',
                         help='Show version number and exit.')
+    mode.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
 
     # setup arguments
     args = Arguments()

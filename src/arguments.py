@@ -1,3 +1,8 @@
+import sys
+
+from pathlib import Path
+
+
 class Arguments:
     """
     Function for parsing arguments for access later.
@@ -12,6 +17,14 @@ class Arguments:
         """
         for argument in args:
             Arguments.set(argument, args[argument])
+
+        if Arguments.get('show_config'):
+            try:
+                with open(Path(Arguments.get('config_dir'), 'config.ini'), 'r') as config:
+                    print(config.read())
+                    sys.exit(0)
+            except FileNotFoundError:
+                sys.exit('Config not found. Run Twitch-Archiver once with your Client ID and Secret to generate one.')
 
         # get both video and chat logs if neither selected
         if not Arguments.get('chat') and not Arguments.get('video'):
