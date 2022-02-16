@@ -36,6 +36,7 @@ To any experienced Python developers who might stumble upon this and are willing
     * Repository renamed (twitch-vod-archiver -> twitch-archiver).
     * Chat logs are now grabbed and saved while archiving a live VOD rather than after (meaning they are saved in case of VOD deletion).
     * Greatly improved logging.
+    * Overhauled changelog and readme
 
 **(2022-01-23) Version 1.3.1**
 

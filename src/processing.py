@@ -173,7 +173,7 @@ class Processing:
 
         except FileNotFoundError:
             chat_log = []
-            
+
         # loop for processing live vods
         while True:
             try:
