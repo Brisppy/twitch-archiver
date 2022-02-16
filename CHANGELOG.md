@@ -3,33 +3,39 @@
 For the past few weeks I've been working to completely refactor the code as the original v1.0 was built when I was just beginning to understand Python - this lead to various issues with standardization, cleanliness and the general logic of the code making it increasingly difficult to add features due to a distinct lack of modularity.
 
 And so I've created version 2.0, following proper guidelines, formatting and vastly improving the cleanliness and
-readability of the code. This isn't to say it's perfect, I am still learning and open to any feedback (especially in terms of industry standards)
+readability of the code. This isn't to say it's perfect, I am still learning and open to any feedback.
 
 With all that said, I've tested this new code extensively - but there still may be bugs.
 
+To any experienced Python developers who might stumble upon this and are willing to answer some technical questions, I would be extremely grateful if you could [email me](mailto:brisppy@protonmail.com) for a quick chat.
+
 * What's new:
-    * Variables can now be passed as arguments rather than via a file.
     * New video and chat download methods:
       * Improved speed and reliability.
       * Better error handling.
       * More modularity.
       * Easier integration and fewer requirements.
       * Less reliance on external sources in case Twitch makes any sort of changes.
-    * Implemented a configuration file for storing secrets for reuse.
+    * Added a configuration file for storing secrets for reuse.
     * Added progress bars to download, conversion and export of video and chat logs.
-    * Chat logs are now grabbed and saved while archiving a live VOD rather than after (meaning they are saved in case of VOD deletion).
     * A more verbose chat log is are now archived along with a readable version.
     * Implemented new methods for determining whether a VOD is live or not.
+    * Added the ability to archive individual (or multiple) VODs.
+    * Added the ability to archive multiple channels in one command.
+    * Added the ability to print the saved config.
+    * Added the '--quiet' and '--debug' arguments.
+    * Added a license (GNU Affero Public License).
+
+
+* What's changed:
+    * Variables can now be passed as arguments rather than via a file.
     * Transitioned to a single database for all archived channel data.
-    * Allow the archiving of individual (or multiple) VODs.
-    * Allow the archiving of multiple channels in one command.
     * Removed erroneous characters from VOD directory names.
     * Modified database schema. See [this gist](https://gist.github.com/522bffef7bee7eb17c1eacbf1a35aadc) if you wish to migrate your TA v1.x database(s) to the new format and location. This needs to be done to seamlessly resume archiving channels.
-    * Greatly enhanced documentation.
-    * Greatly improved logging.
     * Various smaller fixes and improvements.
     * Repository renamed (twitch-vod-archiver -> twitch-archiver).
-    * Added a license (GNU Affero Public License).
+    * Chat logs are now grabbed and saved while archiving a live VOD rather than after (meaning they are saved in case of VOD deletion).
+    * Greatly improved logging.
 
 **(2022-01-23) Version 1.3.1**
 
