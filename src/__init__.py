@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import textwrap
 
 from pathlib import Path
@@ -37,7 +38,7 @@ def main():
                 
     Both the video and chat logs are grabbed if neither are specified.
     """), formatter_class=argparse.RawTextHelpFormatter)
-    mode = parser.add_mutually_exclusive_group(required=True)
+    mode = parser.add_mutually_exclusive_group(required=False if '--show-config' in sys.argv else True)
     mode.add_argument('-c', '--channel', type=str, action='store',
                       help='A single twitch channel to download, or multiple comma-separated channels.')
     mode.add_argument('-v', '--vod-id', type=str, action='store',
@@ -62,7 +63,7 @@ def main():
     parser.add_argument('-D', '--debug', action='store_true', help='Enable debug logs.', default=False)
     parser.add_argument('--version', action='version', version=f'{__name__} v{__version__}',
                         help='Show version number and exit.')
-    mode.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
+    parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
 
     # setup arguments
     args = Arguments()
