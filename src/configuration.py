@@ -96,14 +96,14 @@ class Configuration:
 
         return Configuration.__conf[name]
 
-    # reference: 
+    # reference:
     #   https://stackoverflow.com/questions/35247900/python-creating-an-ini-or-config-file-in-the-users-home-directory
     def save(self, conf_file, name=None):
         """
         Saves the running configuration to the configuration ini.
         """
         self.log.debug('Saving config variable(s) to ini file.')
-        
+
         # import saved config
         config = configparser.ConfigParser()
         config.read(conf_file)
