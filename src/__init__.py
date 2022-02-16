@@ -23,8 +23,6 @@ def main():
 
     A fast, platform-independent Python script for downloading past and present Twitch VODs and chat logs.
 
-    By default, both the video and chat of a specified VOD is downloaded.
-
     requires one of:
         -c CHANNEL, --channel CHANNEL
                 Channel(s) to download, comma separated if multiple provided.
@@ -36,30 +34,32 @@ def main():
                 Client ID retrieved from dev.twitch.tv
         -s CLIENT_SECRET, --client-secret CLIENT_SECRET
                 Client secret retrieved from dev.twitch.tv
-    """), formatter_class=argparse.RawDescriptionHelpFormatter)
+                
+    Both the video and chat logs are grabbed if neither are specified.
+    """), formatter_class=argparse.RawTextHelpFormatter)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('-c', '--channel', type=str, action='store',
                       help='A single twitch channel to download, or multiple comma-separated channels.')
     mode.add_argument('-v', '--vod-id', type=str, action='store',
-                      help='A single VOD ID (-v 12763849), or multiple comma-separated VOD IDs (-v 12763159,12753056)')
+                      help='A single VOD ID (12763849) or multiple comma-separated VOD IDs (12763159,12753056)')
     parser.add_argument('-i', '--client-id', action='store', help='Client ID retrieved from dev.twitch.tv')
     parser.add_argument('-s', '--client-secret', action='store', help='Client secret retrieved from dev.twitch.tv')
-    parser.add_argument('-d', '--directory', action='store',
-                        help='Directory to store archived VOD(s), use TWO slashes for Windows paths. '
-                             '(default: %(default)s)',
-                        default=Path(os.getcwd()))
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.')
     parser.add_argument('-V', '--video', action='store_true', help='Only save video.')
     parser.add_argument('-t', '--threads', type=int, action='store',
                         help='Number of video download threads. (default: %(default)s)', default=20)
+    parser.add_argument('-d', '--directory', action='store',
+                        help='Directory to store archived VOD(s), use TWO slashes for Windows paths.\n'
+                             '(default: %(default)s)',
+                        default=Path(os.getcwd()))
+    parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', default=False)
+    parser.add_argument('-I', '--config-dir', action='store', type=Path,
+                        help='Directory to store configuration, VOD database and lock files.\n(default: %(default)s)',
+                        default=Path(os.path.expanduser("~"), '.config', 'twitch-archiver'))
     parser.add_argument('-p', '--pushbullet-key', action='store',
                         help='Pushbullet key for sending pushes on error. Enabled by supplying key.', default=False)
     parser.add_argument('-Q', '--quiet', action='store_true', help='Disable all log output.', default=False)
     parser.add_argument('-D', '--debug', action='store_true', help='Enable debug logs.', default=False)
-    parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', default=False)
-    parser.add_argument('-I', '--config-dir', action='store', type=Path,
-                        help='Directory to store configuration, VOD database and lock files. (default: %(default)s)',
-                        default=Path(os.path.expanduser("~"), '.config', 'twitch-archiver'))
     parser.add_argument('--version', action='version', version=f'{__name__} v{__version__}',
                         help='Show version number and exit.')
     mode.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)

@@ -71,6 +71,12 @@ Would download VODs **1276315849 and 1275305106** to the directory **Z:\twitch-a
 
 ### Arguments
 ```
+usage: twitch-archiver.py [-h] [-c CHANNEL] [-v VOD_ID] [-i CLIENT_ID]
+                          [-s CLIENT_SECRET] [-d DIRECTORY] [-C] [-V]
+                          [-t THREADS] [-p PUSHBULLET_KEY] [-Q] [-D]
+                          [-L LOG_FILE] [-I CONFIG_DIR] [--version]
+                          [--show-config]
+
 requires one of:
     -c CHANNEL, --channel CHANNEL
             Channel(s) to download, comma separated if multiple provided.
@@ -86,15 +92,16 @@ credentials are grabbed from stored config, OR provided with:
 optional arguments:
   -h, --help            show this help message and exit
   -c CHANNEL, --channel CHANNEL
-                        Channel(s) to download, comma separated if multiple provided.
+                        A single twitch channel to download, or multiple comma-separated channels.
   -v VOD_ID, --vod-id VOD_ID
-                        A single VOD ID (-v 1276315849), or multiple comma-separated VOD IDs (-v 1276315849,1275305106)
+                        A single VOD ID (12763849) or multiple comma-separated VOD IDs (12763159,12753056)
   -i CLIENT_ID, --client-id CLIENT_ID
                         Client ID retrieved from dev.twitch.tv
   -s CLIENT_SECRET, --client-secret CLIENT_SECRET
                         Client secret retrieved from dev.twitch.tv
   -d DIRECTORY, --directory DIRECTORY
-                        Directory to store archived VOD(s), use TWO slashes for Windows paths. (default: current directory)
+                        Directory to store archived VOD(s), use TWO slashes for Windows paths.
+                        (default: C:\Users\HC\Github\twitch-archiver)
   -C, --chat            Only save chat logs.
   -V, --video           Only save video.
   -t THREADS, --threads THREADS
@@ -106,9 +113,11 @@ optional arguments:
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
-                        Directory to store configuration, VOD database and lock files. (default: $HOME\.config\twitch-archiver)
-  --version             Show version number and exit
-```
+                        Directory to store configuration, VOD database and lock files.
+                        (default: C:\Users\HC\.config\twitch-archiver)
+  --version             Show version number and exit.
+  --show-config         Show saved config and exit.
+  ```
 
 ### Configuration
 By default, the configuration directory is `$HOME/.config/twitch-archiver`.
