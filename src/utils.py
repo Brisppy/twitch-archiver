@@ -1,13 +1,16 @@
 import json
 import logging
 import re
+import requests
 import shutil
 import subprocess
+import sys
 
 from datetime import datetime
 from glob import glob
 from math import ceil, floor
 from pathlib import Path
+from time import sleep
 
 from src.exceptions import VodConvertError
 
@@ -144,7 +147,7 @@ class Utils:
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])))
+            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
 
     @staticmethod
     def get_vod_framecount(vod_json):
@@ -166,7 +169,7 @@ class Utils:
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])))
+            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
 
         # retrieve framerate from returned output
         try:
@@ -174,7 +177,7 @@ class Utils:
 
         except Exception as e:
             log.error('Failed to fetch VOD framerate. VOD may not have downloaded correctly. ' + str(e))
-            raise VodConvertError(str(json.loads(p.output[7:])))
+            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
 
         log.debug('Average framerate is ' + str(avg_framerate))
 
@@ -205,7 +208,7 @@ class Utils:
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])))
+            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
 
         try:
             downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
@@ -224,6 +227,37 @@ class Utils:
         log.debug('VOD passed length verification.')
 
         return False
+
+    @staticmethod
+    def get_vod_status(callTwitch, vod_json):
+
+        try:
+            if Utils.time_since_date(vod_json['created_at']) < 300:
+                log.info('VOD was created less than 5m ago - assuming it is live, and waiting until 5m '
+                         'total has passed.')
+                sleep(300 - Utils.time_since_date(vod_json['created_at']))
+                vod_live = True
+
+            # if time since vod created + its duration is a point in time less than 10m ago, VOD must be live
+            elif Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 600):
+                log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
+                          'Running in live mode.')
+                vod_live = True
+
+            # if streamer live
+            elif callTwitch.get_api('streams?user_id='
+                                    + str(vod_json['user_id']))['data'][0]['type'] == 'live':
+                # and passed vod id is their most recent vod
+                if int(vod_json['id']) == int(callTwitch.get_api('videos?user_id=' + str(vod_json['user_id'])
+                                                                 + '&first=100&type=archive&after=')['data'][0]['id']):
+                    log.debug('Channel status is live and VOD is their most recent - running in live mode.')
+                    vod_live = True
+
+        except IndexError:
+            return False
+
+        else:
+            return vod_live
 
     @staticmethod
     def cleanup_vod_parts(vod_directory):
@@ -314,6 +348,28 @@ class Utils:
         current_time = int(datetime.utcnow().timestamp())
 
         return current_time - created_at
+
+    @staticmethod
+    def send_push(pushbullet_key, title, body=''):
+        """Sends a push to an account based on a given pushbullet key.
+
+        :param pushbullet_key: key for destination pushbullet account. 'False' to not send.
+        :param title: title to send with push
+        :param body: body to send with push
+        """
+        if pushbullet_key:
+            h = {"content-type": "application/json", "Authorization": 'Bearer ' + pushbullet_key}
+            d = {"type": "note", "title": '[twitch-archiver] ' + title, "body": body}
+
+            try:
+                _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d))
+
+            except Exception as e:
+                log.error('Error sending push. ' + title + ' ' + body + '. ' + str(e))
+                sys.exit(1)
+
+            if _r.status_code != 200:
+                log.error('Error sending push. ' + title + ' ' + body)
 
 
 class Progress:

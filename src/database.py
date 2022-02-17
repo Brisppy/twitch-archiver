@@ -12,16 +12,14 @@ class Database:
     """
     Functions for interacting with the VOD database.
     """
-    def __init__(self, pushbullet_key, database_path):
+    def __init__(self, database_path):
         """Class constructor.
 
-        :param pushbullet_key: token for pushbullet requests
         :param database_path: path to database file
         """
         self.log = logging.getLogger('twitch-archive')
 
-        self.database_path = database_path        
-        self.pushbullet_key = pushbullet_key
+        self.database_path = database_path
 
         try:
             self.log.debug('Database path: ' + str(self.database_path))
@@ -30,7 +28,7 @@ class Database:
             self.log.debug('Connection to SQLite DB successful.')
 
         except Error as e:
-            raise DatabaseError(self.pushbullet_key, 'Connection to SQLite DB failed: ' + str(e))
+            raise DatabaseError('Connection to SQLite DB failed: ' + str(e))
 
     def setup_database(self):
         """
@@ -38,7 +36,7 @@ class Database:
         """
         self.log.debug("Setting up vods table if it doesn't already exist.")
 
-        with Database(self.pushbullet_key, self.database_path) as db:
+        with Database(self.database_path) as db:
             db.execute_query(create_vods_table)
 
     # reference:
@@ -52,7 +50,7 @@ class Database:
         if isinstance(exc_value, Exception):
             self.connection.rollback()
             self.connection.close()
-            raise DatabaseError(self.pushbullet_key, exc_value)
+            raise DatabaseError(exc_value)
 
         else:
             self.connection.commit()
@@ -75,7 +73,7 @@ class Database:
                 _r = self.cursor.execute(command, list(values.values())).fetchall()
 
         except Exception as e:
-            raise DatabaseQueryError(self.pushbullet_key, str(e))
+            raise DatabaseQueryError(str(e))
 
         return _r
 

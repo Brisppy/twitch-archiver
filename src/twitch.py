@@ -19,8 +19,6 @@ class Twitch:
 
         self.Config = config
 
-        self.Api = Api(self.Config['pushbullet_key'])
-
     def get_api(self, api_path):
         """Retrieves information from the Twitch API.
 
@@ -28,7 +26,7 @@ class Twitch:
         :return: requests response json
         """
         _h = {'Authorization': 'Bearer ' + self.Config['oauth_token'], 'Client-Id': self.Config['client_id']}
-        _r = self.Api.get_request('https://api.twitch.tv/helix/' + api_path, h=_h)
+        _r = Api.get_request('https://api.twitch.tv/helix/' + api_path, h=_h)
 
         return _r.json()
 
@@ -39,7 +37,7 @@ class Twitch:
         """
         _d = {'client_id': self.Config['client_id'], 'client_secret': self.Config['client_secret'],
               'grant_type': 'client_credentials'}
-        _t = self.Api.post_request('https://id.twitch.tv/oauth2/token', d=_d).json()['access_token']
+        _t = Api.post_request('https://id.twitch.tv/oauth2/token', d=_d).json()['access_token']
 
         return _t
 
@@ -50,7 +48,7 @@ class Twitch:
         """
         self.log.debug('Verifying OAuth token.')
         _h = {'Authorization': 'Bearer ' + self.Config['oauth_token']}
-        _r = self.Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
+        _r = Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
         self.log.info('OAuth token verified successfully. Expiring in ' + str(_r.json()['expires_in']))
 
         return _r.json()['expires_in']
@@ -78,7 +76,7 @@ class Twitch:
             }}
         }}
         """.format(vod_id=vod_id)
-        _r = self.Api.post_request('https://gql.twitch.tv/gql', j={'query': _q}, h=_h)
+        _r = Api.post_request('https://gql.twitch.tv/gql', j={'query': _q}, h=_h)
 
         return _r.json()['data']['videoPlaybackAccessToken']
 
@@ -98,7 +96,7 @@ class Twitch:
             'playlist_include_framerate': 'true',
             'p': randrange(1000000, 9999999)
         }
-        _r = self.Api.get_request(f'https://usher.ttvnw.net/vod/{vod_id}.m3u8', p=_p)
+        _r = Api.get_request(f'https://usher.ttvnw.net/vod/{vod_id}.m3u8', p=_p)
 
         _index = m3u8.loads(_r.text)
         # extract source (chunked) playlist uri from m3u8 data

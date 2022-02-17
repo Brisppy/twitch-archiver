@@ -8,11 +8,8 @@ class Api:
     """
     Sends requests to a specified API endpoint.
     """
-    def __init__(self, pushbullet_key):
-
-        self.pushbullet_key = pushbullet_key
-
-    def get_request(self, url, p=None, h=None):
+    @staticmethod
+    def get_request(url, p=None, h=None):
         """
         Wrapper for get requests for catching exceptions and status code issues.\n
 
@@ -34,23 +31,24 @@ class Api:
                 _r = requests.get(url, params=p)
 
         except requests.exceptions.RequestException as e:
-            raise RequestError(self.pushbullet_key, url, e)
+            raise RequestError(url, e)
 
         if _r.status_code == 400:
-            raise TwitchAPIErrorBadRequest(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIErrorBadRequest(url, _r.status_code, _r.text)
 
         if _r.status_code == 403:
-            raise TwitchAPIErrorForbidden(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIErrorForbidden(url, _r.status_code, _r.text)
 
         if _r.status_code == 404:
-            raise TwitchAPIErrorNotFound(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIErrorNotFound(url, _r.status_code, _r.text)
 
         if _r.status_code != 200:
-            raise TwitchAPIError(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIError(url, _r.status_code, _r.text)
 
         return _r
 
-    def get_request_with_session(self, url, session):
+    @staticmethod
+    def get_request_with_session(url, session):
         """Wrapper for get requests using a session for catching exceptions and status code issues.
 
         :param url: http/s endpoint to send request to
@@ -61,23 +59,24 @@ class Api:
             _r = session.get(url)
 
         except requests.exceptions.RequestException as e:
-            raise RequestError(self.pushbullet_key, url, e)
+            raise RequestError(url, e)
 
         if _r.status_code == 400:
-            raise TwitchAPIErrorBadRequest(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIErrorBadRequest(url, _r.status_code, _r.text)
 
         if _r.status_code == 403:
-            raise TwitchAPIErrorForbidden(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIErrorForbidden(url, _r.status_code, _r.text)
 
         if _r.status_code == 404:
-            raise TwitchAPIErrorNotFound(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIErrorNotFound(url, _r.status_code, _r.text)
 
         if _r.status_code != 200:
-            raise TwitchAPIError(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIError(url, _r.status_code, _r.text)
 
         return _r
 
-    def post_request(self, url, d=None, j=None, h=None):
+    @staticmethod
+    def post_request(url, d=None, j=None, h=None):
         """Wrapper for post requests for catching exceptions and status code issues.
 
         :param url: http/s endpoint to send request to
@@ -94,9 +93,9 @@ class Api:
                 _r = requests.post(url, json=j, headers=h)
 
         except requests.exceptions.RequestException as e:
-            raise RequestError(self.pushbullet_key, url, e)
+            raise RequestError(url, e)
 
         if _r.status_code != 200:
-            raise TwitchAPIError(self.pushbullet_key, url, _r.status_code, _r.text)
+            raise TwitchAPIError(url, _r.status_code, _r.text)
 
         return _r

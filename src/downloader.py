@@ -24,8 +24,6 @@ class Downloader:
         self.Config = config
         self.Args = args
 
-        self.Api = Api(config['pushbullet_key'])
-
         self.vod_json = vod_json
 
     def get_video(self, vod_playlist, vod_base_url):
@@ -174,7 +172,8 @@ class Downloader:
 
         return chat_log
 
-    def get_chat_segment(self, session, vod_id, offset=None, cursor=None):
+    @staticmethod
+    def get_chat_segment(session, vod_id, offset=None, cursor=None):
         """Retrieves a single chat segment.
 
         :param session: requests session to link request to
@@ -189,7 +188,7 @@ class Downloader:
         else:
             u = "https://api.twitch.tv/v5/videos/" + str(vod_id) + "/comments?cursor=" + str(cursor)
 
-        _r = self.Api.get_request_with_session(u, session).json()
+        _r = Api.get_request_with_session(u, session).json()
 
         try:
             return _r['comments'], _r['_next']
