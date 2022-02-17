@@ -1,4 +1,5 @@
-# https://stackoverflow.com/questions/7621897/python-logging-module-globally
+# reference
+#   https://stackoverflow.com/questions/7621897/python-logging-module-globally
 
 import sys
 import logging
@@ -9,12 +10,12 @@ class Logger:
     Sets up logging for the script.
     """
     @staticmethod
-    def setupLogger(level, log_file=None):
+    def setup_logger(level, log_file=None):
         """Sets up logging module.
 
         :param level: numeric log level
         :param log_file: location of log file if provided
-        :return: python loggging object
+        :return: python logging object
         """
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
