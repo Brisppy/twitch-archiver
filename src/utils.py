@@ -228,37 +228,6 @@ class Utils:
         return False
 
     @staticmethod
-    def get_vod_status(callTwitch, vod_json):
-
-        try:
-            if Utils.time_since_date(vod_json['created_at']) < 300:
-                log.info('VOD was created less than 5m ago - assuming it is live, and waiting until 5m '
-                         'total has passed.')
-                sleep(300 - Utils.time_since_date(vod_json['created_at']))
-                vod_live = True
-
-            # if time since vod created + its duration is a point in time less than 10m ago, VOD must be live
-            elif Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 600):
-                log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
-                          'Running in live mode.')
-                vod_live = True
-
-            # if streamer live
-            elif callTwitch.get_api('streams?user_id='
-                                    + str(vod_json['user_id']))['data'][0]['type'] == 'live':
-                # and passed vod id is their most recent vod
-                if int(vod_json['id']) == int(callTwitch.get_api('videos?user_id=' + str(vod_json['user_id'])
-                                                                 + '&first=100&type=archive&after=')['data'][0]['id']):
-                    log.debug('Channel status is live and VOD is their most recent - running in live mode.')
-                    vod_live = True
-
-        except IndexError:
-            return False
-
-        else:
-            return vod_live
-
-    @staticmethod
     def cleanup_vod_parts(vod_directory):
         """Deletes temporary and transitional files used for archiving VOD videos.
 
@@ -421,4 +390,4 @@ class Progress:
             print(f'  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}', end='\r')
 
         else:
-            print(f'  100%  -  [{progress}]  -  {cur} / {total}')
+            print(f'  100%  -  [###################]  -  {cur} / {total}')

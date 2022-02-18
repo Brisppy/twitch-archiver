@@ -91,7 +91,7 @@ def main():
         config.set('client_secret', input('Your client secret: '))
 
     log.debug('Performing Twitch authentication.')
-    callTwitch = Twitch(config.get())
+    callTwitch = Twitch(config.get('client_id'), config.get('client_secret'), config.get('oauth_token'))
     # generate oauth token if it is missing, or expires soon
     if config.get('oauth_token') == '' or callTwitch.validate_oauth_token() < 604800:
         log.debug('No OAuth token found, or OAuth token expiring soon - generating a new one.')

@@ -10,7 +10,7 @@ from src.api import Api
 from src.database import Database, create_vod, __db_version__
 from src.downloader import Downloader
 from src.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
-    TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, TwitchAPIErrorBadRequest, RequestError
+    TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError
 from src.twitch import Twitch
 from src.utils import Utils
 
@@ -23,12 +23,17 @@ class Processing:
 
         self.log = logging.getLogger('twitch-archive')
 
-        self.Config = config
-        self.Args = args
+        self.directory = args['directory']
+        self.vod_directory = Path(self.directory)
+        self.video = args['video']
+        self.chat = args['chat']
+        self.config_dir = args['config_dir']
+        self.quiet = args['quiet']
 
-        self.callTwitch = Twitch(config)
+        self.pushbullet_key = config['pushbullet_key']
 
-        self.vod_directory = Path(self.Args['directory'])
+        self.callTwitch = Twitch(config['client_id'], config['client_secret'], config['oauth_token'])
+        self.download = Downloader(config['client_id'], config['oauth_token'], args['threads'], args['quiet'])
 
     def get_channel(self, channels):
         """
@@ -42,10 +47,10 @@ class Processing:
             user_id = user_data['id']
             user_name = user_data['display_name']
 
-            self.vod_directory = Path(self.Args['directory'], user_name)
+            self.vod_directory = Path(self.directory, user_name)
 
             # setup database
-            with Database(Path(self.Args['config_dir'], 'vods.db')) as db:
+            with Database(Path(self.config_dir, 'vods.db')) as db:
                 db.setup_database()
                 version = db.execute_query('pragma user_version')[0][0]
 
@@ -71,7 +76,7 @@ class Processing:
             self.log.debug('Available vods: ' + str(available_vods))
 
             # retrieve downloaded vods
-            with Database(Path(self.Args['config_dir'], 'vods.db')) as db:
+            with Database(Path(self.config_dir, 'vods.db')) as db:
                 downloaded_vods = [str(i[0]) for i in db.execute_query('select * from vods where user_id is {}'
                                                                        .format(user_id))]
             self.log.debug('Downloaded vods: ' + str(downloaded_vods))
@@ -89,12 +94,12 @@ class Processing:
                 self.log.debug('Processing VOD ' + str(vod_id) + ' by ' + user_name)
                 self.log.debug('Creating lock file for VOD.')
 
-                if Utils.create_lock(self.Args['config_dir'], vod_id):
+                if Utils.create_lock(self.config_dir, vod_id):
                     self.log.info('Lock file present for VOD ' + str(vod_id) + ', skipping.')
                     continue
 
                 # check if vod in database
-                with Database(Path(self.Args['config_dir'], 'vods.db')) as db:
+                with Database(Path(self.config_dir, 'vods.db')) as db:
                     downloaded_vods = \
                         [str(i[0]) for i in db.execute_query('select * from vods where user_id is {}'.format(user_id))]
 
@@ -107,12 +112,12 @@ class Processing:
                 if vod_json:
                     # add to database
                     self.log.debug('Adding VOD info to database.')
-                    with Database(Path(self.Args['config_dir'], 'vods.db')) as db:
+                    with Database(Path(self.config_dir, 'vods.db')) as db:
                         db.execute_query(create_vod, vod_json)
 
                     # remove lock
                     self.log.debug('Removing lock file.')
-                    if Utils.remove_lock(self.Args['config_dir'], vod_id):
+                    if Utils.remove_lock(self.config_dir, vod_id):
                         raise UnlockingError(vod_id)
 
                 else:
@@ -137,7 +142,7 @@ class Processing:
             vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
 
             # get vod status
-            vod_live = Utils.get_vod_status(self.callTwitch, vod_json)
+            vod_live = self.callTwitch.get_vod_status(vod_json)
 
             self.log.info('VOD ' + ('currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'))
 
@@ -148,8 +153,8 @@ class Processing:
             # catch halting errors, send notification and remove lock file
             except (RequestError, VodDownloadError, ChatDownloadError, VodMergeError, ChatExportError) as e:
                 self.log.error(f'Error downloading VOD {vod_id}. Error:' + str(e))
-                Utils.send_push(self.Config['pushbullet_key'], f'Error downloading VOD {vod_id}', str(e))
-                Utils.remove_lock(self.Args['config_dir'], vod_id)
+                Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id}', str(e))
+                Utils.remove_lock(self.config_dir, vod_id)
                 continue
 
         return _r
@@ -189,9 +194,7 @@ class Processing:
 
                 vod_live = False
 
-            download = Downloader(self.Config, self.Args, vod_json)
-
-            if self.Args['video']:
+            if self.video:
                 # download all available vod parts
                 self.log.info('Grabbing video...')
                 try:
@@ -199,7 +202,7 @@ class Processing:
                     vod_playlist = m3u8.loads(Api.get_request(vod_index).text)
                     vod_base_url = str(vod_index).replace('index-dvr.m3u8', '')
 
-                    download.get_video(vod_playlist, vod_base_url)
+                    self.download.get_video(vod_playlist, vod_base_url, vod_json)
 
                 except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                     self.log.warning('Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')
@@ -211,18 +214,18 @@ class Processing:
                 except Exception as e:
                     raise VodDownloadError(e, vod_json['id'])
 
-            if self.Args['chat']:
+            if self.chat:
                 # download all available chat segments
                 self.log.info('Grabbing chat logs...')
                 try:
                     if not chat_log:
-                        chat_log = download.get_chat()
+                        chat_log = self.download.get_chat(vod_json)
 
                     # only try to grab more chat logs if we aren't past vod length
                     elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration_seconds']:
                         self.log.debug('Grabbing chat logs from offset: ' + str(chat_log[-1]['content_offset_seconds']))
                         chat_log.extend(
-                            [n for n in download.get_chat(floor(int(chat_log[-1]['content_offset_seconds'])))
+                            [n for n in self.download.get_chat(floor(int(chat_log[-1]['content_offset_seconds'])))
                              if n['_id'] not in [m['_id'] for m in chat_log]])
 
                     Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])
@@ -266,11 +269,11 @@ class Processing:
             else:
                 break
 
-        if self.Args['video']:
+        if self.video:
             # combine all the 10s long .ts parts into a single file, then convert to .mp4
             try:
-                Utils.combine_vod_parts(vod_json, print_progress=False if self.Args['quiet'] else True)
-                Utils.convert_vod(vod_json, print_progress=False if self.Args['quiet'] else True)
+                Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
+                Utils.convert_vod(vod_json, print_progress=False if self.quiet else True)
 
             except Exception as e:
                 raise VodMergeError(e, vod_json['id'])
@@ -283,7 +286,7 @@ class Processing:
             self.log.debug('Cleaning up temporary files...')
             Utils.cleanup_vod_parts(vod_json['store_directory'])
 
-        if self.Args['chat']:
+        if self.chat:
             # generate and export the readable chat log
             if chat_log:
                 try:

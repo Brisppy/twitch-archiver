@@ -17,41 +17,50 @@ class Downloader:
     """
     Functions used for the downloading of video and chat from Twitch VODs.
     """
-    def __init__(self, config, args, vod_json):
+    def __init__(self, client_id, oauth_token, threads=20, quiet=False):
+        """
+
+        :param client_id: twitch client id
+        :param oauth_token: oauth token retrieved with client id and secret
+        :param threads: number of download threads
+        :param quiet: hide progress bars
+        """
 
         self.log = logging.getLogger('twitch-archive')
 
-        self.Config = config
-        self.Args = args
+        self.client_id = client_id
+        self.oauth_token = oauth_token
 
-        self.vod_json = vod_json
+        self.threads = threads
+        self.quiet = quiet
 
-    def get_video(self, vod_playlist, vod_base_url):
+    def get_video(self, vod_playlist, vod_base_url, vod_json):
         """Downloads the video for a specified VOD m3u8 playlist.
 
         :param vod_playlist: m3u8 playlist to retrieve video from
         :param vod_base_url: base url of where .ts files are located
+        :param vod_json: dict of vod information
         :raises vodPartDownloadError: error returned when downloading vod parts
         """
-        self.log.info('Downloading video for VOD ' + str(self.vod_json['id']))
+        self.log.info('Downloading video for VOD ' + str(vod_json['id']))
 
-        Path(self.vod_json['store_directory'], 'parts').mkdir(parents=True, exist_ok=True)
+        Path(vod_json['store_directory'], 'parts').mkdir(parents=True, exist_ok=True)
 
         ts_url_list = []
         ts_path_list = []
         downloaded_ids = [str(Path(p).name).lstrip('0')
-                          for p in glob(str(Path(self.vod_json['store_directory'], 'parts', '*.ts')))]
+                          for p in glob(str(Path(vod_json['store_directory'], 'parts', '*.ts')))]
 
         # iterate over segments of vod .m3u8 playlist
         for ts_id in [s.uri for s in vod_playlist.segments]:
             if ts_id not in downloaded_ids:
                 # create a tuple with (TS_URL, TS_PATH)
                 ts_url_list.append(vod_base_url + ts_id)
-                ts_path_list.append(Path(self.vod_json['store_directory'], 'parts',
+                ts_path_list.append(Path(vod_json['store_directory'], 'parts',
                                          str('{:05d}'.format(int(ts_id.split('.')[0])) + '.ts')))
 
         # create worker pool for downloading vods
-        with ThreadPoolExecutor(max_workers=self.Args['threads']) as pool:
+        with ThreadPoolExecutor(max_workers=self.threads) as pool:
             download_error = []
             futures = []
             ct = 0
@@ -69,7 +78,7 @@ class Downloader:
                     continue
 
                 ct += 1
-                if not self.Args['quiet']:
+                if not self.quiet:
                     progress.print_progress(ct, len(ts_url_list))
 
         if download_error:
@@ -113,7 +122,7 @@ class Downloader:
                         break
 
                     except requests.exceptions.ChunkedEncodingError as e:
-                        self.log.debug('Error downloading VOD part. ' + str(e))
+                        self.log.debug('Error downloading VOD part, retrying. ' + str(e))
                         continue
 
             # move part to destination storage
@@ -129,21 +138,22 @@ class Downloader:
         except Exception as e:
             return e
 
-    def get_chat(self, offset=0):
+    def get_chat(self, vod_json, offset=0):
         """Downloads the chat for a specified VOD, returning comments beginning from offset (if provided).
 
+        :param vod_json: dict of vod information
         :param offset: offset in seconds to begin chat retrieval from - none to begin at start
         """
-        Path(self.vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
+        Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
 
         chat_log = []
 
         _s = requests.session()
-        _s.headers.update({'Authorization': 'Bearer ' + self.Config['oauth_token'],
-                           'Client-Id': self.Config['client_id']})
+        _s.headers.update({'Authorization': 'Bearer ' + self.oauth_token,
+                           'Client-Id': self.client_id})
 
         # grab initial chat segment containing cursor
-        initial_segment, cursor = self.get_chat_segment(_s, self.vod_json['id'], offset=offset)
+        initial_segment, cursor = self.get_chat_segment(_s, vod_json['id'], offset=offset)
         chat_log.extend(initial_segment)
 
         progress = Progress()
@@ -154,13 +164,13 @@ class Downloader:
 
             try:
                 # grab next chat segment along with cursor for next segment
-                segment, cursor = self.get_chat_segment(_s, self.vod_json['id'], cursor=cursor)
+                segment, cursor = self.get_chat_segment(_s, vod_json['id'], cursor=cursor)
                 chat_log.extend(segment)
                 # vod duration in seconds is used as the total for progress bar
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
-                if not self.Args['quiet']:
-                    progress.print_progress(int(segment[-1]['content_offset_seconds']), self.vod_json['duration_seconds'])
+                if not self.quiet:
+                    progress.print_progress(int(segment[-1]['content_offset_seconds']), vod_json['duration_seconds'])
 
             except TwitchAPIErrorNotFound:
                 break
