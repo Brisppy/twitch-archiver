@@ -34,7 +34,7 @@ class VodDownloadError(Exception):
 
 
 class VodPartDownloadError(Exception):
-    def __init__(self, error, vod_id):
+    def __init__(self, error):
         self.message = f'Error occurred while downloading VOD part. Error: {error}'
 
 
@@ -44,7 +44,7 @@ class VodMergeError(Exception):
 
 
 class VodConvertError(Exception):
-    def __init__(self, error, vod_id):
+    def __init__(self, error):
         self.message = f'Error occurred while converting VOD. Error: {error}'
 
 
