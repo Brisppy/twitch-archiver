@@ -99,7 +99,6 @@ class Utils:
 
         # get ordered list of vod parts
         vod_parts = [Path(p) for p in sorted(glob(str(Path(vod_json['store_directory'], 'parts', '*.ts'))))]
-        log.debug(vod_parts)
 
         if print_progress:
             progress = Progress()
@@ -343,8 +342,7 @@ class Utils:
         :param created_at: timestamp retrieve from twitch to get time since
         :return: the time in seconds since the given date
         """
-        created_at = int(datetime.strptime(
-            created_at.replace('-', '').replace(':', '').replace('T', '').replace('Z', ''), '%Y%m%d%H%M%S').timestamp())
+        created_at = int((datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%SZ').timestamp()))
         current_time = int(datetime.utcnow().timestamp())
 
         return current_time - created_at
