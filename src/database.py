@@ -19,7 +19,7 @@ class Database:
         """
         self.log = logging.getLogger()
 
-        self.database_path = database_path
+        self.database_path = str(database_path)
 
         try:
             self.log.debug('Database path: ' + str(self.database_path))
