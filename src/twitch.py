@@ -171,25 +171,16 @@ class Twitch:
 
     def get_vod_status(self, vod_json):
         try:
-            # if minutes since vod went live is less than 5
-            if Utils.time_since_date(vod_json['created_at']) < 300:
+            # if minutes since vod went live is less than 6
+            if Utils.time_since_date(vod_json['created_at']) < 360:
                 self.log.info('VOD was created less than 5m ago - assuming it is live')
                 return 'recent'
 
-            # if time since vod created + its duration is a point in time less than 10m ago, VOD must be live
-            elif Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 600):
+            # if time since vod created + its duration is a point in time less than 6m ago, VOD must be live
+            elif Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 360):
                 self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
                                'Running in live mode.')
                 return 'live'
-
-            # if streamer live
-            elif self.get_api('streams?user_id='
-                              + str(vod_json['user_id']))['data'][0]['type'] == 'live':
-                # and passed vod id is their most recent vod
-                if int(vod_json['id']) == int(self.get_api('videos?user_id=' + str(vod_json['user_id'])
-                                                           + '&first=100&type=archive&after=')['data'][0]['id']):
-                    self.log.debug('Channel status is live and VOD is their most recent - running in live mode.')
-                    return 'live'
 
         except IndexError:
             return False
