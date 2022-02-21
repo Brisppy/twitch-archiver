@@ -390,4 +390,4 @@ class Progress:
             print(f'  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}', end='\r')
 
         else:
-            print(f'  100%  -  [###################]  -  {cur} / {total}')
+            print(f'  100%  -  [########################]  -  {cur} / {total}')
