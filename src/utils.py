@@ -290,15 +290,15 @@ class Utils:
             return True
 
     @staticmethod
-    def remove_lock(ini_path, vod_id):
+    def remove_lock(config_dir, vod_id):
         """Removes a given lock file.
 
-        :param ini_path: path to config directory
+        :param config_dir: path to config directory
         :param vod_id: id of vod which lock file is created for
         :return: error if lock file removal fails
         """
         try:
-            Path(ini_path, '.lock.' + str(vod_id)).unlink()
+            Path(config_dir, '.lock.' + str(vod_id)).unlink()
 
         except Exception as e:
             return e

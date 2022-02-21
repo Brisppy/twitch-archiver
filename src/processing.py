@@ -159,7 +159,9 @@ class Processing:
             except (RequestError, VodDownloadError, ChatDownloadError, VodMergeError, ChatExportError) as e:
                 self.log.error(f'Error downloading VOD {vod_id}. Error:' + str(e))
                 Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id}', str(e))
-                Utils.remove_lock(self.config_dir, vod_id)
+                # remove lock file if archiving channel
+                if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
+                    Utils.remove_lock(self.config_dir, vod_id)
                 continue
 
         return _r
