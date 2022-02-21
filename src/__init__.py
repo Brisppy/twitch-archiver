@@ -10,6 +10,7 @@ from src.configuration import Configuration
 from src.logger import Logger
 from src.processing import Processing
 from src.twitch import Twitch
+from src.utils import Utils
 
 __name__ = 'twitch-archiver'
 __version__ = '2.0'
@@ -74,6 +75,14 @@ def main():
     log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))
     log.debug('Debug logging enabled.')
     log.debug('Arguments: ' + str(args.get()))
+
+    # compare with current git version
+    latest_version, release_notes = Utils.get_latest_version()
+    if Utils.version_tuple(__version__) < Utils.version_tuple(latest_version):
+        log.warning(f'New update available: {__version__} < {latest_version}'
+                    f'. See https://github.com/Brisppy/twitch-archiver/releases/latest.\n'
+                    f'Release notes:\n\n'
+                    f'{release_notes}')
 
     # load configuration from ini
     config = Configuration()

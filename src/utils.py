@@ -317,6 +317,26 @@ class Utils:
         return current_time - created_at
 
     @staticmethod
+    def get_latest_version():
+        try:
+            _r = requests.get(
+                'https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest').json()
+            latest_version = _r['tag_name'].replace('v', '')
+            release_notes = _r['body']
+
+        # return a dummy value if request fails
+        except Exception:
+            return '0.0.0'
+
+        return latest_version, release_notes
+
+    # reference:
+    #   https://stackoverflow.com/a/11887825
+    @staticmethod
+    def version_tuple(v):
+        return tuple(map(int, (v.split("."))))
+
+    @staticmethod
     def send_push(pushbullet_key, title, body=''):
         """Sends a push to an account based on a given pushbullet key.
 
