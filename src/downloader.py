@@ -95,16 +95,16 @@ class Downloader:
             if os.path.exists(ts_path):
                 return
 
-        # files are downloaded to $TMP, then moved to final destination
-        # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
-        #   a better method would be to have 20 workers downloading, and 20 moving temp
-        #   files from storage avoiding any downtime downloading
+            # files are downloaded to $TMP, then moved to final destination
+            # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
+            #   a better method would be to have 20 workers downloading, and 20 moving temp
+            #   files from storage avoiding any downtime downloading
 
             # create temporary file for downloading to
             with open(Path(tempfile.gettempdir(), os.urandom(24).hex()), 'wb') as tmp_ts_file:
-                for attempt in range(6):
-                    if attempt > 4:
-                        self.log.debug('Maximum retries reach for VOD part download.')
+                for _ in range(6):
+                    if _ > 4:
+                        self.log.debug('Maximum retries for VOD piece ' + str(Path(ts_path).stem) + ' reached.')
                         return 'Download attempt limit reached.'
 
                     try:
@@ -121,16 +121,23 @@ class Downloader:
 
                         break
 
-                    except requests.exceptions.ChunkedEncodingError as e:
-                        self.log.debug('Error downloading VOD part, retrying. ' + str(e))
+                    except requests.exceptions.RequestException as e:
+                        self.log.debug('Piece ' + str(Path(ts_path).stem) + ' download failed (Attempt '
+                                       + str(_ + 1) + '). ' + str(e))
                         continue
 
             # move part to destination storage
             if Path(tmp_ts_file.name).exists:
                 # first move to temp file
-                shutil.move(tmp_ts_file.name, ts_path.with_suffix('.tmp'))
+                shutil.move(tmp_ts_file.name, ts_path.with_suffix('.ts.tmp'))
                 # rename temp file after it has successfully been moved
-                os.rename(ts_path.with_suffix('.tmp'), ts_path)
+                if os.path.exists(ts_path):
+                    if os.path.samefile(ts_path, ts_path.with_suffix('.ts.tmp')):
+                        os.remove(ts_path.with_suffix('.ts.tmp'))
+                        return
+
+                shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
+                self.log.debug('Piece ' + str(Path(ts_path).stem) + ' completed.')
 
             else:
                 raise VodPartDownloadError('VOD part did not download correctly. Part: ' + str(ts_url))
