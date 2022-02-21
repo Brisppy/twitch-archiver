@@ -33,15 +33,14 @@ Primarily focused on data preservation, this script can be used to archive an en
 ## Features
 * Allows any number of VODs or channel to be downloaded simultaneously.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
-* Allows the downloading of **live**[^2] VODs *before copyrighted audio is detected and muted*.
+* Allows the downloading of **live** VODs *before copyrighted audio is detected and muted*.
 * Generates and saves a readable chat log with timestamps and user badges.
 * Allows the specifying of downloading only the video, chat or both.
-* Error reporting via pushbullet.
+* Error notifications via pushbullet.
 * Supports automated archiving without any sort of user interaction.
 * Requires minimal setup or external programs.
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
-[^2]: If a VOD is being archived while it is live and deleted, the archived video will contain everything up to a couple of minutes before the deletion point. This is because streams are *currently* downloaded via their associated VOD which is a couple of minutes behind.
 
 
 ## Requirements
@@ -153,9 +152,9 @@ This file will be created the first time you use TA and an OAuth token is succes
 
 ## Extra Info
 ### Notes
-* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside the VOD's directory (Within the ```DIRECTORY/CHANNEL/VOD``` folder), you may also want to verify that the VODs are matching after archiving too.
+* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside the VOD's directory (where 'vod.json' and 'verboseChat.log' are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
 * If a VOD is deleted while it is being archived, all the vod information will be saved, and the VOD will be combined as-is and chat exported. 
-* If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux machines.
+* If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux.
 
 ### How files are stored
 VODs are downloaded to the specified directory. If downloading a channel, an individual folder will be created for that specific channel.
@@ -190,7 +189,7 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
 - [ ] Improve VOD download speed using separate download and file move workers (may need someone to test with >1Gbit connection).
 - [ ] Release python package.
 - [x] .ts to .mp4 conversion progress bar.
-- [ ] Find a way to directly archive the stream - could be then spliced with downloaded vod parts to capture everything up to the point the VOD is deleted rather than just up to a couple of minutes before. Both video and chat could be done this way.
+- [x] Find a way to directly archive the stream - could be then spliced with downloaded vod parts to capture everything up to the point the VOD is deleted rather than just up to a couple of minutes before. Both video and chat could be done this way.
 - [x] Speed up VOD part discovery by finding and removing downloaded parts from the 'to-download' list.
 
 ### Why?

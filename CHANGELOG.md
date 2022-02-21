@@ -13,9 +13,8 @@ To any experienced Python developers who might stumble upon this and are willing
     * New video and chat download methods:
       * Improved speed and reliability.
       * Better error handling.
-      * More modularity.
-      * Easier integration and fewer requirements.
-      * Less reliance on external sources in case Twitch makes any sort of changes.
+      * Less reliance on external sources in case Twitch makes any breaking changes.
+    * True live archiving is now possible, VODs will be saved all the way to the point of deletion.
     * Added a configuration file for storing secrets for reuse.
     * Added progress bars to download, conversion and export of video and chat logs.
     * A more verbose chat log is are now archived along with a readable version.
