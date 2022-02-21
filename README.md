@@ -33,7 +33,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 ## Features
 * Allows any number of VODs or channel to be downloaded simultaneously.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
-* Allows the downloading of **live** VODs *before copyrighted audio is detected and muted*.
+* Allows the downloading of **live**[^2] VODs *before copyrighted audio is detected and muted*.
 * Generates and saves a readable chat log with timestamps and user badges.
 * Allows the specifying of downloading only the video, chat or both.
 * Error notifications via pushbullet.
@@ -41,7 +41,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 * Requires minimal setup or external programs.
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
-
+[^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
 
 ## Requirements
 * **Python >= 3.7**
@@ -191,6 +191,7 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
 - [x] .ts to .mp4 conversion progress bar.
 - [x] Find a way to directly archive the stream - could be then spliced with downloaded vod parts to capture everything up to the point the VOD is deleted rather than just up to a couple of minutes before. Both video and chat could be done this way.
 - [x] Speed up VOD part discovery by finding and removing downloaded parts from the 'to-download' list.
+- [ ] Allow archiving of livestreams without VODs.
 
 ### Why?
 To put it simply - **I don't like when data is deleted**.
