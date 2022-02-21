@@ -2,10 +2,11 @@ import logging
 import m3u8
 import os
 import requests
+import shutil
 import sys
+import tempfile
 
 from datetime import datetime
-from glob import glob
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -42,6 +43,7 @@ class Stream:
             return
 
         buffer = []
+        segment_ids = {}
         downloaded_segments = []
         completed_segments = []
 
@@ -52,12 +54,16 @@ class Stream:
             except TwitchAPIErrorNotFound:
                 self.log.info('Stream has ended.')
                 # rename most recent downloaded .ts files if they are .ts.tmp parts
-                last_ids = [str(Path(p).name).lstrip('0') for p in glob(str(Path(output_dir, '*.ts*')))][-2:-1]
-                for last_id in last_ids:
-                    if '.tmp' in last_id:
-                        os.rename(Path(output_dir, last_id), Path(output_dir, last_id.replace('.tmp', '')))
+                try:
+                    last_id = seg_id
+                except NameError:
+                    sys.exit(0)
 
-                sys.exit('Stream has ended.')
+                if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
+                    shutil.move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
+                                Path(output_dir, str('{:05d}'.format(last_id)) + '.ts'))
+
+                sys.exit(0)
 
             for segment in incoming_segments['segments']:
                 # skip ad segments
@@ -66,11 +72,13 @@ class Stream:
                     continue
 
                 # get time between vod start and segment time
-                time_since_start = segment['program_date_time'].replace(tzinfo=None).timestamp() \
-                                   - latest_vod_created_time.timestamp()
+                time_since_start = \
+                    segment['program_date_time'].replace(tzinfo=None).timestamp() - latest_vod_created_time.timestamp()
 
                 # manual offset of 4 seconds is added - it just works
-                segment_id = str('{:05d}'.format(floor((4 + time_since_start) / 10)))
+                segment_id = floor((4 + time_since_start) / 10)
+                if segment_id not in segment_ids.keys():
+                    segment_ids.update({segment_id: os.urandom(24).hex()})
                 segment = tuple((segment['uri'], segment['program_date_time'].replace(tzinfo=None),
                                  segment_id, segment['duration']))
 
@@ -79,37 +87,49 @@ class Stream:
                     buffer.append(segment)
                     self.log.debug('New segment found: ' + str(segment))
 
-            self.log.debug('Stream buffer: ' + str(buffer))
+            if buffer:
+                self.log.debug('Stream buffer: ' + str(buffer))
 
             # iterate over buffer segments which aren't yet downloaded
             for segment in [seg for seg in buffer if seg not in downloaded_segments]:
-                with open(Path(output_dir, segment[2] + '.ts.tmp'), 'ab') as tsfile:
-                    _r = requests.get(segment[0], stream=True)
-                    if _r.status_code != 200:
-                        break
+                with open(Path(tempfile.gettempdir(), segment_ids[segment[2]]), 'ab') as tmp_ts_file:
+                    for attempt in range(6):
+                        if attempt > 4:
+                            self.log.debug('Maximum retries reach for stream part download.')
+                            return
 
-                    # write part to file
-                    for chunk in _r.iter_content(chunk_size=1024):
-                        tsfile.write(chunk)
+                        try:
+                            _r = requests.get(segment[0], stream=True)
 
-                    buffer.remove(segment)
-                    downloaded_segments.append(segment)
+                            if _r.status_code != 200:
+                                break
 
-                    continue
+                            # write part to file
+                            for chunk in _r.iter_content(chunk_size=1024):
+                                tmp_ts_file.write(chunk)
 
-            # extract all unique downloaded segment ids
-            segment_ids = set([seg[2] for seg in downloaded_segments])
-            self.log.debug('Unique segment ids: ' + str(segment_ids))
+                            buffer.remove(segment)
+                            downloaded_segments.append(segment)
+
+                            break
+
+                        except requests.exceptions.ChunkedEncodingError as e:
+                            self.log.debug('Error downloading VOD part, retrying. ' + str(e))
+                            continue
 
             # rename .tmp segments when they are finished
-            for seg_id in [seg for seg in segment_ids if seg not in completed_segments]:
+            for seg_id in [seg for seg in segment_ids.keys() if seg not in completed_segments]:
                 # get segments with matching id
                 segments = [seg for seg in downloaded_segments if seg[2] == seg_id]
 
                 # rename file if 5 chunks found
                 if len(segments) == 5:
-                    os.rename(Path(output_dir, seg_id + '.ts.tmp'), Path(output_dir, seg_id + '.ts'))
-                    self.log.debug('Completed segment: ' + str(seg_id))
-                    completed_segments.append(seg_id)
+                    if Path(tempfile.gettempdir(), segment_ids[seg_id]).exists:
+                        shutil.move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
+                                    Path(output_dir, str('{:05d}'.format(seg_id)) + '.ts.tmp'))
+                        shutil.move(Path(output_dir, str('{:05d}'.format(seg_id)) + '.ts.tmp'),
+                                    Path(output_dir, str('{:05d}'.format(seg_id)) + '.ts'))
+                        self.log.debug('Live piece: ' + str(seg_id) + ' completed.')
+                        completed_segments.append(seg_id)
 
             sleep(4)

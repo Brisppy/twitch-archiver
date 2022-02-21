@@ -88,6 +88,18 @@ class Utils:
             json_out_file.write(json.dumps(vod_json))
 
     @staticmethod
+    def import_json(vod_json):
+        """Imports all VOD information from a file.
+
+        :param vod_json: dict of vod parameters retrieved from twitch
+        """
+        if Path(vod_json['store_directory'], 'vod.json').exists():
+            with open(Path(vod_json['store_directory'], 'vod.json'), 'r') as json_in_file:
+                return json.loads(json_in_file.read())
+
+        return
+
+    @staticmethod
     def combine_vod_parts(vod_json, print_progress=True):
         """Combines the downloaded VOD .ts parts.
 

@@ -1,7 +1,10 @@
 import json
 import logging
+import multiprocessing
 import m3u8
+import sys
 
+from multiprocessing import Process
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -11,6 +14,8 @@ from src.database import Database, create_vod, __db_version__
 from src.downloader import Downloader
 from src.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
     TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError
+from src.logger import ProcessLogging
+from src.stream import Stream
 from src.twitch import Twitch
 from src.utils import Utils
 
@@ -112,7 +117,7 @@ class Processing:
                     self.log.info('VOD has been downloaded since database was last checked, skipping.')
                     continue
 
-                vod_json = self.get_vods([vod_id])
+                vod_json = self.get_vod_connector([vod_id])
 
                 if vod_json:
                     # add to database
@@ -129,7 +134,7 @@ class Processing:
                     self.log.debug('No VOD information returned to channel downloader, downloader exited with error.')
                     continue
 
-    def get_vods(self, vods):
+    def get_vod_connector(self, vods):
         """Download a single vod or list of vod IDs.
 
         :param vods: list of vod ids
@@ -151,9 +156,36 @@ class Processing:
 
             self.log.info('VOD ' + ('currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'))
 
+            _r = None
+            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+
             try:
-                _r = None
-                _r = self.get_vod(vod_json, vod_live)
+                if vod_live:
+                    # concurrently grab live pieces and vod chunks
+                    queue = multiprocessing.Queue(-1)
+                    ProcessLogging.root_configurer(queue, self.quiet + self.debug)
+
+                    w1 = Process(target=stream.get_stream, args=(
+                        vod_json['user_name'], Path(vod_json['store_directory'], 'parts')))
+
+                    w2 = Process(target=self.get_vod, args=(vod_json, vod_live))
+
+                    workers = [w1, w2]
+
+                    for worker in workers:
+                        worker.start()
+
+                    for worker in workers:
+                        worker.join()
+
+                else:
+                    self.get_vod(vod_json, vod_live)
+
+            # catch user exiting and remove lock file
+            except KeyboardInterrupt:
+                if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
+                    Utils.remove_lock(self.config_dir, vod_id)
+                sys.exit(1)
 
             # catch halting errors, send notification and remove lock file
             except (RequestError, VodDownloadError, ChatDownloadError, VodMergeError, ChatExportError) as e:
@@ -164,7 +196,10 @@ class Processing:
                     Utils.remove_lock(self.config_dir, vod_id)
                 continue
 
-        return _r
+        # return imported json rather than returning from get_vod process as there were issues with returning
+        # values via multiprocessing
+        # this is only used when archiving a channel
+        return Utils.import_json(vod_json)
 
     def get_vod(self, vod_json, vod_live=False):
         """Retrieves a specified VOD.
@@ -173,6 +208,11 @@ class Processing:
         :param vod_live: boolean true if vod currently live, false otherwise
         :return: dict containing current vod information
         """
+        # wait if vod recently created
+        if vod_live == 'recent':
+            self.log.info('Waiting 5m to download VOD as it was created very recently.')
+            sleep(300)
+
         # import chat log if it has been partially downloaded
         try:
             with open(Path(vod_json['store_directory'], 'verboseChat.json'), 'r') as chat_file:
@@ -310,5 +350,3 @@ class Processing:
 
         # export vod json to disk
         Utils.export_json(vod_json)
-
-        return vod_json

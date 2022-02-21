@@ -115,4 +115,4 @@ def main():
         process.get_channel(args.get('channel'))
 
     elif args.get('vod_id') is not None:
-        process.get_vods(args.get('vod_id'))
+        process.get_vod_connector(args.get('vod_id'))

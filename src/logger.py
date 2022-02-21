@@ -4,13 +4,15 @@
 import sys
 import logging
 
+from logging import handlers
+
 
 class Logger:
     """
     Sets up logging for the script.
     """
     @staticmethod
-    def setup_logger(level, log_file=0):
+    def setup_logger(level, log_file=None):
         """Sets up logging module.
 
         :param level: numeric log level
@@ -44,3 +46,17 @@ class Logger:
         logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
 
         return logger
+
+
+class ProcessLogging:
+    """Allows logging for multiprocess.
+    Only works on Linux - no output for other Operating Systems.
+    """
+    # reference:
+    #   https://fanchenbao.medium.com/python3-logging-with-multiprocessing-f51f460b8778
+    @staticmethod
+    def root_configurer(queue, level):
+        h = handlers.QueueHandler(queue)
+        root = logging.getLogger()
+        root.addHandler(h)
+        root.setLevel(20 if not level else level)

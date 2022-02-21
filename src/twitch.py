@@ -2,7 +2,6 @@ import logging
 import m3u8
 
 from random import randrange
-from time import sleep
 
 from src.api import Api
 from src.utils import Utils
@@ -174,10 +173,8 @@ class Twitch:
         try:
             # if minutes since vod went live is less than 5
             if Utils.time_since_date(vod_json['created_at']) < 300:
-                self.log.info('VOD was created less than 5m ago - assuming it is live, and waiting until 5m '
-                              'total has passed.')
-                sleep(300 - Utils.time_since_date(vod_json['created_at']))
-                return 'live'
+                self.log.info('VOD was created less than 5m ago - assuming it is live')
+                return 'recent'
 
             # if time since vod created + its duration is a point in time less than 10m ago, VOD must be live
             elif Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 600):
