@@ -44,8 +44,8 @@ class VodMergeError(Exception):
 
 
 class VodConvertError(Exception):
-    def __init__(self, error):
-        self.message = f'Error occurred while converting VOD. Error: {error}'
+    def __init__(self, error, vod_id):
+        self.message = f'Error occurred while converting VOD {vod_id}. Error: {error}'
 
 
 class ChatDownloadError(Exception):
@@ -76,4 +76,4 @@ class DatabaseQueryError(Exception):
 
 class UnlockingError(Exception):
     def __init__(self, vod_id):
-        self.message = f'Failed to remove VOD {vod_id}\'s lock file. Check VOD downloaded correctly and remove manually.'
+        self.message = f"Failed to remove VOD {vod_id}'s lock file. Check VOD downloaded correctly and remove manually."
