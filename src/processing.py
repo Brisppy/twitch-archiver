@@ -230,7 +230,8 @@ class Processing:
                     elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration_seconds']:
                         self.log.debug('Grabbing chat logs from offset: ' + str(chat_log[-1]['content_offset_seconds']))
                         chat_log.extend(
-                            [n for n in self.download.get_chat(floor(int(chat_log[-1]['content_offset_seconds'])))
+                            [n for n in
+                             self.download.get_chat(vod_json, floor(int(chat_log[-1]['content_offset_seconds'])))
                              if n['_id'] not in [m['_id'] for m in chat_log]])
 
                     Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])
