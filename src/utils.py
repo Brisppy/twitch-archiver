@@ -10,7 +10,6 @@ from datetime import datetime
 from glob import glob
 from math import ceil, floor
 from pathlib import Path
-from time import sleep
 
 from src.exceptions import VodConvertError
 
@@ -385,11 +384,12 @@ class Progress:
         h, m = divmod(m, 60)
         return '{:0>2}:{:0>2}:{:0>2}'.format(h, m, s)
 
-    def print_progress(self, cur, total):
+    def print_progress(self, cur, total, last=False):
         """Prints and updates a nice progress bar.
 
         :param cur: current progress out of total
         :param total: highest value of progress bar
+        :param last: boolean if last frame of progress bar
         """
         percent = floor(100 * (cur / total))
         progress = floor((0.25 * percent)) * '#' + ceil(25 - (0.25 * percent)) * ' '
@@ -406,8 +406,9 @@ class Progress:
         if len(str(cur)) < len(str(total)):
             cur = ' ' * (len(str(total)) - len(str(cur))) + str(cur)
 
-        if int(cur) < total:
-            print(f'  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}', end='\r')
+        # end with newline rather than return
+        if last:
+            print(f'  100%  -  [#########################]  -  {cur} / {total}', end='\n')
 
         else:
-            print(f'  100%  -  [########################]  -  {cur} / {total}')
+            print(f'  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}', end='\r')

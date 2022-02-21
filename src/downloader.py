@@ -177,7 +177,8 @@ class Downloader:
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
                 if not self.quiet:
-                    progress.print_progress(int(segment[-1]['content_offset_seconds']), vod_json['duration_seconds'])
+                    progress.print_progress(int(segment[-1]['content_offset_seconds']),
+                                            vod_json['duration_seconds'], False if cursor else True)
 
             except TwitchAPIErrorNotFound:
                 break
