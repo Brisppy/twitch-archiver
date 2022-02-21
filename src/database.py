@@ -17,7 +17,7 @@ class Database:
 
         :param database_path: path to database file
         """
-        self.log = logging.getLogger('twitch-archive')
+        self.log = logging.getLogger()
 
         self.database_path = database_path
 

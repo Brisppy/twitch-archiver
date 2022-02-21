@@ -18,7 +18,7 @@ class Configuration:
 
     def __init__(self):
 
-        self.log = logging.getLogger('twitch-archive')
+        self.log = logging.getLogger()
 
     def generate_config(self, args):
         """

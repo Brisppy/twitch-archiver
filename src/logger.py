@@ -10,7 +10,7 @@ class Logger:
     Sets up logging for the script.
     """
     @staticmethod
-    def setup_logger(level, log_file=None):
+    def setup_logger(level, log_file=0):
         """Sets up logging module.
 
         :param level: numeric log level

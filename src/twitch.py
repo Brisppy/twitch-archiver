@@ -19,7 +19,7 @@ class Twitch:
         :param client_secret: twitch client_secret
         :param oauth_token: twitch oauth_token
         """
-        self.log = logging.getLogger('twitch-archive')
+        self.log = logging.getLogger()
 
         self.client_id = client_id
         self.client_secret = client_secret

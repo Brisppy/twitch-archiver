@@ -18,7 +18,7 @@ from src.twitch import Twitch
 class Stream:
     def __init__(self, client_id, client_secret, oauth_token):
 
-        self.log = logging.getLogger('twitch-archive')
+        self.log = logging.getLogger()
 
         self.callTwitch = Twitch(client_id, client_secret, oauth_token)
 

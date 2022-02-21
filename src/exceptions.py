@@ -1,6 +1,6 @@
 import logging
 
-log = logging.getLogger('twitch-archive')
+log = logging.getLogger()
 
 
 class RequestError(Exception):

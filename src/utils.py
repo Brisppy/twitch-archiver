@@ -14,7 +14,7 @@ from time import sleep
 
 from src.exceptions import VodConvertError
 
-log = logging.getLogger('twitch-archive')
+log = logging.getLogger()
 
 
 class Utils:

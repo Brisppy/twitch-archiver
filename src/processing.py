@@ -21,7 +21,7 @@ class Processing:
     """
     def __init__(self, config, args):
 
-        self.log = logging.getLogger('twitch-archive')
+        self.log = logging.getLogger()
 
         self.directory = args['directory']
         self.vod_directory = Path(self.directory)

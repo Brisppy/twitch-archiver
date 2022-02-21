@@ -26,7 +26,7 @@ class Downloader:
         :param quiet: hide progress bars
         """
 
-        self.log = logging.getLogger('twitch-archive')
+        self.log = logging.getLogger()
 
         self.client_id = client_id
         self.oauth_token = oauth_token
