@@ -12,7 +12,7 @@ class Twitch:
     """
     Functions and processes for interacting with the Twitch API.
     """
-    def __init__(self, client_id=False, client_secret=False, oauth_token=False):
+    def __init__(self, client_id=None, client_secret=None, oauth_token=None):
         """Class constructor.
 
         :param client_id: twitch client_id
