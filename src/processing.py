@@ -181,6 +181,45 @@ class Processing:
                 else:
                     self.get_vod(vod_json, vod_live)
 
+                # return imported json rather than returning from get_vod process as there were issues with returning
+                # values via multiprocessing
+                vod_json = Utils.import_json(vod_json)
+
+                # combine vod segments
+                if self.video:
+                    # combine all the 10s long .ts parts into a single file, then convert to .mp4
+                    try:
+                        Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
+                        Utils.convert_vod(vod_json, print_progress=False if self.quiet else True)
+
+                    except Exception as e:
+                        raise VodMergeError(e, vod_json['id'])
+
+                    # verify vod length is equal to what is grabbed from twitch
+                    if Utils.verify_vod_length(vod_json):
+                        raise VodMergeError('VOD length less than expected.', vod_json['id'])
+
+                    # delete temporary .ts parts and merged.ts file
+                    self.log.debug('Cleaning up temporary files...')
+                    Utils.cleanup_vod_parts(vod_json['store_directory'])
+
+                if self.chat:
+                    with open(Path(vod_json['store_directory'], 'verboseChat.json'), 'r') as chat_file:
+                        chat_log = json.loads(chat_file.read())
+
+                    # generate and export the readable chat log
+                    if chat_log:
+                        try:
+                            self.log.debug('Generating readable chat log and saving to disk...')
+                            r_chat_log = Utils.generate_readable_chat_log(chat_log)
+                            Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
+
+                        except Exception as e:
+                            raise ChatExportError(e, vod_json['id'])
+
+                    else:
+                        self.log.info('No chat messages found.')
+
             # catch user exiting and remove lock file
             except KeyboardInterrupt:
                 if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
@@ -196,10 +235,8 @@ class Processing:
                     Utils.remove_lock(self.config_dir, vod_id)
                 continue
 
-        # return imported json rather than returning from get_vod process as there were issues with returning
-        # values via multiprocessing
         # this is only used when archiving a channel
-        return Utils.import_json(vod_json)
+        return vod_json
 
     def get_vod(self, vod_json, vod_live=False):
         """Retrieves a specified VOD.
@@ -208,6 +245,9 @@ class Processing:
         :param vod_live: boolean true if vod currently live, false otherwise
         :return: dict containing current vod information
         """
+        # create vod dir
+        Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
+
         # wait if vod recently created
         if vod_live == 'recent':
             self.log.info('Waiting 5m to download VOD as it was created very recently.')
@@ -233,6 +273,8 @@ class Processing:
                                                        + ' - ' + Utils.sanitize_text(vod_json['title'])
                                                        + ' - ' + str(vod_json['id'])))
                 vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
+
+                Utils.export_json(vod_json)
 
             except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                 self.log.warning('Error retrieving VOD json - VOD was likely deleted.')
@@ -316,37 +358,3 @@ class Processing:
 
             else:
                 break
-
-        if self.video:
-            # combine all the 10s long .ts parts into a single file, then convert to .mp4
-            try:
-                Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
-                Utils.convert_vod(vod_json, print_progress=False if self.quiet else True)
-
-            except Exception as e:
-                raise VodMergeError(e, vod_json['id'])
-
-            # verify vod length is equal to what is grabbed from twitch
-            if Utils.verify_vod_length(vod_json):
-                raise VodMergeError('VOD length less than expected.', vod_json['id'])
-
-            # delete temporary .ts parts and merged.ts file
-            self.log.debug('Cleaning up temporary files...')
-            Utils.cleanup_vod_parts(vod_json['store_directory'])
-
-        if self.chat:
-            # generate and export the readable chat log
-            if chat_log:
-                try:
-                    self.log.debug('Generating readable chat log and saving to disk...')
-                    r_chat_log = Utils.generate_readable_chat_log(chat_log)
-                    Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
-
-                except Exception as e:
-                    raise ChatExportError(e, vod_json['id'])
-
-            else:
-                self.log.info('No chat messages found.')
-
-        # export vod json to disk
-        Utils.export_json(vod_json)

@@ -151,8 +151,6 @@ class Downloader:
         :param vod_json: dict of vod information
         :param offset: offset in seconds to begin chat retrieval from - none to begin at start
         """
-        Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
-
         chat_log = []
 
         _s = requests.session()
