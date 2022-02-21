@@ -29,11 +29,16 @@ class Processing:
         self.chat = args['chat']
         self.config_dir = args['config_dir']
         self.quiet = args['quiet']
+        self.debug = args['debug']
+
+        self.client_id = config['client_id']
+        self.client_secret = config['client_secret']
+        self.oauth_token = config['oauth_token']
 
         self.pushbullet_key = config['pushbullet_key']
 
-        self.callTwitch = Twitch(config['client_id'], config['client_secret'], config['oauth_token'])
-        self.download = Downloader(config['client_id'], config['oauth_token'], args['threads'], args['quiet'])
+        self.callTwitch = Twitch(self.client_id, self.client_secret, self.oauth_token)
+        self.download = Downloader(self.client_id, self.oauth_token, args['threads'], args['quiet'])
 
     def get_channel(self, channels):
         """
@@ -159,7 +164,7 @@ class Processing:
 
         return _r
 
-    def get_vod(self, vod_json, vod_live):
+    def get_vod(self, vod_json, vod_live=False):
         """Retrieves a specified VOD.
 
         :param vod_json: dict of vod parameters retrieved from twitch
