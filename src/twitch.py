@@ -1,6 +1,7 @@
 import logging
 import m3u8
 
+from datetime import datetime
 from random import randrange
 
 from src.api import Api
@@ -171,18 +172,15 @@ class Twitch:
 
     def get_vod_status(self, vod_json):
         try:
-            # if minutes since vod went live is less than 6
-            if Utils.time_since_date(vod_json['created_at']) < 360:
-                self.log.info('VOD was created less than 5m ago - assuming it is live')
-                return 'recent'
-
-            # if time since vod created + its duration is a point in time less than 6m ago, VOD must be live
-            elif Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 360):
-                self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
-                               'Running in live mode.')
-                return 'live'
+            # if stream live and vod start time matches
+            stream_created_time = datetime.strptime(self.get_api('streams?user_id=' + str(vod_json['user_id']))['data'][0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
+            vod_created_time = datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
+            # if vod created within 10s of stream created time
+            if vod_created_time - stream_created_time <= 10 and stream_created_time - vod_created_time >= -10:
+                self.log.debug('VOD creation time is within 10s of stream created time, running in live mode.')
+                return True
 
         except IndexError:
-            return False
+            pass
 
         return False

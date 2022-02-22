@@ -249,9 +249,15 @@ class Processing:
         Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
 
         # wait if vod recently created
-        if vod_live == 'recent':
-            self.log.info('Waiting 5m to download VOD as it was created very recently.')
+        if Utils.time_since_date(vod_json['created_at']) < 300:
+            self.log.info('Waiting 5m to download initial VOD parts as it was created very recently. Live archiving '
+                          'will still function.')
             sleep(300)
+
+        if Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 360):
+            self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
+                           'Running in live mode in case not all parts are available yet.')
+            vod_live = True
 
         # import chat log if it has been partially downloaded
         try:
