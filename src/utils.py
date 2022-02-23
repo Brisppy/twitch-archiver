@@ -396,12 +396,12 @@ class Progress:
         h, m = divmod(m, 60)
         return '{:0>2}:{:0>2}:{:0>2}'.format(h, m, s)
 
-    def print_progress(self, cur, total, last=False):
+    def print_progress(self, cur, total, last_frame=False):
         """Prints and updates a nice progress bar.
 
         :param cur: current progress out of total
         :param total: highest value of progress bar
-        :param last: boolean if last frame of progress bar
+        :param last_frame: boolean if last frame of progress bar
         """
         percent = floor(100 * (cur / total))
         progress = floor((0.25 * percent)) * '#' + ceil(25 - (0.25 * percent)) * ' '
@@ -419,8 +419,8 @@ class Progress:
             cur = ' ' * (len(str(total)) - len(str(cur))) + str(cur)
 
         # end with newline rather than return
-        if last:
-            print(f'  100%  -  [#########################]  -  {cur} / {total}', end='\n')
+        if last_frame:
+            print(f'  100%  -  [#########################]  -  {cur} / {total}  -  ETA: 00:00:00', end='\n')
 
         else:
             print(f'  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}', end='\r')
