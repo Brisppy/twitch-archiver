@@ -154,8 +154,7 @@ class Downloader:
         chat_log = []
 
         _s = requests.session()
-        _s.headers.update({'Authorization': 'Bearer ' + self.oauth_token,
-                           'Client-Id': self.client_id})
+        _s.headers.update({'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'})
 
         # grab initial chat segment containing cursor
         initial_segment, cursor = self.get_chat_segment(_s, vod_json['id'], offset=offset)
