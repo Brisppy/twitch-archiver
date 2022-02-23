@@ -5,7 +5,6 @@ from datetime import datetime
 from random import randrange
 
 from src.api import Api
-from src.utils import Utils
 
 
 class Twitch:
@@ -158,7 +157,7 @@ class Twitch:
                 params: {{
                     platform: "web",
                     playerBackend: "mediaplayer",
-                    playerType: "site"
+                    playerType: "embed"
                 }}
             ) {{
                 signature
@@ -173,7 +172,9 @@ class Twitch:
     def get_vod_status(self, vod_json):
         try:
             # if stream live and vod start time matches
-            stream_created_time = datetime.strptime(self.get_api('streams?user_id=' + str(vod_json['user_id']))['data'][0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
+            stream_created_time = \
+                datetime.strptime(self.get_api('streams?user_id=' + str(vod_json['user_id']))['data'][0]['started_at'],
+                                  '%Y-%m-%dT%H:%M:%SZ').timestamp()
             vod_created_time = datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
             # if vod created within 10s of stream created time
             if vod_created_time - stream_created_time <= 10 and stream_created_time - vod_created_time >= -10:
