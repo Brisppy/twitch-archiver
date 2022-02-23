@@ -2,6 +2,7 @@ import json
 import logging
 import multiprocessing
 import m3u8
+import re
 import sys
 
 from multiprocessing import Process
@@ -295,7 +296,9 @@ class Processing:
                 try:
                     vod_index = self.callTwitch.get_vod_index(vod_json['id'])
                     vod_playlist = m3u8.loads(Api.get_request(vod_index).text)
-                    vod_base_url = str(vod_index).replace('index-dvr.m3u8', '')
+                    # replace extra chars in base_url like /chunked/index[-muted-JU07DEVBNK.m3u8]
+                    _m = re.findall('(?<=\/chunked\/)(.*)', vod_index)[0]
+                    vod_base_url = vod_index.replace(_m, '')
 
                     self.download.get_video(vod_playlist, vod_base_url, vod_json)
 

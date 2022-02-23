@@ -48,41 +48,42 @@ class Downloader:
 
         ts_url_list = []
         ts_path_list = []
-        downloaded_ids = [str(Path(p).name).lstrip('0')
+        downloaded_ids = [str(Path(p).name)[:4].lstrip('0') + str(Path(p).name)[4:]
                           for p in glob(str(Path(vod_json['store_directory'], 'parts', '*.ts')))]
 
         # iterate over segments of vod .m3u8 playlist
-        for ts_id in [s.uri for s in vod_playlist.segments]:
+        for ts_id in [s.uri.replace('-muted', '') for s in vod_playlist.segments]:
             if ts_id not in downloaded_ids:
                 # create a tuple with (TS_URL, TS_PATH)
                 ts_url_list.append(vod_base_url + ts_id)
                 ts_path_list.append(Path(vod_json['store_directory'], 'parts',
                                          str('{:05d}'.format(int(ts_id.split('.')[0])) + '.ts')))
 
-        # create worker pool for downloading vods
-        with ThreadPoolExecutor(max_workers=self.threads) as pool:
-            download_error = []
-            futures = []
-            ct = 0
-            # append work orders along with args to queue
-            for ts_url, ts_path in zip(ts_url_list, ts_path_list):
-                futures.append(pool.submit(self.get_vod_part, ts_url, ts_path))
+        if ts_url_list and ts_path_list:
+            # create worker pool for downloading vods
+            with ThreadPoolExecutor(max_workers=self.threads) as pool:
+                download_error = []
+                futures = []
+                ct = 0
+                # append work orders along with args to queue
+                for ts_url, ts_path in zip(ts_url_list, ts_path_list):
+                    futures.append(pool.submit(self.get_vod_part, ts_url, ts_path))
 
-            progress = Progress()
+                progress = Progress()
 
-            # process queue
-            for future in futures:
-                if future.result():
-                    # append any returned errors
-                    download_error.append(future.result())
-                    continue
+                # process queue
+                for future in futures:
+                    if future.result():
+                        # append any returned errors
+                        download_error.append(future.result())
+                        continue
 
-                ct += 1
-                if not self.quiet:
-                    progress.print_progress(ct, len(ts_url_list))
+                    ct += 1
+                    if not self.quiet:
+                        progress.print_progress(ct, len(ts_url_list))
 
-        if download_error:
-            raise VodPartDownloadError(download_error)
+            if download_error:
+                raise VodPartDownloadError(download_error)
 
     def get_vod_part(self, ts_url, ts_path):
         """Retrieves a specific ts file.
