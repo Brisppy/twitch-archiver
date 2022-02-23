@@ -158,10 +158,10 @@ class Processing:
             self.log.info('VOD ' + ('currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'))
 
             _r = None
-            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
 
             try:
                 if vod_live:
+                    stream = Stream(self.client_id, self.client_secret, self.oauth_token)
                     # concurrently grab live pieces and vod chunks
                     queue = multiprocessing.Queue(-1)
                     ProcessLogging.root_configurer(queue, self.quiet + self.debug)
