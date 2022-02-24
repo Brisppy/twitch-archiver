@@ -177,7 +177,7 @@ class Twitch:
                                   '%Y-%m-%dT%H:%M:%SZ').timestamp()
             vod_created_time = datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
             # if vod created within 10s of stream created time
-            if vod_created_time - stream_created_time <= 10 and stream_created_time - vod_created_time >= -10:
+            if 10 >= vod_created_time - stream_created_time >= -10:
                 self.log.debug('VOD creation time is within 10s of stream created time, running in live mode.')
                 return True
 
