@@ -122,7 +122,7 @@ class Downloader:
 
                         break
 
-                    except requests.exceptions.RequestException as e:
+                    except requests.exceptions.ChunkedEncodingError as e:
                         self.log.debug('Piece ' + str(Path(ts_path).stem) + ' download failed (Attempt '
                                        + str(_ + 1) + '). ' + str(e))
                         continue
