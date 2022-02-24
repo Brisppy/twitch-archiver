@@ -87,9 +87,6 @@ class Stream:
                     buffer.append(segment)
                     self.log.debug('New segment found: ' + str(segment))
 
-            if buffer:
-                self.log.debug('Stream buffer: ' + str(buffer))
-
             # iterate over buffer segments which aren't yet downloaded
             for segment in [seg for seg in buffer if seg not in downloaded_segments]:
                 with open(Path(tempfile.gettempdir(), segment_ids[segment[2]]), 'ab') as tmp_ts_file:
