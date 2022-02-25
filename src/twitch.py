@@ -3,8 +3,10 @@ import m3u8
 
 from datetime import datetime
 from random import randrange
+from time import sleep
 
 from src.api import Api
+from src.utils import Utils
 
 
 class Twitch:
@@ -170,6 +172,10 @@ class Twitch:
         return _r.json()['data']['streamPlaybackAccessToken']
 
     def get_vod_status(self, vod_json):
+        # wait until 1m has passed since vod created time as the stream api may not have updated yet
+        time_since_created = Utils.time_since_date(vod_json['created_at'])
+        if time_since_created < 60:
+            sleep(60 - time_since_created)
         try:
             # if stream live and vod start time matches
             stream_created_time = \
