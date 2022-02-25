@@ -57,13 +57,13 @@ class Stream:
                 try:
                     last_id = seg_id
                 except NameError:
-                    sys.exit(0)
+                    return
 
                 if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
                     shutil.move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
                                 Path(output_dir, str('{:05d}'.format(last_id)) + '.ts'))
 
-                sys.exit(0)
+                return
 
             for segment in incoming_segments['segments']:
                 # skip ad segments
@@ -85,7 +85,7 @@ class Stream:
                 # append if part hasn't been added to buffer yet or downloaded
                 if segment not in buffer and segment not in downloaded_segments:
                     buffer.append(segment)
-                    self.log.debug('New segment found: ' + str(segment))
+                    self.log.debug('New live segment found: ' + str(segment[2]))
 
             # iterate over buffer segments which aren't yet downloaded
             for segment in [seg for seg in buffer if seg not in downloaded_segments]:

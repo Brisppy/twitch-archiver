@@ -46,17 +46,3 @@ class Logger:
         logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
 
         return logger
-
-
-class ProcessLogging:
-    """Allows logging for multiprocess.
-    Only works on Linux - no output for other Operating Systems.
-    """
-    # reference:
-    #   https://fanchenbao.medium.com/python3-logging-with-multiprocessing-f51f460b8778
-    @staticmethod
-    def root_configurer(queue, level):
-        h = handlers.QueueHandler(queue)
-        root = logging.getLogger()
-        root.addHandler(h)
-        root.setLevel(20 if not level else level)

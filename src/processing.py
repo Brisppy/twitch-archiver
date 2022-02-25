@@ -5,7 +5,6 @@ import m3u8
 import re
 import sys
 
-from multiprocessing import Process
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -15,7 +14,6 @@ from src.database import Database, create_vod, __db_version__
 from src.downloader import Downloader
 from src.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
     TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError
-from src.logger import ProcessLogging
 from src.stream import Stream
 from src.twitch import Twitch
 from src.utils import Utils
@@ -163,13 +161,12 @@ class Processing:
                 if vod_live:
                     stream = Stream(self.client_id, self.client_secret, self.oauth_token)
                     # concurrently grab live pieces and vod chunks
-                    queue = multiprocessing.Queue(-1)
-                    ProcessLogging.root_configurer(queue, self.quiet + self.debug)
+                    multiprocessing.set_start_method('spawn')
 
-                    w1 = Process(target=stream.get_stream, args=(
+                    w1 = multiprocessing.Process(target=stream.get_stream, args=(
                         vod_json['user_name'], Path(vod_json['store_directory'], 'parts')))
 
-                    w2 = Process(target=self.get_vod, args=(vod_json, vod_live))
+                    w2 = multiprocessing.Process(target=self.get_vod, args=(vod_json, vod_live))
 
                     workers = [w1, w2]
 
