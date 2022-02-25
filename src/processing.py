@@ -197,10 +197,6 @@ class Processing:
                     if Utils.verify_vod_length(vod_json):
                         raise VodMergeError('VOD length less than expected.', vod_json['id'])
 
-                    # delete temporary .ts parts and merged.ts file
-                    self.log.debug('Cleaning up temporary files...')
-                    Utils.cleanup_vod_parts(vod_json['store_directory'])
-
                 if self.chat:
                     with open(Path(vod_json['store_directory'], 'verboseChat.json'), 'r') as chat_file:
                         chat_log = json.loads(chat_file.read())
@@ -217,6 +213,11 @@ class Processing:
 
                     else:
                         self.log.info('No chat messages found.')
+
+                if self.video:
+                    # delete temporary .ts parts and merged.ts file
+                    self.log.debug('Cleaning up temporary files...')
+                    Utils.cleanup_vod_parts(vod_json['store_directory'])
 
             # catch user exiting and remove lock file
             except KeyboardInterrupt:
