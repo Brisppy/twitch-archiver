@@ -31,9 +31,9 @@ Primarily focused on data preservation, this script can be used to archive an en
   * [Disclaimer](#disclaimer)
 
 ## Features
-* Allows any number of VODs or channel to be downloaded simultaneously.
+* Allows any number of VODs or channels to be downloaded simultaneously.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
-* Allows the downloading of **live**[^2] VODs *before copyrighted audio is detected and muted*.
+* Allows the downloading of **live**[^2] VODs *before audio is muted*.
 * Generates and saves a readable chat log with timestamps and user badges.
 * Allows the specifying of downloading only the video, chat or both.
 * Error notifications via pushbullet.
