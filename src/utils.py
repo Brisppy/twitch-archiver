@@ -224,18 +224,18 @@ class Utils:
 
         except Exception as e:
             log.error('Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. ' + str(e))
-            return True
+            raise VodConvertError(str(e), vod_json['id'])
 
         log.debug('Downloaded VOD length is ' + str(downloaded_length) + '. Expected length is '
                   + str(vod_json['duration_seconds']) + '.')
 
-        # fail verification if downloaded file is not within 2s of expected length
+        # pass verification if downloaded file is within 2s of expected length
         if 2 >= downloaded_length - vod_json['duration_seconds'] >= -2:
+            log.debug('VOD passed length verification.')
+            return False
+
+        else:
             return True
-
-        log.debug('VOD passed length verification.')
-
-        return False
 
     @staticmethod
     def cleanup_vod_parts(vod_directory):
