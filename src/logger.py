@@ -24,7 +24,7 @@ class Logger:
 
         # set up time, date, log format
         console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
-        file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s() ] %(message)s',
+        file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s',
                                            '%Y-%m-%d %H:%M:%S')
 
         # setup console logging
