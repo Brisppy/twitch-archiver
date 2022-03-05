@@ -4,7 +4,6 @@ import re
 import requests
 import shutil
 import subprocess
-import sys
 
 from datetime import datetime
 from glob import glob
