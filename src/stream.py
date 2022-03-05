@@ -94,7 +94,7 @@ class Stream:
                     for attempt in range(6):
                         if attempt > 4:
                             self.log.debug('Maximum retries reach for stream part download.')
-                            return
+                            break
 
                         try:
                             _r = requests.get(segment[0], stream=True)
@@ -111,7 +111,7 @@ class Stream:
 
                             break
 
-                        except requests.exceptions.ChunkedEncodingError as e:
+                        except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ReadTimeout) as e:
                             self.log.debug('Error downloading VOD part, retrying. ' + str(e))
                             continue
 
