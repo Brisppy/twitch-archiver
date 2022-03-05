@@ -356,18 +356,17 @@ class Utils:
         :param body: body to send with push
         """
         if pushbullet_key:
-            h = {"content-type": "application/json", "Authorization": 'Bearer ' + pushbullet_key}
-            d = {"type": "note", "title": '[twitch-archiver] ' + title, "body": body}
+            h = {'content-type': 'application/json', 'Authorization': 'Bearer ' + pushbullet_key}
+            d = {'type': 'note', 'title': '[twitch-archiver] ' + title, 'body': body}
 
             try:
                 _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d))
 
+                if _r.status_code != 200:
+                    log.error('Error sending push. ' + title + ' ' + body)
+
             except Exception as e:
                 log.error('Error sending push. ' + title + ' ' + body + '. ' + str(e))
-                sys.exit(1)
-
-            if _r.status_code != 200:
-                log.error('Error sending push. ' + title + ' ' + body)
 
 
 class Progress:
