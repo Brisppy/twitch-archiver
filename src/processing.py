@@ -130,7 +130,7 @@ class Processing:
                         raise UnlockingError(vod_id)
 
                 else:
-                    self.log.debug('No VOD information returned to channel downloader, downloader exited with error.')
+                    self.log.debug('No VOD information returned to channel function, downloader exited with error.')
                     continue
 
     def get_vod_connector(self, vods):
@@ -140,6 +140,7 @@ class Processing:
         :return: dict containing current vod information returned by get_vod
         """
         self.log.info("Archiving vod(s) '" + str(vods) + "'.")
+        vod_json = False
 
         for vod_id in vods:
             self.log.info('Now processing VOD: ' + str(vod_id))
@@ -226,8 +227,10 @@ class Processing:
                     for worker in workers:
                         worker.terminate()
                         worker.join()
+
                 if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
                     Utils.remove_lock(self.config_dir, vod_id)
+
                 sys.exit(1)
 
             # catch halting errors, send notification and remove lock file
@@ -236,12 +239,15 @@ class Processing:
                     for worker in workers:
                         worker.terminate()
                         worker.join()
+
                 self.log.error(f'Error downloading VOD {vod_id}. Error:' + str(e))
                 Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id}', str(e))
                 # remove lock file if archiving channel
                 if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
                     Utils.remove_lock(self.config_dir, vod_id)
-                continue
+
+                # set to False so that channel function knows download failed
+                vod_json = False
 
         # this is only used when archiving a channel
         return vod_json
