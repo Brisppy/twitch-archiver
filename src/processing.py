@@ -161,7 +161,6 @@ class Processing:
                 if vod_live:
                     stream = Stream(self.client_id, self.client_secret, self.oauth_token)
                     # concurrently grab live pieces and vod chunks
-                    multiprocessing.set_start_method('fork')
 
                     workers = []
 
