@@ -229,8 +229,8 @@ class Utils:
         log.debug('Downloaded VOD length is ' + str(downloaded_length) + '. Expected length is '
                   + str(vod_json['duration_seconds']) + '.')
 
-        # fail verification if downloaded file is > than 2 seconds shorter than expected
-        if downloaded_length < vod_json['duration_seconds'] - 2:
+        # fail verification if downloaded file is not within 2s of expected length
+        if 2 >= downloaded_length - vod_json['duration_seconds'] >= -2:
             return True
 
         log.debug('VOD passed length verification.')
