@@ -163,12 +163,14 @@ class Processing:
                     # concurrently grab live pieces and vod chunks
                     multiprocessing.set_start_method('spawn')
 
-                    w1 = multiprocessing.Process(target=stream.get_stream, args=(
-                        vod_json['user_name'], Path(vod_json['store_directory'], 'parts')))
+                    workers = []
 
-                    w2 = multiprocessing.Process(target=self.get_vod, args=(vod_json, vod_live))
+                    # the stream module itself has no checks for what to download so this is done here
+                    if self.video:
+                        workers.append(multiprocessing.Process(target=stream.get_stream, args=(
+                                       vod_json['user_name'], Path(vod_json['store_directory'], 'parts'))))
 
-                    workers = [w1, w2]
+                    workers.append(multiprocessing.Process(target=self.get_vod, args=(vod_json, vod_live)))
 
                     for worker in workers:
                         worker.start()
