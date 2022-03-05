@@ -33,7 +33,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 ## Features
 * Allows any number of VODs or channels to be downloaded simultaneously.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
-* Allows the downloading of **live**[^2] VODs *before audio is muted*.
+* Allows the downloading of **live**[^2] VODs *before parts are muted or deleted*.
 * Generates and saves a readable chat log with timestamps and user badges.
 * Allows the specifying of downloading only the video, chat or both.
 * Error notifications via pushbullet.
@@ -45,7 +45,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Requirements
 * **Python >= 3.7**
-* Python **requests** and **m3u8** modules - `pip install requests m3u8`
+* Python **requests** and **m3u8** modules `python -m pip install requests m3u8` | `python -m pip install -r requirements.txt`
 * **[ffmpeg](https://ffmpeg.org/)** (Accessible via $PATH - see [Installation](#installation))
 
 ## Installation & Usage
@@ -143,6 +143,8 @@ pushbullet_key =
 These are loaded into TA **first**, before being overwritten by any arguments passed to TA.
 This file will be created the first time you use TA and an OAuth token is successfully generated, with the provided credentials then saved in the ini.
 
+If for any reason you need to change your credentials, you can either manually edit the config file, or pass the new credentials to the script and they will then be saved to the config.
+
 ## Retrieving Tokens
 ### To retrieve the CLIENT_ID and CLIENT_SECRET:
 1. Navigate to [dev.twitch.tv](https://dev.twitch.tv/) and log in
@@ -185,12 +187,12 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
                    └─ VOD_f ─── *
 
 ### Planned Features
-- [ ] Allow archiving of subscriber-only VODs (need an account with a subscription for development + testing).
-- [ ] Improve VOD download speed using separate download and file move workers (may need someone to test with >1Gbit connection).
-- [ ] Release python package.
 - [x] .ts to .mp4 conversion progress bar.
 - [x] Find a way to directly archive the stream - could be then spliced with downloaded vod parts to capture everything up to the point the VOD is deleted rather than just up to a couple of minutes before. Both video and chat could be done this way.
 - [x] Speed up VOD part discovery by finding and removing downloaded parts from the 'to-download' list.
+- [ ] Allow archiving of subscriber-only VODs (need an account with a subscription for development + testing).
+- [ ] Improve VOD download speed using separate download and file move workers (may need someone to test with >1Gbit connection).
+- [ ] Release python package.
 - [ ] Allow archiving of livestreams without VODs.
 
 ### Why?
