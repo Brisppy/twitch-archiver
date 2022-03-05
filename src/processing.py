@@ -161,7 +161,7 @@ class Processing:
                 if vod_live:
                     stream = Stream(self.client_id, self.client_secret, self.oauth_token)
                     # concurrently grab live pieces and vod chunks
-                    multiprocessing.set_start_method('spawn')
+                    multiprocessing.set_start_method('fork')
 
                     workers = []
 
@@ -223,12 +223,20 @@ class Processing:
 
             # catch user exiting and remove lock file
             except KeyboardInterrupt:
+                if vod_live:
+                    for worker in workers:
+                        worker.terminate()
+                        worker.join()
                 if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
                     Utils.remove_lock(self.config_dir, vod_id)
                 sys.exit(1)
 
             # catch halting errors, send notification and remove lock file
             except (RequestError, VodDownloadError, ChatDownloadError, VodMergeError, ChatExportError) as e:
+                if vod_live:
+                    for worker in workers:
+                        worker.terminate()
+                        worker.join()
                 self.log.error(f'Error downloading VOD {vod_id}. Error:' + str(e))
                 Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id}', str(e))
                 # remove lock file if archiving channel
