@@ -78,14 +78,15 @@ class Stream:
                 # manual offset of 4 seconds is added - it just works
                 segment_id = floor((4 + time_since_start) / 10)
                 if segment_id not in segment_ids.keys():
+                    self.log.debug('New live segment found: ' + str(segment_id))
                     segment_ids.update({segment_id: os.urandom(24).hex()})
                 segment = tuple((segment['uri'], segment['program_date_time'].replace(tzinfo=None),
                                  segment_id, segment['duration']))
 
                 # append if part hasn't been added to buffer yet or downloaded
                 if segment not in buffer and segment not in downloaded_segments:
+                    self.log.debug('New part added to buffer: ' + str(segment))
                     buffer.append(segment)
-                    self.log.debug('New live segment found: ' + str(segment[2]))
 
             # iterate over buffer segments which aren't yet downloaded
             for segment in [seg for seg in buffer if seg not in downloaded_segments]:
