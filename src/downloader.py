@@ -129,16 +129,16 @@ class Downloader:
 
             # move part to destination storage
             if Path(tmp_ts_file.name).exists:
-                # first move to temp file
-                shutil.move(tmp_ts_file.name, ts_path.with_suffix('.ts.tmp'))
-                # rename temp file after it has successfully been moved
-                if os.path.exists(ts_path):
-                    if os.path.samefile(ts_path, ts_path.with_suffix('.ts.tmp')):
-                        os.remove(ts_path.with_suffix('.ts.tmp'))
-                        return
+                # remove if matches destination
+                if os.path.exists(ts_path) and os.path.samefile(ts_path, tmp_ts_file.name):
+                    os.remove(tmp_ts_file.name)
 
-                shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
-                self.log.debug('Piece ' + str(Path(ts_path).stem) + ' completed.')
+                else:
+                    # first move to temp file
+                    shutil.move(tmp_ts_file.name, ts_path.with_suffix('.ts.tmp'))
+                    # rename temp file after it has successfully been moved
+                    shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
+                    self.log.debug('Piece ' + str(Path(ts_path).stem) + ' completed.')
 
             else:
                 raise VodPartDownloadError('VOD part did not download correctly. Part: ' + str(ts_url))

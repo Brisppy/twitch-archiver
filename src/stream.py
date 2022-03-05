@@ -3,7 +3,6 @@ import m3u8
 import os
 import requests
 import shutil
-import sys
 import tempfile
 
 from datetime import datetime
@@ -122,11 +121,21 @@ class Stream:
 
                 # rename file if 5 chunks found
                 if len(segments) == 5:
-                    if Path(tempfile.gettempdir(), segment_ids[seg_id]).exists:
-                        shutil.move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
-                                    Path(output_dir, str('{:05d}'.format(seg_id)) + '.ts.tmp'))
-                        shutil.move(Path(output_dir, str('{:05d}'.format(seg_id)) + '.ts.tmp'),
-                                    Path(output_dir, str('{:05d}'.format(seg_id)) + '.ts'))
+                    tmp_ts_file = Path(tempfile.gettempdir(), segment_ids[seg_id])
+                    ts_path = Path(output_dir, str('{:05d}'.format(seg_id) + '.ts'))
+
+                    if tmp_ts_file.exists:
+                        # remove if matches destination
+                        if os.path.exists(ts_path) and os.path.samefile(ts_path, tmp_ts_file):
+                            os.remove(tmp_ts_file)
+
+                        else:
+                            # first move to temp file
+                            shutil.move(tmp_ts_file, ts_path.with_suffix('.ts.tmp'))
+                            # rename temp file after it has successfully been moved
+                            shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
+                            self.log.debug('Piece ' + str(Path(ts_path).stem) + ' completed.')
+
                         self.log.debug('Live piece: ' + str(seg_id) + ' completed.')
                         completed_segments.append(seg_id)
 
