@@ -1,41 +1,45 @@
 **(2022-02-15) Version 2.0**
 
-For the past few weeks I've been working to completely refactor the code as the original v1.0 was built when I was just beginning to understand Python - this lead to various issues with standardization, cleanliness and the general logic of the code making it increasingly difficult to add features due to a distinct lack of modularity.
+For the past few ~~weeks~~ months I've been working to completely refactor the code as the original v1.0 was built when I was just beginning to understand Python - this lead to various issues with code standardization, cleanliness and the foundational logic of the code which made it increasingly difficult to track down bugs and add new features.
 
-And so I've created version 2.0, following proper guidelines, formatting and vastly improving the cleanliness and
-readability of the code. This isn't to say it's perfect, I am still learning and open to any feedback.
+And so I've created version 2.0, following better guidelines, formatting and vastly improving the cleanliness and readability of the code. This isn't to say it's perfect, I am still learning and open to any feedback.
 
-With all that said, I've tested this new code extensively - but there still may be bugs.
+With all that said, I've tried to test this code as much as possible - but with the amount of changes and additions there still may be bugs.
 
-To any experienced Python developers who might stumble upon this and are willing to answer some technical questions, I would be extremely grateful if you could [email me](mailto:brisppy@protonmail.com) for a quick chat.
+A quick note for anyone who used any of the beta releases, many things have changed during the course of development, and I would strongly recommend re-downloading any VODs downloaded with these beta versions as they may be incomplete or contain errors.
 
 * What's new:
     * New video and chat download methods:
       * Improved speed and reliability.
       * Better error handling.
       * Less reliance on external sources in case Twitch makes any breaking changes.
-    * True live archiving is now possible, VODs will be saved all the way to the point of deletion.
+    * True live archiving is now implemented, with parts downloaded as they are streamed.
     * Added a configuration file for storing secrets for reuse.
-    * Added progress bars to download, conversion and export of video and chat logs.
+    * Added progress bars to download, conversion and export of video files and chat logs.
+    * Added a check on run and command-line notification if a new update is released.
     * A more verbose chat log is are now archived along with a readable version.
-    * Implemented new methods for determining whether a VOD is live or not.
+    * Added the ability to choose the number of download threads with an argument '--threads'.
     * Added the ability to archive individual (or multiple) VODs.
     * Added the ability to archive multiple channels in one command.
     * Added the ability to print the saved config.
     * Added the '--quiet' and '--debug' arguments.
+    * Added an option for logging to a file.
     * Added a license (GNU Affero Public License).
 
 
 * What's changed:
     * Variables can now be passed as arguments rather than via a file.
-    * Transitioned to a single database for all archived channel data.
+    * OAuth token is saved in the configuration rather than a file.
+    * Implemented a new, more accurate method for determining whether a VOD is live or not.
+    * Transitioned to a single database for all archived channel VODs.
     * Removed erroneous characters from VOD directory names.
     * Modified database schema. See [this gist](https://gist.github.com/522bffef7bee7eb17c1eacbf1a35aadc) if you wish to migrate your TA v1.x database(s) to the new format and location. This needs to be done to seamlessly resume archiving channels.
-    * Various smaller fixes and improvements.
     * Repository renamed (twitch-vod-archiver -> twitch-archiver).
-    * Chat logs are now grabbed and saved while archiving a live VOD rather than after (meaning they are saved in case of VOD deletion).
+    * Improved VOD length verification.
+    * Chat logs are now saved while archiving live VODs rather than after stream finishes.
     * Greatly improved logging.
-    * Overhauled changelog and readme
+    * Various minor fixes and improvements.
+    * Overhauled changelog and readme.
 
 **(2022-01-23) Version 1.3.1**
 
