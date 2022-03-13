@@ -82,13 +82,15 @@ class Processing:
                 self.log.error('Error retrieving VODs from Twitch. Error: ' + str(e))
                 continue
 
-            self.log.debug('Available vods: ' + str(available_vods))
+            self.log.info(f'Available vods: {available_vods}' if self.debug
+                          else f'Available vods: {len(available_vods)}')
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
                 downloaded_vods = [str(i[0]) for i in db.execute_query('select * from vods where user_id is {}'
                                                                        .format(user_id))]
-            self.log.debug('Downloaded vods: ' + str(downloaded_vods))
+            self.log.info(f'Downloaded vods: {downloaded_vods}' if self.debug
+                          else f'Downloaded vods: {len(downloaded_vods)}')
 
             # generate vod queue using downloaded and available vods
             vod_queue = [vod_id for vod_id in available_vods if vod_id not in downloaded_vods]
