@@ -32,11 +32,11 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Features
 * Allows any number of VODs or channels to be downloaded simultaneously.
-* VODs can be downloaded as fast as your Internet connection (and storage) can handle[^1].
-* Allows the downloading of **live**[^2] VODs *before parts are muted or deleted*.
+* VODs can be downloaded as fast as your Internet connection (and storage) can handle.[^1]
+* Allows the downloading of **live** VODs *before sections can be muted or deleted*.[^2]
 * Generates and saves a readable chat log with timestamps and user badges.
-* Allows the specifying of downloading only the video, chat or both.
-* Error notifications via pushbullet.
+* Allows for the archiving of either the video, the chat or both.
+* Error notifications sent via pushbullet.
 * Supports automated archiving without any sort of user interaction.
 * Requires minimal setup or external programs.
 
@@ -60,13 +60,13 @@ Primarily focused on data preservation, this script can be used to archive an en
 Run the script via your terminal of choice. Use ```python ./twitch-vod-archiver.py -h``` to view help text.
 
 #### Examples
-```python ./twitch-vod-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
+```python ./twitch-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
 
 Would download **video and chat** of all VODs from the channel **Brisppy**, using the provided **client_id** and **client_secret**, to the directory **Z:\twitch-archive**.
 
-```python ./twitch-vod-archiver.py -v 1276315849,1275305106 -d "Z:\\twitch-archive" -V -t 10```
+```python ./twitch-archiver.py -v 1276315849,1275305106 -d "/mnt/twitch-archive" -V -t 10```
 
-Would download VODs **1276315849 and 1275305106** to the directory **Z:\twitch-archive**, only saving the **video**  using **10 download threads**.
+Would download VODs **1276315849 and 1275305106** to the directory **/mnt/twitch-archive**, only saving the **video**  using **10 download threads**.
 
 ### Arguments
 ```
@@ -121,9 +121,9 @@ optional arguments:
 ```
 
 ### Configuration
-By default, the configuration directory is `$HOME/.config/twitch-archiver`.
+By default, configuration files are stored in `$HOME/.config/twitch-archiver`
 
-This holds the config (config.ini), VOD database used for archiving channels (vods.db), and is where lock files are stored to prevent multiple instances of TA from overwriting each other.
+This holds the config file (config.ini), VOD database used when archiving channels (vods.db), and is where lock files are stored to prevent multiple instances of TA from overwriting each other.
 
         CONFIG_DIR ─┬─ config.ini
                     │
@@ -154,7 +154,7 @@ If for any reason you need to change your credentials, you can either manually e
 
 ## Extra Info
 ### Notes
-* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD ends before the 'end' is reached), create a file named '.ignorelength' inside the VOD's directory (where 'vod.json' and 'verboseChat.log' are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
+* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD finishes before the timestamp end is reached), create a file named '.ignorelength' inside the VOD's directory (where 'vod.json' and 'verbose_chat.log' are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
 * If a VOD is deleted while it is being archived, all the vod information will be saved, and the VOD will be combined as-is and chat exported. 
 * If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux.
 
