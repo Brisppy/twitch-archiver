@@ -224,6 +224,7 @@ class Processing:
             # catch user exiting and remove lock file
             except KeyboardInterrupt:
                 if vod_live:
+                    self.log.debug('User requested stop, terminating download workers...')
                     for worker in workers:
                         worker.terminate()
                         worker.join()
@@ -236,6 +237,7 @@ class Processing:
             # catch halting errors, send notification and remove lock file
             except (RequestError, VodDownloadError, ChatDownloadError, VodMergeError, ChatExportError) as e:
                 if vod_live:
+                    self.log.debug('Exception encountered, terminating download workers...')
                     for worker in workers:
                         worker.terminate()
                         worker.join()
@@ -247,6 +249,20 @@ class Processing:
                     Utils.remove_lock(self.config_dir, vod_id)
 
                 # set to False so that channel function knows download failed
+                vod_json = False
+
+            # catch unhandled exceptions
+            except Exception as e:
+                if vod_live:
+                    self.log.debug('Exception encountered, terminating download workers...')
+                    for worker in workers:
+                        worker.terminate()
+                        worker.join()
+
+                Utils.send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id}', str(e))
+                self.log.exception(f'Exception encountered while downloading VOD {vod_id}. Error:' + str(e),
+                                   exc_info=True)
+
                 vod_json = False
 
         # this is only used when archiving a channel
