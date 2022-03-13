@@ -200,7 +200,7 @@ class Processing:
                         raise VodMergeError('VOD length less than expected.', vod_json['id'])
 
                 if self.chat:
-                    with open(Path(vod_json['store_directory'], 'verboseChat.json'), 'r') as chat_file:
+                    with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
                         chat_log = json.loads(chat_file.read())
 
                     # generate and export the readable chat log
@@ -275,7 +275,7 @@ class Processing:
 
         # import chat log if it has been partially downloaded
         try:
-            with open(Path(vod_json['store_directory'], 'verboseChat.json'), 'r') as chat_file:
+            with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
                 chat_log = json.loads(chat_file.read())
 
         except FileNotFoundError:

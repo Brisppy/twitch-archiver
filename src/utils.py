@@ -60,7 +60,7 @@ class Utils:
         """
         Path(vod_directory).parent.mkdir(parents=True, exist_ok=True)
 
-        with open(Path(vod_directory, 'verboseChat.json'), 'w+', encoding="utf-8") as chat_file:
+        with open(Path(vod_directory, 'verbose_chat.json'), 'w+', encoding="utf-8") as chat_file:
             chat_file.write(json.dumps(chat_log))
 
     @staticmethod
@@ -70,10 +70,10 @@ class Utils:
         :param chat_log: chat log retrieved from twitch to export
         :param vod_directory: directory used to store chat log
         """
-        if Path(vod_directory, 'readableChat.log').is_file():
-            Path(vod_directory, 'readableChat.log').unlink()
+        if Path(vod_directory, 'readable_chat.log').is_file():
+            Path(vod_directory, 'readable_chat.log').unlink()
 
-        with open(Path(vod_directory, 'readableChat.log'), 'a+', encoding="utf-8") as chat_file:
+        with open(Path(vod_directory, 'readable_chat.log'), 'a+', encoding="utf-8") as chat_file:
             for message in chat_log:
                 chat_file.write(str(message) + '\n')
 

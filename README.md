@@ -166,9 +166,9 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
                    │             │         │
                    │             │         ├─ vod.json
                    │             │         │
-                   │             │         ├─ verboseChat.json
+                   │             │         ├─ verbose_chat.json
                    │             │         │
-                   │             │         └─ readableChat.log
+                   │             │         └─ readable_chat.log
                    │             │
                    │             └─ VOD_b ─── *
                    │
@@ -180,9 +180,9 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
                    │         │
                    │         ├─ vod.json
                    │         │
-                   │         ├─ verboseChat.json
+                   │         ├─ verbose_chat.json
                    │         │
-                   │         └─ readableChat.log
+                   │         └─ readable_chat.log
                    │
                    └─ VOD_f ─── *
 
