@@ -157,6 +157,7 @@ If for any reason you need to change your credentials, you can either manually e
 * We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD finishes before the timestamp end is reached), create a file named '.ignorelength' inside the VOD's directory (where 'vod.json' and 'verbose_chat.log' are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
 * If a VOD is deleted while it is being archived, all the vod information will be saved, and the VOD will be combined as-is and chat exported. 
 * If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux.
+* If you intend to push chat logs to an ELK stack, [this gist](https://gist.github.com/Brisppy/ddcf4d5bbb73f957181743faadb959e3) should have everything you need.
 
 ### How files are stored
 VODs are downloaded to the specified directory. If downloading a channel, an individual folder will be created for that specific channel.
