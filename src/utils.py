@@ -110,8 +110,7 @@ class Utils:
         # get ordered list of vod parts
         vod_parts = [Path(p) for p in sorted(glob(str(Path(vod_json['store_directory'], 'parts', '*.ts'))))]
 
-        if print_progress:
-            progress = Progress()
+        progress = Progress()
 
         with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
             pr = 0
@@ -134,10 +133,7 @@ class Utils:
         """
         log.info('Converting VOD to mp4. This may take a while.')
 
-        total_frames = Utils.get_vod_framecount(vod_json)
-
-        if print_progress:
-            progress = Progress()
+        progress = Progress()
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
@@ -147,53 +143,17 @@ class Utils:
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
-                if 'frame=' in line:
-                    # extract framerate from output
-                    current_frame = re.search('(?<=frame=).*(?= fps=)', line)
+                if 'time=' in line:
+                    # extract current timestamp from output
+                    current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
+                    current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
 
                     if print_progress:
-                        progress.print_progress(int(current_frame.group(0)), total_frames)
+                        progress.print_progress(int(current_time), vod_json['duration_seconds'])
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
             raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
-
-    @staticmethod
-    def get_vod_framecount(vod_json):
-        """Estimates the number of frames contained in the downloaded VOD.
-
-        :param vod_json: dict of vod parameters retrieved from twitch
-        :return: total number of frames
-        """
-        # we estimate the total frames based on the framerate and vod length -
-        # when it comes to long vods, retrieving the number of frames can take TENS of minutes and
-        # is simply not worth the hassle to properly count
-        log.debug('Estimating length of VOD file.')
-
-        # retrieve framerate of vod file
-        p = subprocess.run('ffprobe -i ' + '"' + str(Path(vod_json['store_directory'], 'merged.ts')) + '"' +
-                           ' -v quiet -select_streams v:0 -show_entries stream=avg_frame_rate'
-                           ' -of default=noprint_wrappers=1:nokey=1',
-                           shell=True, capture_output=True, universal_newlines=True)
-
-        if p.returncode:
-            log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
-
-        # retrieve framerate from returned output
-        try:
-            avg_framerate = eval(p.stdout.split('\n')[0])
-
-        except Exception as e:
-            log.error('Failed to fetch VOD framerate. VOD may not have downloaded correctly. ' + str(e))
-            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
-
-        log.debug('Average framerate is ' + str(avg_framerate))
-
-        framecount = int(avg_framerate * vod_json['duration_seconds'])
-        log.debug('Estimated framecount: ' + str(framecount))
-
-        return framecount
 
     @staticmethod
     def verify_vod_length(vod_json):
