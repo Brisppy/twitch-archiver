@@ -143,6 +143,12 @@ class Utils:
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
+                if 'Packet corrupt' in line:
+                    log.error('Corrupt packet encountered.')
+                    raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be '
+                                          're-downloaded. Ensure VOD is still available and delete \'parts\' directory.'
+                                          , vod_json['id'])
+
                 if 'time=' in line:
                     # extract current timestamp from output
                     current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
