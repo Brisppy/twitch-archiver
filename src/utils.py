@@ -112,16 +112,51 @@ class Utils:
 
         progress = Progress()
 
-        with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
-            pr = 0
-            for ts_file in vod_parts:
-                pr += 1
-                # append part to merged file
-                with open(ts_file, 'rb') as mergefile:
-                    shutil.copyfileobj(mergefile, merged)
+        # concat files if all pieces present, otherwise fall back to using ffmpeg
+        last_part = int(vod_parts[-1].name.strip('.ts'))
+        part_list = [int(i.name.strip('.ts')) for i in vod_parts]
 
-                if print_progress:
-                    progress.print_progress(pr, len(vod_parts))
+        if not set([i for i in range(last_part + 1)]).difference(part_list):
+            # merge all .ts files by concatenating them
+            with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
+                pr = 0
+                for ts_file in vod_parts:
+                    pr += 1
+                    # append part to merged file
+                    with open(ts_file, 'rb') as mergefile:
+                        shutil.copyfileobj(mergefile, merged)
+
+                    if print_progress:
+                        progress.print_progress(pr, len(vod_parts))
+
+        else:
+            # merge all .ts files with ffmpeg concat demuxer as missing segments can cause corruption with
+            # other method
+
+            log.debug('Discontinuity found, merging with ffmpeg.')
+
+            # create file with list of parts for ffmpeg
+            with open(Path(vod_json['store_directory'], 'parts', 'segments.txt'), mode='w') as segment_file:
+                for part in vod_parts:
+                    segment_file.write("file " + "'" + str(part) + "'" + "\n")
+
+            with subprocess.Popen(f'ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i '
+                                  f'"{str(Path(vod_json["store_directory"], "parts", "segments.txt"))}"'
+                                  f' -c copy "{str(Path(vod_json["store_directory"], "merged.ts"))}"',
+                                  shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
+                # get progress from ffmpeg output and print progress bar
+                for line in p.stderr:
+                    if 'time=' in line:
+                        # extract current timestamp from output
+                        current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
+                        current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
+
+                        if print_progress:
+                            progress.print_progress(int(current_time), vod_json['duration_seconds'])
+
+                if p.returncode:
+                    log.error(str(json.loads(p.output[7:])))
+                    raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
 
     @staticmethod
     def convert_vod(vod_json, print_progress=True):
