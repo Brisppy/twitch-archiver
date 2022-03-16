@@ -199,7 +199,8 @@ class Processing:
 
                     # verify vod length is equal to what is grabbed from twitch
                     if Utils.verify_vod_length(vod_json):
-                        raise VodMergeError('VOD length less than expected.', vod_json['id'])
+                        raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
+                                            '\'vod/parts\' directory if VOD still available.', vod_json['id'])
 
                 if self.chat:
                     with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
