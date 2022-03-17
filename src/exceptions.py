@@ -29,8 +29,8 @@ class TwitchAPIErrorNotFound(Exception):
 
 
 class VodDownloadError(Exception):
-    def __init__(self, error, vod_id):
-        self.message = f'VOD {vod_id} video download failed. Error: {error}'
+    def __init__(self, error):
+        self.message = f'Video download failed. Error: {error}'
 
 
 class VodPartDownloadError(Exception):
@@ -39,23 +39,23 @@ class VodPartDownloadError(Exception):
 
 
 class VodMergeError(Exception):
-    def __init__(self, error, vod_id):
-        self.message = f'VOD {vod_id} part merging failed. Error: {error}'
+    def __init__(self, error):
+        self.message = f'Part merging failed. Error: {error}'
 
 
 class VodConvertError(Exception):
-    def __init__(self, error, vod_id):
-        self.message = f'Error occurred while converting VOD {vod_id}. Error: {error}'
+    def __init__(self, error):
+        self.message = f'Video conversion failed. Error: {error}'
 
 
 class ChatDownloadError(Exception):
-    def __init__(self, error, vod_id):
-        self.message = f'VOD {vod_id} chat download failed. Error: {error}'
+    def __init__(self, error):
+        self.message = f'Chat download failed. Error: {error}'
 
 
 class ChatExportError(Exception):
-    def __init__(self, error, vod_id):
-        self.message = f'VOD {vod_id} chat export failed. Error: {error}'
+    def __init__(self, error):
+        self.message = f'Chat export failed. Error: {error}'
 
 
 class DatabaseError(Exception):

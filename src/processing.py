@@ -195,12 +195,12 @@ class Processing:
                         Utils.convert_vod(vod_json, print_progress=False if self.quiet else True)
 
                     except Exception as e:
-                        raise VodMergeError(e, vod_json['id'])
+                        raise VodMergeError(e)
 
                     # verify vod length is equal to what is grabbed from twitch
                     if Utils.verify_vod_length(vod_json):
                         raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
-                                            '\'vod/parts\' directory if VOD still available.', vod_json['id'])
+                                            '\'vod/parts\' directory if VOD still available.')
 
                 if self.chat:
                     with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
@@ -214,7 +214,7 @@ class Processing:
                             Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
 
                         except Exception as e:
-                            raise ChatExportError(e, vod_json['id'])
+                            raise ChatExportError(e)
 
                     else:
                         self.log.info('No chat messages found.')
@@ -342,7 +342,7 @@ class Processing:
                     vod_live = False
 
                 except Exception as e:
-                    raise VodDownloadError(e, vod_json['id'])
+                    raise VodDownloadError(e)
 
             if self.chat:
                 # download all available chat segments
@@ -369,7 +369,7 @@ class Processing:
                     vod_live = False
 
                 except Exception as e:
-                    raise ChatDownloadError(e, vod_json['id'])
+                    raise ChatDownloadError(e)
 
             if vod_live:
                 # wait up to 10 minutes, checking every minute to verify if vod is still being updated or not

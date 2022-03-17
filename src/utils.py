@@ -156,7 +156,7 @@ class Utils:
 
                 if p.returncode:
                     log.error(str(json.loads(p.output[7:])))
-                    raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
+                    raise VodConvertError(str(json.loads(p.output[7:])))
 
     @staticmethod
     def convert_vod(vod_json, print_progress=True):
@@ -180,9 +180,8 @@ class Utils:
             for line in p.stderr:
                 if 'Packet corrupt' in line:
                     log.error('Corrupt packet encountered.')
-                    raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be '
-                                          're-downloaded. Ensure VOD is still available and delete \'parts\' directory.'
-                                          , vod_json['id'])
+                    raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
+                                          '-downloaded. Ensure VOD is still available and delete \'parts\' directory.')
 
                 if 'time=' in line:
                     # extract current timestamp from output
@@ -194,7 +193,7 @@ class Utils:
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
+            raise VodConvertError(str(json.loads(p.output[7:])))
 
     @staticmethod
     def verify_vod_length(vod_json):
@@ -218,14 +217,14 @@ class Utils:
 
         if p.returncode:
             log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])), vod_json['id'])
+            raise VodConvertError(str(json.loads(p.output[7:])))
 
         try:
             downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
 
         except Exception as e:
             log.error('Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. ' + str(e))
-            raise VodConvertError(str(e), vod_json['id'])
+            raise VodConvertError(str(e))
 
         log.debug('Downloaded VOD length is ' + str(downloaded_length) + '. Expected length is '
                   + str(vod_json['duration_seconds']) + '.')
