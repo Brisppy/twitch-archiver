@@ -180,6 +180,7 @@ class Utils:
             for line in p.stderr:
                 if 'Packet corrupt' in line:
                     log.error('Corrupt packet encountered.')
+                    p.kill()
                     raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
                                           '-downloaded. Ensure VOD is still available and delete \'parts\' directory.')
 
