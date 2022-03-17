@@ -46,7 +46,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 ## Requirements
 * **Python >= 3.7**
 * Python **requests** and **m3u8** modules `python -m pip install requests m3u8` | `python -m pip install -r requirements.txt`
-* **[ffmpeg](https://ffmpeg.org/)** (Accessible via $PATH - see [Installation](#installation))
+* **[ffmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via $PATH - see [Installation](#installation))
 
 ## Installation & Usage
 ### Installation
@@ -208,4 +208,4 @@ This script seeks to cover this, while also offers other functionality for those
 ## Disclaimer
 This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
 
-If your intent is to use this script to lazily rip and upload streams to another platform for your own gain without the permission of the streamer, I implore you to stop and think about what you are doing and the possible effect of doing so, and politely request that you find another method with which to steal the work of others.
+If your intent is to use this script to lazily rip and upload streams to another platform for your own gain without the permission of the streamer, I implore you to stop and think about what you are doing and the possible effect of doing so, and politely request that you find another method with which to steal the work of othe
