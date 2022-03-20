@@ -116,7 +116,7 @@ class Utils:
         last_part = int(vod_parts[-1].name.strip('.ts'))
         part_list = [int(i.name.strip('.ts')) for i in vod_parts]
 
-        if not set([i for i in range(last_part + 1)]).difference(part_list):
+        if not (dicontinuity := set([i for i in range(last_part + 1)]).difference(part_list)):
             # merge all .ts files by concatenating them
             with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
                 pr = 0
@@ -134,6 +134,7 @@ class Utils:
             # other method
 
             log.debug('Discontinuity found, merging with ffmpeg.')
+            log.debug(f'Discontinuity: {dicontinuity}')
 
             # create file with list of parts for ffmpeg
             with open(Path(vod_json['store_directory'], 'parts', 'segments.txt'), mode='w') as segment_file:

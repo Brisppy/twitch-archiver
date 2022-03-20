@@ -91,6 +91,8 @@ class Downloader:
         :param ts_url: url of .ts file to download
         :param ts_path: destination path for .ts file after downloading
         """
+        self.log.debug(f'Downloading VOD part {ts_url} to {ts_path}')
+
         # don't bother if piece already downloaded
         try:
             if os.path.exists(ts_path):
@@ -144,6 +146,7 @@ class Downloader:
                 raise VodPartDownloadError('VOD part did not download correctly. Part: ' + str(ts_url))
 
         except Exception as e:
+            self.log.exception(f'Exception encountered while downloading .ts part {ts_url}. Error:' + str(e))
             return e
 
     def get_chat(self, vod_json, offset=0):
