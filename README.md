@@ -44,7 +44,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 [^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
 
 ## Requirements
-* **Python >= 3.7**
+* **Python >= 3.8**
 * Python **requests** and **m3u8** modules `python -m pip install requests m3u8` | `python -m pip install -r requirements.txt`
 * **[ffmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via $PATH - see [Installation](#installation))
 
