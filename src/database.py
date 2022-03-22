@@ -22,13 +22,13 @@ class Database:
         self.database_path = str(database_path)
 
         try:
-            self.log.debug('Database path: ' + str(self.database_path))
+            self.log.debug(f'Database path: {self.database_path}')
             self.connection = sqlite3.connect(self.database_path)
             self.cursor = self.connection.cursor()
             self.log.debug('Connection to SQLite DB successful.')
 
         except Error as e:
-            raise DatabaseError('Connection to SQLite DB failed: ' + str(e))
+            raise DatabaseError(f'Connection to SQLite DB failed: {e}')
 
     def setup_database(self):
         """
@@ -63,13 +63,13 @@ class Database:
         :param values: values to pass if inserting data - 'None' sends no other data
         :return: response from sqlite database to statement
         """
-        self.log.debug('Executing SQL statement: ' + str(command))
+        self.log.debug(f'Executing SQL statement: {command}')
 
         try:
             if not values:
                 _r = self.cursor.execute(command).fetchall()
             else:
-                self.log.debug('Values: ' + str(values))
+                self.log.debug(f'Values: {values}')
                 _r = self.cursor.execute(command, list(values.values())).fetchall()
 
         except Exception as e:

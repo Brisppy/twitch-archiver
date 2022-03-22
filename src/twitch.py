@@ -32,8 +32,8 @@ class Twitch:
         :param api_path: twitch api endpoint to send request to
         :return: requests response json
         """
-        _h = {'Authorization': 'Bearer ' + self.oauth_token, 'Client-Id': self.client_id}
-        _r = Api.get_request('https://api.twitch.tv/helix/' + api_path, h=_h)
+        _h = {'Authorization': f'Bearer {self.oauth_token}', 'Client-Id': self.client_id}
+        _r = Api.get_request(f'https://api.twitch.tv/helix/{api_path}', h=_h)
 
         return _r.json()
 
@@ -54,9 +54,9 @@ class Twitch:
         :return: token expiration date
         """
         self.log.debug('Verifying OAuth token.')
-        _h = {'Authorization': 'Bearer ' + self.oauth_token}
+        _h = {'Authorization': f'Bearer {self.oauth_token}'}
         _r = Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
-        self.log.info('OAuth token verified successfully. Expiring in ' + str(_r.json()['expires_in']))
+        self.log.info(f'OAuth token verified successfully. Expiring in {_r.json()["expires_in"]}')
 
         return _r.json()['expires_in']
 
@@ -179,7 +179,7 @@ class Twitch:
         try:
             # if stream live and vod start time matches
             stream_created_time = \
-                datetime.strptime(self.get_api('streams?user_id=' + str(vod_json['user_id']))['data'][0]['started_at'],
+                datetime.strptime(self.get_api(f'streams?user_id={vod_json["user_id"]}')['data'][0]['started_at'],
                                   '%Y-%m-%dT%H:%M:%SZ').timestamp()
             vod_created_time = datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
             # if vod created within 10s of stream created time

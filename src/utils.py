@@ -47,7 +47,7 @@ class Utils:
                 pass
 
             # FORMAT: [TIME] (B1)(B2)NAME: MESSAGE
-            r_chat_log.append('[' + comment_time + ']' + ' ' + user_badges + user_name + ': ' + user_message)
+            r_chat_log.append(f'[{comment_time}] {user_badges}{user_name}: {user_message}')
 
         return r_chat_log
 
@@ -75,7 +75,7 @@ class Utils:
 
         with open(Path(vod_directory, 'readable_chat.log'), 'a+', encoding="utf-8") as chat_file:
             for message in chat_log:
-                chat_file.write(str(message) + '\n')
+                chat_file.write(f'{message}\n')
 
     @staticmethod
     def export_json(vod_json):
@@ -133,13 +133,12 @@ class Utils:
             # merge all .ts files with ffmpeg concat demuxer as missing segments can cause corruption with
             # other method
 
-            log.debug('Discontinuity found, merging with ffmpeg.')
-            log.debug(f'Discontinuity: {dicontinuity}')
+            log.debug(f'Discontinuity found, merging with ffmpeg.\n Discontinuity: {dicontinuity}')
 
             # create file with list of parts for ffmpeg
             with open(Path(vod_json['store_directory'], 'parts', 'segments.txt'), mode='w') as segment_file:
                 for part in vod_parts:
-                    segment_file.write("file " + "'" + str(part) + "'" + "\n")
+                    segment_file.write(f"file '{part}'\n")
 
             with subprocess.Popen(f'ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i '
                                   f'"{str(Path(vod_json["store_directory"], "parts", "segments.txt"))}"'
@@ -150,7 +149,8 @@ class Utils:
                     if 'time=' in line:
                         # extract current timestamp from output
                         current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
-                        current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
+                        current_time = \
+                            int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
 
                         if print_progress:
                             progress.print_progress(int(current_time), vod_json['duration_seconds'])
@@ -173,9 +173,8 @@ class Utils:
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
-                'ffmpeg -hide_banner -y -i ' + '"' + str(Path(vod_json['store_directory'], 'merged.ts')) + '"'
-                + ' -c:a copy -c:v copy ' + '"'
-                + str(Path(vod_json['store_directory'], Utils.sanitize_text(vod_json['title']) + '.mp4')) + '"',
+                f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" -c:a copy -c:v copy '
+                f'"{Path(vod_json["store_directory"], Utils.sanitize_text(vod_json["title"]) + ".mp4")}"',
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
@@ -183,7 +182,7 @@ class Utils:
                     log.error('Corrupt packet encountered.')
                     p.kill()
                     raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
-                                          '-downloaded. Ensure VOD is still available and delete \'parts\' directory.')
+                                          "-downloaded. Ensure VOD is still available and delete 'parts' directory.")
 
                 if 'time=' in line:
                     # extract current timestamp from output
@@ -212,9 +211,9 @@ class Utils:
             return False
 
         # retrieve vod file duration
-        p = subprocess.run('ffprobe -i ' + '"'
-                           + str(Path(vod_json['store_directory'], Utils.sanitize_text(vod_json['title']) + '.mp4'))
-                           + '"' + ' -v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
+        p = subprocess.run(f'ffprobe -i -v quiet '
+                           f'"{Path(vod_json["store_directory"], Utils.sanitize_text(vod_json["title"]) + ".mp4")}" '
+                           f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
                            shell=True, capture_output=True)
 
         if p.returncode:
@@ -225,11 +224,10 @@ class Utils:
             downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
 
         except Exception as e:
-            log.error('Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. ' + str(e))
+            log.error(f'Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. {e}')
             raise VodConvertError(str(e))
 
-        log.debug('Downloaded VOD length is ' + str(downloaded_length) + '. Expected length is '
-                  + str(vod_json['duration_seconds']) + '.')
+        log.debug(f'Downloaded VOD length is {downloaded_length}. Expected length is {vod_json["duration_seconds"]}.')
 
         # pass verification if downloaded file is within 2s of expected length
         if 2 >= downloaded_length - vod_json['duration_seconds'] >= -2:
@@ -296,7 +294,7 @@ class Utils:
         :return: true if lock file creation fails
         """
         try:
-            with open(Path(ini_path, '.lock.' + str(vod_id)), 'x') as _:
+            with open(Path(ini_path, f'.lock.{vod_id}'), 'x') as _:
                 pass
 
         except FileExistsError:
@@ -311,7 +309,7 @@ class Utils:
         :return: error if lock file removal fails
         """
         try:
-            Path(config_dir, '.lock.' + str(vod_id)).unlink()
+            Path(config_dir, f'.lock.{vod_id}').unlink()
 
         except Exception as e:
             return e
@@ -357,17 +355,17 @@ class Utils:
         :param body: body to send with push
         """
         if pushbullet_key:
-            h = {'content-type': 'application/json', 'Authorization': 'Bearer ' + pushbullet_key}
-            d = {'type': 'note', 'title': '[twitch-archiver] ' + title, 'body': body}
+            h = {'content-type': 'application/json', 'Authorization': f'Bearer {pushbullet_key}'}
+            d = {'type': 'note', 'title': f'[twitch-archiver] {title}', 'body': body}
 
             try:
                 _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d))
 
                 if _r.status_code != 200:
-                    log.error('Error sending push. ' + title + ' ' + body)
+                    log.error(f'Error sending push. {title} - {body}')
 
             except Exception as e:
-                log.error('Error sending push. ' + title + ' ' + body + '. ' + str(e))
+                log.error(f'Error sending push. {title} - {body}. {e}')
 
 
 class Progress:

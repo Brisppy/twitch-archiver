@@ -74,24 +74,22 @@ def main():
     # setup logging
     log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))
     log.debug('Debug logging enabled.')
-    log.debug('Arguments: ' + str(args.get()))
+    log.debug(f'Arguments: {args.get()}')
 
     # compare with current git version
     latest_version, release_notes = Utils.get_latest_version()
     if Utils.version_tuple(__version__) < Utils.version_tuple(latest_version):
-        log.warning(f'New update available: {__version__} < {latest_version}'
-                    f'. See https://github.com/Brisppy/twitch-archiver/releases/latest.\n'
-                    f'Release notes:\n\n'
-                    f'{release_notes}')
+        log.warning(f'New version of Twitch-Archiver available - Version {latest_version}:\n'
+                    f'https://github.com/Brisppy/twitch-archiver/releases/latest\nRelease notes:\n\n{release_notes}')
 
     # load configuration from ini
     config = Configuration()
     config.load_config(Path(args.get('config_dir'), 'config.ini'))
-    log.debug('Settings prior to loading config: ' + str(config.get()))
+    log.debug(f'Settings prior to loading config: {config.get()}')
 
     # overwrite different or missing configuration variables
     config.generate_config(args.get())
-    log.debug('Settings after loading config: ' + str(config.get()))
+    log.debug(f'Settings after loading config: {config.get()}')
 
     # prompt if client id or secret empty
     if config.get('client_id') == '' or config.get('client_secret') == '':
@@ -105,7 +103,7 @@ def main():
     if config.get('oauth_token') == '' or callTwitch.validate_oauth_token() < 604800:
         log.debug('No OAuth token found, or OAuth token expiring soon - generating a new one.')
         config.set('oauth_token', callTwitch.generate_oauth_token())
-        log.debug('New OAuth token is: ' + config.get('oauth_token'))
+        log.debug(f'New OAuth token is: {config.get("oauth_token")}')
         # store returned token
         config.save(Path(args.get('config_dir'), 'config.ini'))
 

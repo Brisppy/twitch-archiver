@@ -49,10 +49,10 @@ class Processing:
         Download all vods from a specified channel or list of channels.
         """
         for channel in channels:
-            self.log.info("Now archiving channel '" + channel + "'.")
+            self.log.info(f"Now archiving channel '{channel}'.")
             self.log.debug('Fetching user data from Twitch.')
 
-            user_data = self.callTwitch.get_api('users?login=' + channel)['data'][0]
+            user_data = self.callTwitch.get_api(f'users?login={channel}')['data'][0]
             user_id = user_data['id']
             user_name = user_data['display_name']
 
@@ -71,15 +71,14 @@ class Processing:
             cursor = ''
             try:
                 while True:
-                    _r = self.callTwitch.get_api('videos?user_id=' + str(user_id) + '&first=100&type=archive&after='
-                                                 + cursor)
+                    _r = self.callTwitch.get_api(f'videos?user_id={user_id}&first=100&type=archive&after={cursor}')
                     if not _r['pagination']:
                         break
 
                     available_vods.extend([vod['id'] for vod in _r['data']])
                     cursor = _r['pagination']['cursor']
             except Exception as e:
-                self.log.error('Error retrieving VODs from Twitch. Error: ' + str(e))
+                self.log.error(f'Error retrieving VODs from Twitch. Error: {e}')
                 continue
 
             self.log.info(f'Available vods: {available_vods}' if self.debug
@@ -87,8 +86,8 @@ class Processing:
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
-                downloaded_vods = [str(i[0]) for i in db.execute_query('select * from vods where user_id is {}'
-                                                                       .format(user_id))]
+                downloaded_vods = \
+                    [str(i[0]) for i in db.execute_query(f'select * from vods where user_id is {user_id}')]
             self.log.info(f'Downloaded vods: {downloaded_vods}' if self.debug
                           else f'Downloaded vods: {len(downloaded_vods)}')
 
@@ -98,21 +97,21 @@ class Processing:
                 self.log.info('No VODs are available for download.')
                 continue
 
-            self.log.info(str(len(vod_queue)) + ' VOD(s) in download queue.')
-            self.log.debug('VOD queue: ' + str(vod_queue))
+            self.log.info(f'{len(vod_queue)} VOD(s) in download queue.')
+            self.log.debug(f'VOD queue: {vod_queue}')
 
             for vod_id in vod_queue:
-                self.log.debug('Processing VOD ' + str(vod_id) + ' by ' + user_name)
+                self.log.debug(f'Processing VOD {vod_id} by {user_name}')
                 self.log.debug('Creating lock file for VOD.')
 
                 if Utils.create_lock(self.config_dir, vod_id):
-                    self.log.info('Lock file present for VOD ' + str(vod_id) + ', skipping.')
+                    self.log.info(f'Lock file present for VOD {vod_id}, skipping.')
                     continue
 
                 # check if vod in database
                 with Database(Path(self.config_dir, 'vods.db')) as db:
                     downloaded_vods = \
-                        [str(i[0]) for i in db.execute_query('select * from vods where user_id is {}'.format(user_id))]
+                        [str(i[0]) for i in db.execute_query(f'select * from vods where user_id is {user_id}')]
 
                 if vod_id in downloaded_vods:
                     self.log.info('VOD has been downloaded since database was last checked, skipping.')
@@ -141,22 +140,22 @@ class Processing:
         :param vods: list of vod ids
         :return: dict containing current vod information returned by get_vod
         """
-        self.log.info("Archiving vod(s) '" + str(vods) + "'.")
+        self.log.info(f'Archiving VOD(s) "{vods}".')
         vod_json = False
 
         for vod_id in vods:
-            self.log.info('Now processing VOD: ' + str(vod_id))
-            vod_json = self.callTwitch.get_api('videos?id=' + str(vod_id))['data'][0]
+            self.log.info(f'Now processing VOD: {vod_id}')
+            vod_json = self.callTwitch.get_api(f'videos?id={vod_id}')['data'][0]
             vod_json['muted_segments'] = str(vod_json['muted_segments'])
-            vod_json['store_directory'] = str(Path(self.vod_directory, Utils.sanitize_date(vod_json['created_at'])
-                                                   + ' - ' + Utils.sanitize_text(vod_json['title']) + ' - '
-                                                   + str(vod_id)))
+            vod_json['store_directory'] = \
+                str(Path(self.vod_directory, f'{Utils.sanitize_date(vod_json["created_at"])} - '
+                                             f'{Utils.sanitize_text(vod_json["title"])} - {vod_id}'))
             vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
 
             # get vod status
             vod_live = self.callTwitch.get_vod_status(vod_json)
 
-            self.log.info('VOD ' + ('currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'))
+            self.log.info(f"VOD {'currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'}")
 
             _r = None
 
@@ -200,7 +199,7 @@ class Processing:
                     # verify vod length is equal to what is grabbed from twitch
                     if Utils.verify_vod_length(vod_json):
                         raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
-                                            '\'vod/parts\' directory if VOD still available.')
+                                            "'vod/parts' directory if VOD still available.")
 
                 if self.chat:
                     with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
@@ -232,7 +231,7 @@ class Processing:
                         worker.terminate()
                         worker.join()
 
-                if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
+                if Path(self.config_dir, f'.lock.{vod_id}').exists():
                     Utils.remove_lock(self.config_dir, vod_id)
 
                 sys.exit(1)
@@ -245,10 +244,10 @@ class Processing:
                         worker.terminate()
                         worker.join()
 
-                self.log.error(f'Error downloading VOD {vod_id}. Error:' + str(e))
+                self.log.error(f'Error downloading VOD {vod_id}. Error: {e}')
                 Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id}', str(e))
                 # remove lock file if archiving channel
-                if Path(self.config_dir, '.lock.' + str(vod_id)).exists():
+                if Path(self.config_dir, f'.lock.{vod_id}').exists():
                     Utils.remove_lock(self.config_dir, vod_id)
 
                 # set to False so that channel function knows download failed
@@ -263,8 +262,7 @@ class Processing:
                         worker.join()
 
                 Utils.send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id}', str(e))
-                self.log.exception(f'Exception encountered while downloading VOD {vod_id}. Error:' + str(e),
-                                   exc_info=True)
+                self.log.exception(f'Exception encountered while downloading VOD {vod_id}. Error: {e}', exc_info=True)
 
                 vod_json = False
 
@@ -303,14 +301,13 @@ class Processing:
         # loop for processing live vods
         while True:
             try:
-                _r = self.callTwitch.get_api('videos?id=' + str(vod_json['id']))
+                _r = self.callTwitch.get_api(f'videos?id={vod_json["id"]}')
 
                 vod_json = _r['data'][0]
                 vod_json['muted_segments'] = str(vod_json['muted_segments'])
-                vod_json['store_directory'] = str(Path(self.vod_directory,
-                                                       Utils.sanitize_date(vod_json['created_at'])
-                                                       + ' - ' + Utils.sanitize_text(vod_json['title'])
-                                                       + ' - ' + str(vod_json['id'])))
+                vod_json['store_directory'] = \
+                    str(Path(self.vod_directory, f'{Utils.sanitize_date(vod_json["created_at"])} - '
+                                                 f'{Utils.sanitize_text(vod_json["title"])} - {vod_json["id"]}'))
                 vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
 
                 Utils.export_json(vod_json)
@@ -353,7 +350,7 @@ class Processing:
 
                     # only try to grab more chat logs if we aren't past vod length
                     elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration_seconds']:
-                        self.log.debug('Grabbing chat logs from offset: ' + str(chat_log[-1]['content_offset_seconds']))
+                        self.log.debug(f'Grabbing chat logs from offset: {chat_log[-1]["content_offset_seconds"]}')
                         chat_log.extend(
                             [n for n in
                              self.download.get_chat(vod_json, floor(int(chat_log[-1]['content_offset_seconds'])))

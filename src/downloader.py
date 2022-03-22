@@ -146,7 +146,8 @@ class Downloader:
                 raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}')
 
         except Exception as e:
-            self.log.exception(f'Exception encountered while downloading MPEG-TS segment {ts_url}. Error: {e}')
+            self.log.exception(
+                f'Exception encountered while downloading MPEG-TS segment {ts_url}. Error: {e}', exc_info=True)
             return e
 
     def get_chat(self, vod_json, offset=0):
@@ -187,7 +188,7 @@ class Downloader:
             finally:
                 _s.close()
 
-        self.log.info('Found ' + str(len(chat_log)) + ' messages.')
+        self.log.info(f'Found {len(chat_log)} messages.')
 
         return chat_log
 
@@ -202,10 +203,10 @@ class Downloader:
         :return: list of comments and cursor if one is returned from twitch
         """
         if not cursor or offset:
-            u = "https://api.twitch.tv/v5/videos/" + str(vod_id) + "/comments?content_offset_seconds=" + str(offset)
+            u = f'https://api.twitch.tv/v5/videos/{vod_id}/comments?content_offset_seconds={offset}'
 
         else:
-            u = "https://api.twitch.tv/v5/videos/" + str(vod_id) + "/comments?cursor=" + str(cursor)
+            u = f'https://api.twitch.tv/v5/videos/{vod_id}/comments?cursor={cursor}'
 
         _r = Api.get_request_with_session(u, session).json()
 

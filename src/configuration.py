@@ -62,12 +62,12 @@ class Configuration:
 
         config = configparser.ConfigParser()
         config.add_section('settings')
-        self.log.debug('Current config: ' + str(self.get()))
+        self.log.debug(f'Current config: {self.get()}')
 
         for setting in self.__conf:
             config.set('settings', setting, self.get(setting))
 
-        self.log.debug('Writing config to ' + str(conf_file))
+        self.log.debug(f'Writing config to {conf_file}')
 
         with open(conf_file, 'w') as f:
             config.write(f)

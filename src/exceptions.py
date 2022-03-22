@@ -66,7 +66,7 @@ class DatabaseError(Exception):
         else:
             self.message = f'Sqlite database connection failed.'
 
-        self.message = self.message + f' Error: {error}'
+        self.message = f'{self.message} Error: {error}'
 
 
 class DatabaseQueryError(Exception):
