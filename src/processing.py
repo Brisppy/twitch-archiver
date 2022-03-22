@@ -332,7 +332,7 @@ class Processing:
                     _m = re.findall('(?<=\/chunked\/)(.*)', vod_index)[0]
                     vod_base_url = vod_index.replace(_m, '')
 
-                    self.download.get_video(vod_playlist, vod_base_url, vod_json)
+                    self.download.get_m3u8_video(vod_playlist, vod_base_url, vod_json['store_directory'])
 
                 except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                     self.log.warning('Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')

@@ -34,29 +34,30 @@ class Downloader:
         self.threads = threads
         self.quiet = quiet
 
-    def get_video(self, vod_playlist, vod_base_url, vod_json):
-        """Downloads the video for a specified VOD m3u8 playlist.
+    def get_m3u8_video(self, m3u8_playlist, m3u8_base_url, store_directory):
+        """Downloads the video for a specified m3u8 playlist.
 
-        :param vod_playlist: m3u8 playlist to retrieve video from
-        :param vod_base_url: base url of where .ts files are located
-        :param vod_json: dict of vod information
+        :param m3u8_playlist: m3u8 playlist to retrieve video from
+        :param m3u8_base_url: url from which .ts files are derived from
+        :param store_directory: location to store downloaded segments
         :raises vodPartDownloadError: error returned when downloading vod parts
         """
-        self.log.info('Downloading video for VOD ' + str(vod_json['id']))
-
-        Path(vod_json['store_directory'], 'parts').mkdir(parents=True, exist_ok=True)
+        Path(store_directory, 'parts').mkdir(parents=True, exist_ok=True)
 
         ts_url_list = []
         ts_path_list = []
-        downloaded_ids = [str(Path(p).name)[:4].lstrip('0') + str(Path(p).name)[4:]
-                          for p in glob(str(Path(vod_json['store_directory'], 'parts', '*.ts')))]
 
-        # iterate over segments of vod .m3u8 playlist
-        for ts_id in [s.uri.replace('-muted', '') for s in vod_playlist.segments]:
+        # collect ids of all downloaded parts
+        downloaded_ids = [str(Path(p).name)[:4].lstrip('0') + str(Path(p).name)[4:]
+                          for p in glob(str(Path(store_directory, 'parts', '*.ts')))]
+
+        # process all ids in playlist
+        for ts_id in [s.uri.replace('-muted', '') for s in m3u8_playlist.segments]:
+            # append ts_id to to-download list if it isn't already downloaded
             if ts_id not in downloaded_ids:
                 # create a tuple with (TS_URL, TS_PATH)
-                ts_url_list.append(vod_base_url + ts_id)
-                ts_path_list.append(Path(vod_json['store_directory'], 'parts',
+                ts_url_list.append(m3u8_base_url + ts_id)
+                ts_path_list.append(Path(store_directory, 'parts',
                                          str('{:05d}'.format(int(ts_id.split('.')[0])) + '.ts')))
 
         if ts_url_list and ts_path_list:
