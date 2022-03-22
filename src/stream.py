@@ -48,6 +48,7 @@ class Stream:
 
         while True:
             try:
+                # retrieve available segments
                 incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
 
             except TwitchAPIErrorNotFound:
@@ -55,9 +56,11 @@ class Stream:
                 # rename most recent downloaded .ts files if they are .ts.tmp parts
                 try:
                     last_id = seg_id
+
                 except NameError:
                     return
 
+                # rename most recent segment
                 if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
                     shutil.move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
                                 Path(output_dir, str('{:05d}'.format(last_id)) + '.ts'))
@@ -76,18 +79,22 @@ class Stream:
 
                 # manual offset of 4 seconds is added - it just works
                 segment_id = floor((4 + time_since_start) / 10)
+
+                # store any new segment ids
                 if segment_id not in segment_ids.keys():
                     self.log.debug('New live segment found: ' + str(segment_id))
                     segment_ids.update({segment_id: os.urandom(24).hex()})
+
+                # store and initialize useful segment info
                 segment = tuple((segment['uri'], segment['program_date_time'].replace(tzinfo=None),
                                  segment_id, segment['duration']))
 
-                # append if part hasn't been added to buffer yet or downloaded
+                # append segment if part hasn't yet been added to buffer or downloaded
                 if segment not in buffer and segment not in downloaded_segments:
                     self.log.debug('New part added to buffer: ' + str(segment))
                     buffer.append(segment)
 
-            # iterate over buffer segments which aren't yet downloaded
+            # go through segments in buffer which aren't yet downloaded
             for segment in [seg for seg in buffer if seg not in downloaded_segments]:
                 with open(Path(tempfile.gettempdir(), segment_ids[segment[2]]), 'ab') as tmp_ts_file:
                     for attempt in range(6):
@@ -101,10 +108,11 @@ class Stream:
                             if _r.status_code != 200:
                                 break
 
-                            # write part to file
+                            # write part to temp file
                             for chunk in _r.iter_content(chunk_size=1024):
                                 tmp_ts_file.write(chunk)
 
+                            # remove from incoming buffer and add to downloaded segments
                             buffer.remove(segment)
                             downloaded_segments.append(segment)
 
@@ -114,7 +122,7 @@ class Stream:
                             self.log.debug('Error downloading VOD part, retrying. ' + str(e))
                             continue
 
-            # rename .tmp segments when they are finished
+            # rename temp segments when they are finished
             for seg_id in [seg for seg in segment_ids.keys() if seg not in completed_segments]:
                 # get segments with matching id
                 segments = [seg for seg in downloaded_segments if seg[2] == seg_id]
