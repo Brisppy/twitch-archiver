@@ -68,7 +68,7 @@ class Downloader:
                 ct = 0
                 # append work orders along with args to queue
                 for ts_url, ts_path in zip(ts_url_list, ts_path_list):
-                    futures.append(pool.submit(self.get_vod_part, ts_url, ts_path))
+                    futures.append(pool.submit(self.get_ts_segment, ts_url, ts_path))
 
                 progress = Progress()
 
@@ -86,13 +86,13 @@ class Downloader:
             if download_error:
                 raise VodPartDownloadError(download_error)
 
-    def get_vod_part(self, ts_url, ts_path):
+    def get_ts_segment(self, ts_url, ts_path):
         """Retrieves a specific ts file.
 
         :param ts_url: url of .ts file to download
         :param ts_path: destination path for .ts file after downloading
         """
-        self.log.debug(f'Downloading VOD part {ts_url} to {ts_path}')
+        self.log.debug(f'Downloading segment {ts_url} to {ts_path}')
 
         # don't bother if piece already downloaded
         try:
@@ -108,7 +108,7 @@ class Downloader:
             with open(Path(tempfile.gettempdir(), os.urandom(24).hex()), 'wb') as tmp_ts_file:
                 for _ in range(6):
                     if _ > 4:
-                        self.log.debug('Maximum retries for VOD piece ' + str(Path(ts_path).stem) + ' reached.')
+                        self.log.debug(f'Maximum retries for segment {Path(ts_path).stem} reached.')
                         return 'Download attempt limit reached.'
 
                     try:
@@ -116,7 +116,7 @@ class Downloader:
 
                         # break on non 200 status code
                         if _r.status_code != 200:
-                            self.log.error('Code other than 200 received when trying to download VOD part.')
+                            self.log.error('Code other than 200 received when trying to download segment.')
                             break
 
                         # write downloaded chunks to temporary file
@@ -126,8 +126,7 @@ class Downloader:
                         break
 
                     except requests.exceptions.ChunkedEncodingError as e:
-                        self.log.debug('Piece ' + str(Path(ts_path).stem) + ' download failed (Attempt '
-                                       + str(_ + 1) + '). ' + str(e))
+                        self.log.debug(f'Segment {Path(ts_path).stem} download failed (Attempt {_ + 1}). {e})')
                         continue
 
             # move part to destination storage
@@ -141,13 +140,13 @@ class Downloader:
                     shutil.move(tmp_ts_file.name, ts_path.with_suffix('.ts.tmp'))
                     # rename temp file after it has successfully been moved
                     shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
-                    self.log.debug('Piece ' + str(Path(ts_path).stem) + ' completed.')
+                    self.log.debug(f'Segment {Path(ts_path).stem} completed.')
 
             else:
-                raise VodPartDownloadError('VOD part did not download correctly. Part: ' + str(ts_url))
+                raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}')
 
         except Exception as e:
-            self.log.exception(f'Exception encountered while downloading .ts part {ts_url}. Error:' + str(e))
+            self.log.exception(f'Exception encountered while downloading MPEG-TS segment {ts_url}. Error: {e}')
             return e
 
     def get_chat(self, vod_json, offset=0):
