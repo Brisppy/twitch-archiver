@@ -174,7 +174,7 @@ class Utils:
         # convert merged .ts file to .mp4
         with subprocess.Popen(
                 f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" -c:a copy -c:v copy '
-                f'"{Path(vod_json["store_directory"], Utils.sanitize_text(vod_json["title"]) + ".mp4")}"',
+                f'"{Path(vod_json["store_directory"], "vod.mp4")}"',
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
@@ -211,8 +211,7 @@ class Utils:
             return False
 
         # retrieve vod file duration
-        p = subprocess.run(f'ffprobe -i -v quiet '
-                           f'"{Path(vod_json["store_directory"], Utils.sanitize_text(vod_json["title"]) + ".mp4")}" '
+        p = subprocess.run(f'ffprobe -i -v quiet "{Path(vod_json["store_directory"], "vod.mp4")}" '
                            f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
                            shell=True, capture_output=True)
 
