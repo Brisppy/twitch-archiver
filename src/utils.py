@@ -156,8 +156,8 @@ class Utils:
                             progress.print_progress(int(current_time), vod_json['duration_seconds'])
 
                 if p.returncode:
-                    log.error(str(json.loads(p.output[7:])))
-                    raise VodConvertError(str(json.loads(p.output[7:])))
+                    log.error(f'VOD merger exited with error. Command: {p.args}.')
+                    raise VodConvertError(f'VOD merger exited with error. Command: {p.args}.')
 
     @staticmethod
     def convert_vod(vod_json, print_progress=True):
@@ -193,8 +193,8 @@ class Utils:
                         progress.print_progress(int(current_time), vod_json['duration_seconds'])
 
         if p.returncode:
-            log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])))
+            log.error(f'VOD converter exited with error. Command: {p.args}.')
+            raise VodConvertError(f'VOD converter exited with error. Command: {p.args}.')
 
     @staticmethod
     def verify_vod_length(vod_json):
@@ -216,8 +216,8 @@ class Utils:
                            shell=True, capture_output=True)
 
         if p.returncode:
-            log.error(str(json.loads(p.output[7:])))
-            raise VodConvertError(str(json.loads(p.output[7:])))
+            log.error(f'VOD length verification exited with error. Command: {p.args}.')
+            raise VodConvertError(f'VOD length verification exited with error. Command: {p.args}.')
 
         try:
             downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
