@@ -211,7 +211,7 @@ class Utils:
             return False
 
         # retrieve vod file duration
-        p = subprocess.run(f'ffprobe -i -v quiet "{Path(vod_json["store_directory"], "vod.mp4")}" '
+        p = subprocess.run(f'ffprobe -v quiet -i "{Path(vod_json["store_directory"], "vod.mp4")}" '
                            f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
                            shell=True, capture_output=True)
 
