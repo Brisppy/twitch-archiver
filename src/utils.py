@@ -252,7 +252,7 @@ class Utils:
         :param string: string of characters to sanitize
         :return: sanitized string
         """
-        return re.sub('[^A-Za-z0-9.,_\-\(\)\[\] ]', '_', string)
+        return re.sub('[^A-Za-z0-9.,_\-\(\) ]', '_', string)
 
     @staticmethod
     def sanitize_date(date):
