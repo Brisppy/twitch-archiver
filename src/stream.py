@@ -134,7 +134,6 @@ class Stream:
                             shutil.move(tmp_ts_file, ts_path.with_suffix('.ts.tmp'))
                             # rename temp file after it has successfully been moved
                             shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
-                            self.log.debug(f'Piece {Path(ts_path).stem} completed.')
 
                         self.log.debug(f'Live piece: {seg_id} completed.')
                         completed_segments.append(seg_id)
