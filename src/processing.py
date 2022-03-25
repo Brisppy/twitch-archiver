@@ -244,7 +244,7 @@ class Processing:
                         worker.terminate()
                         worker.join()
 
-                self.log.error(f'Error downloading VOD {vod_id}. Error: {e}')
+                self.log.error(f'Error downloading VOD {vod_id}.', exc_info=True)
                 Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id}', str(e))
                 # remove lock file if archiving channel
                 if Path(self.config_dir, f'.lock.{vod_id}').exists():
@@ -262,7 +262,7 @@ class Processing:
                         worker.join()
 
                 Utils.send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id}', str(e))
-                self.log.exception(f'Exception encountered while downloading VOD {vod_id}. Error: {e}', exc_info=True)
+                self.log.error(f'Exception encountered while downloading VOD {vod_id}.', exc_info=True)
 
                 vod_json = False
 

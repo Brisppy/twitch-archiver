@@ -146,8 +146,7 @@ class Downloader:
                 raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}')
 
         except Exception as e:
-            self.log.exception(
-                f'Exception encountered while downloading MPEG-TS segment {ts_url}. Error: {e}', exc_info=True)
+            self.log.error(f'Exception encountered while downloading MPEG-TS segment {ts_url}.', exc_info=True)
             return e
 
     def get_chat(self, vod_json, offset=0):
