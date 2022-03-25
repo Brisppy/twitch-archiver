@@ -324,12 +324,19 @@ class Processing:
                 self.log.info('Grabbing video...')
                 try:
                     vod_index = self.callTwitch.get_vod_index(vod_json['id'])
-                    vod_playlist = m3u8.loads(Api.get_request(vod_index).text)
+
+                    vod_playlist = Api.get_request(vod_index).text
+
+                    # update vod json with m3u8 duration - more accurate than twitch API
+                    _m = re.findall('(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', vod_playlist)[0]
+                    vod_json['duration_seconds'] = floor(float(_m))
+                    Utils.export_json(vod_json)
+
                     # replace extra chars in base_url like /chunked/index[-muted-JU07DEVBNK.m3u8]
                     _m = re.findall('(?<=\/chunked\/)(.*)', vod_index)[0]
                     vod_base_url = vod_index.replace(_m, '')
 
-                    self.download.get_m3u8_video(vod_playlist, vod_base_url, vod_json['store_directory'])
+                    self.download.get_m3u8_video(m3u8.loads(vod_playlist), vod_base_url, vod_json['store_directory'])
 
                 except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                     self.log.warning('Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')
