@@ -382,7 +382,8 @@ class Processing:
                     sleep(60)
                     try:
                         # restart while loop if new video segments found
-                        if len(vod_playlist.segments) != len(m3u8.loads(Api.get_request(vod_index).text).segments):
+                        if len(m3u8.loads(vod_playlist).segments)\
+                                < len(m3u8.loads(Api.get_request(vod_index).text).segments):
                             self.log.debug('New VOD parts found.')
                             vod_live = True
                             break
