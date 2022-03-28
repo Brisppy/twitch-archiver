@@ -346,6 +346,34 @@ class Utils:
         return tuple(map(int, (v.split("."))))
 
     @staticmethod
+    def get_quality_index(desired_quality, available_qualities):
+        """Finds the index of a user defined quality from a list of available stream qualities.
+
+        :param desired_quality: the desired quality to search for
+        :param available_qualities: list of available qualities, in the form [resolution, framerate]
+        :return: list index of desired quality if found
+        """
+        if desired_quality not in ['best', 'worst']:
+            # look for user defined quality in available streams
+            try:
+                return available_qualities.index(desired_quality)
+
+            except ValueError:
+                log.info('User requested quality not found in available streams.')
+                # grab first resolution match
+                try:
+                    return [quality[0] for quality in available_qualities].index(desired_quality[0])
+
+                except ValueError:
+                    log.info('No match found for user requested resolution. Defaulting to best.')
+
+        elif desired_quality == 'worst':
+            return -1
+
+        else:
+            return 0
+
+    @staticmethod
     def send_push(pushbullet_key, title, body=''):
         """Sends a push to an account based on a given pushbullet key.
 

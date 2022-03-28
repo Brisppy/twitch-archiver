@@ -39,6 +39,10 @@ class Arguments:
         elif Arguments.get('channel'):
             Arguments.set('channel', list([channel for channel in Arguments.get('channel').split(',')]))
 
+        # split quality into [resolution, framerate]
+        if Arguments.get('quality') not in ['best', 'worst']:
+            Arguments.set('quality', Arguments.get('quality').split('p'))
+
     @staticmethod
     def set(name, value):
         """Set a specified class attribute.

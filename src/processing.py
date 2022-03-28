@@ -31,6 +31,7 @@ class Processing:
         self.vod_directory = Path(self.directory)
         self.video = args['video']
         self.chat = args['chat']
+        self.quality = args['quality']
         self.config_dir = args['config_dir']
         self.quiet = args['quiet']
         self.debug = args['debug']
@@ -169,7 +170,7 @@ class Processing:
                     # the stream module itself has no checks for what to download so this is done here
                     if self.video:
                         workers.append(multiprocessing.Process(target=stream.get_stream, args=(
-                                       vod_json['user_name'], Path(vod_json['store_directory'], 'parts'))))
+                            vod_json['user_name'], Path(vod_json['store_directory'], 'parts'), self.quality)))
 
                     workers.append(multiprocessing.Process(target=self.get_vod, args=(vod_json, vod_live)))
 
@@ -323,7 +324,7 @@ class Processing:
                 # download all available vod parts
                 self.log.info('Grabbing video...')
                 try:
-                    vod_index = self.callTwitch.get_vod_index(vod_json['id'])
+                    vod_index = self.callTwitch.get_vod_index(vod_json['id'], self.quality)
 
                     vod_playlist = Api.get_request(vod_index).text
 
@@ -333,7 +334,7 @@ class Processing:
                     Utils.export_json(vod_json)
 
                     # replace extra chars in base_url like /chunked/index[-muted-JU07DEVBNK.m3u8]
-                    _m = re.findall('(?<=\/chunked\/)(.*)', vod_index)[0]
+                    _m = re.findall('(?<=\/)(index.*)', vod_index)[0]
                     vod_base_url = vod_index.replace(_m, '')
 
                     self.download.get_m3u8_video(m3u8.loads(vod_playlist), vod_base_url, vod_json['store_directory'])

@@ -22,16 +22,17 @@ class Stream:
 
         self.callTwitch = Twitch(client_id, client_secret, oauth_token)
 
-    def get_stream(self, channel, output_dir):
+    def get_stream(self, channel, output_dir, quality='best'):
         """Retrieves a stream for a specified channel.
 
         :param channel: name of twitch channel to download
         :param output_dir: location to place downloaded .ts chunks
+        :param quality: desired quality in the format [resolution]p[framerate] or 'best', 'worst'
         """
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         try:
-            index_uri = self.callTwitch.get_channel_hls_index(channel)
+            index_uri = self.callTwitch.get_channel_hls_index(channel, quality)
             user_id = self.callTwitch.get_api(f'users?login={channel}')['data'][0]['id']
             latest_vod_created_time = self.callTwitch.get_api(f'videos?user_id={user_id}')['data'][0]['created_at']
             latest_vod_created_time = datetime.strptime(latest_vod_created_time, '%Y-%m-%dT%H:%M:%SZ')

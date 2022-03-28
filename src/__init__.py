@@ -51,6 +51,10 @@ def main():
     parser.add_argument('-V', '--video', action='store_true', help='Only save video.')
     parser.add_argument('-t', '--threads', type=int, action='store',
                         help='Number of video download threads. (default: %(default)s)', default=20)
+    parser.add_argument('-q', '--quality', type=str, action='store',
+                        help="Quality to download. Options are 'best', 'worst' or a custom value.\n"
+                             'Format for custom values is [resolution]p[framerate], (e.g 1080p60, 720p30).\n'
+                             '(default: best)', default='best')
     parser.add_argument('-d', '--directory', action='store',
                         help='Directory to store archived VOD(s), use TWO slashes for Windows paths.\n'
                              '(default: %(default)s)',

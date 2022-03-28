@@ -88,10 +88,11 @@ class Twitch:
 
         return _r.json()['data']['videoPlaybackAccessToken']
 
-    def get_vod_index(self, vod_id):
+    def get_vod_index(self, vod_id, quality='best'):
         """Retrieves an index of m3u8 streams.
 
         :param vod_id: id of vod to retrieve index of
+        :param quality: desired quality in the format [resolution]p[framerate] or 'best', 'worst'
         :return: url of m3u8 playlist
         """
         access_token = self.get_playback_access_token(vod_id)
@@ -107,16 +108,21 @@ class Twitch:
         _r = Api.get_request(f'https://usher.ttvnw.net/vod/{vod_id}.m3u8', p=_p)
 
         _index = m3u8.loads(_r.text)
-        # extract source (chunked) playlist uri from m3u8 data
-        for _p in _index.playlists:
-            if _p.media[0].group_id == 'chunked':
-                return _p.uri
+
+        # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
+        available_resolutions = [m[0].group_id.split('p') for m in [m.media for m in _index.playlists] if
+                                 m[0].group_id != 'chunked']
+        # insert 'chunked' stream separately as its named differently
+        available_resolutions.insert(0, _index.media[0].name.split('p'))
+
+        return _index.playlists[Utils.get_quality_index(quality, available_resolutions)].uri
 
     @staticmethod
-    def get_channel_hls_index(channel):
+    def get_channel_hls_index(channel, quality='best'):
         """Retrieves an index of a live m3u8 stream.
 
         :param channel: name of channel to retrieve index of
+        :param quality: desired quality in the format [resolution]p[framerate] or 'best', 'worst'
         :return: url of m3u8 playlist
         """
         channel = channel.lower()
@@ -138,10 +144,13 @@ class Twitch:
 
         _index = m3u8.loads(_r.text)
 
-        # extract source (chunked) playlist uri from m3u8 data
-        for _p in _index.playlists:
-            if _p.media[0].group_id == 'chunked':
-                return _p.uri
+        # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
+        available_resolutions = [m[0].group_id.split('p') for m in [m.media for m in _index.playlists] if
+                                 m[0].group_id != 'chunked']
+        # insert 'chunked' stream separately as its named differently and strip ' (source)' from name
+        available_resolutions.insert(0, _index.media[0].name.strip(' (source)').split('p'))
+
+        return _index.playlists[Utils.get_quality_index(quality, available_resolutions)].uri
 
     @staticmethod
     def get_stream_playback_access_token(channel):
