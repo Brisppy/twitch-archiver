@@ -35,9 +35,9 @@ Primarily focused on data preservation, this script can be used to archive an en
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle.[^1]
 * Allows the downloading of **live** VODs *before sections can be muted or deleted*.[^2]
 * Generates and saves a readable chat log with timestamps and user badges.
-* Allows for the archiving of either the video, the chat or both.
+* Allows for the archiving of both video and chat.
 * Error notifications sent via pushbullet.
-* Supports automated archiving without any sort of user interaction.
+* Supports fully automated archiving.
 * Requires minimal setup or external programs.
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
@@ -45,8 +45,8 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Requirements
 * **Python >= 3.8**
-* Python **requests** and **m3u8** modules `python -m pip install requests m3u8` | `python -m pip install -r requirements.txt`
-* **[ffmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via $PATH - see [Installation](#installation))
+* Python **requests** and **m3u8** modules `python -m pip install requests m3u8` or `python -m pip install -r requirements.txt`
+* **[ffmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](#installation))
 
 ## Installation & Usage
 ### Installation
@@ -95,7 +95,7 @@ optional arguments:
   -c CHANNEL, --channel CHANNEL
                         A single twitch channel to download, or multiple comma-separated channels.
   -v VOD_ID, --vod-id VOD_ID
-                        A single VOD ID (12763849) or multiple comma-separated VOD IDs (12763159,12753056)
+                        A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).
   -i CLIENT_ID, --client-id CLIENT_ID
                         Client ID retrieved from dev.twitch.tv
   -s CLIENT_SECRET, --client-secret CLIENT_SECRET
@@ -104,14 +104,18 @@ optional arguments:
   -V, --video           Only save video.
   -t THREADS, --threads THREADS
                         Number of video download threads. (default: 20)
+  -q QUALITY, --quality QUALITY
+                        Quality to download. Options are 'best', 'worst' or a custom value.
+                        Format for custom values is [resolution]p[framerate], (e.g 1080p60, 720p30).
+                        (default: best)
   -d DIRECTORY, --directory DIRECTORY
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
-                        (default: C:\Users\HC\Github\twitch-archiver)
+                        (default: $CURRENT_DIRECTORY)
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
                         Directory to store configuration, VOD database and lock files.
-                        (default: C:\Users\HC\.config\twitch-archiver)
+                        (default: $HOME/.config/twitch-archiver)
   -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
                         Pushbullet key for sending pushes on error. Enabled by supplying key.
   -Q, --quiet           Disable all log output.
@@ -143,21 +147,22 @@ pushbullet_key =
 These are loaded into TA **first**, before being overwritten by any arguments passed to TA.
 This file will be created the first time you use TA and an OAuth token is successfully generated, with the provided credentials then saved in the ini.
 
-If for any reason you need to change your credentials, you can either manually edit the config file, or pass the new credentials to the script and they will then be saved to the config.
+If for any reason you need to change your credentials, you can either manually edit the config file, or pass the new credentials to the script, and they will then be saved to the config.
 
 ## Retrieving Tokens
 ### To retrieve the CLIENT_ID and CLIENT_SECRET:
 1. Navigate to [dev.twitch.tv](https://dev.twitch.tv/) and log in
 2. Register a new app called Twitch VOD Archiver with any redirect URL and under any Category
-3. The provided Client ID is used as the CLIENT_ID variable
-4. The provided Client Secret is used as the CLIENT_SECRET variable
+3. The provided Client ID is used as the `CLIENT_ID` variable
+4. The provided Client Secret is used as the `CLIENT_SECRET` variable
 
 ## Extra Info
 ### Notes
-* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD finishes before the timestamp end is reached), create a file named '.ignorelength' inside the VOD's directory (where 'vod.json' and 'verbose_chat.log' are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
+* We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD finishes before the timestamp end is reached), create a file named `.ignorelength` inside the VOD's directory (where `vod.json` and `verbose_chat.log` are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
 * If a VOD is deleted while it is being archived, all the vod information will be saved, and the VOD will be combined as-is and chat exported. 
-* If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the 'nobrl' option on linux.
+* If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the `nobrl` option on linux.
 * If you intend to push chat logs to an ELK stack, [this gist](https://gist.github.com/Brisppy/ddcf4d5bbb73f957181743faadb959e3) should have everything you need.
+* By default, the highest quality VOD is downloaded. This can be changed via the `-q QUALITY` argument, where quality can be `best`, `worst`, or a custom value in the format `[resolution]p[framerate]`, for example `1080p60` or `720p30` would be valid values. If an exact match for the quality cannot be found, any quality of a matching **resolution** will be downloaded; for example, if you select `720p60`, and only `720p30` is available, `720p30` would be downloaded. Similarly, if you select `1080p30` and only `1080p60` is found, then `1080p60` would be downloaded instead. If no match is found, the highest quality will be downloaded.
 
 ### How files are stored
 VODs are downloaded to the specified directory. If downloading a channel, an individual folder will be created for that specific channel.

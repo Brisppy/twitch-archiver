@@ -22,6 +22,7 @@ A quick note for anyone who used any of the beta releases, many things have chan
     * Added the ability to archive individual (or multiple) VODs.
     * Added the ability to archive multiple channels in one command.
     * Added the ability to print the saved config.
+    * Added the ability to choose the downloaded stream resolution and framerate.
     * Added error handling for VODs with segment discontinuities.
     * Added the '--quiet' and '--debug' arguments.
     * Added an option for logging to a file.

@@ -44,7 +44,7 @@ def main():
     mode.add_argument('-c', '--channel', type=str, action='store',
                       help='A single twitch channel to download, or multiple comma-separated channels.')
     mode.add_argument('-v', '--vod-id', type=str, action='store',
-                      help='A single VOD ID (12763849) or multiple comma-separated VOD IDs (12763159,12753056)')
+                      help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).')
     parser.add_argument('-i', '--client-id', action='store', help='Client ID retrieved from dev.twitch.tv')
     parser.add_argument('-s', '--client-secret', action='store', help='Client secret retrieved from dev.twitch.tv')
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.')
