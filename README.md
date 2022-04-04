@@ -44,29 +44,29 @@ Primarily focused on data preservation, this script can be used to archive an en
 [^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
 
 ## Requirements
-* **Python >= 3.8**
+* **[Python](https://www.python.org/) >= 3.8**
 * Python **requests** and **m3u8** modules `python -m pip install requests m3u8` or `python -m pip install -r requirements.txt`
-* **[ffmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](#installation))
+* **[FFmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](#installation))
 
 ## Installation & Usage
 ### Installation
-1. Download the most recent release via the green "Code" button on the top right, or grab the latest stable [release](https://github.com/Brisppy/twitch-vod-archiver/releases/latest).
+1. Download the most recent release via the green "Code" button on the top right, or grab the latest stable [release](https://github.com/Brisppy/twitch-archiver/releases/latest).
 
-2. Download [ffmpeg](https://ffmpeg.org/) and add to your PATH. See [this](https://www.wikihow.com/Install-FFmpeg-on-Windows) article if you are unsure how to do this.
+2. Download [FFmpeg](https://ffmpeg.org/download.html) and add to your PATH. See [this](https://www.wikihow.com/Install-FFmpeg-on-Windows) article if you are unsure how to do this.
 
-3. Install Python requirements `python -m pip install -r requirements.txt`.
+3. Unpack and open the twitch-archiver folder and install required Python modules `python -m pip install -r requirements.txt`.
 
 ### Usage
 Run the script via your terminal of choice. Use ```python ./twitch-vod-archiver.py -h``` to view help text.
 
 #### Examples
-```python ./twitch-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
+```# python ./twitch-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
 
-Would download **video and chat** of all VODs from the channel **Brisppy**, using the provided **client_id** and **client_secret**, to the directory **Z:\twitch-archive**.
+Would download `video` and `chat` of all VODs from the channel `Brisppy`, using the provided `client_id` and `client_secret`, to the directory `Z:\twitch-archive`.
 
-```python ./twitch-archiver.py -v 1276315849,1275305106 -d "/mnt/twitch-archive" -V -t 10```
+```# python ./twitch-archiver.py -v 1276315849,1275305106 -d "/mnt/twitch-archive" -V -t 10```
 
-Would download VODs **1276315849 and 1275305106** to the directory **/mnt/twitch-archive**, only saving the **video**  using **10 download threads**.
+Would download VODs `1276315849` and `1275305106` to the directory `/mnt/twitch-archive`, only saving the `video`  using `10 download threads`.
 
 ### Arguments
 ```
@@ -213,4 +213,4 @@ This script seeks to cover this, while also offers other functionality for those
 ## Disclaimer
 This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
 
-If your intent is to use this script to lazily rip and upload streams to another platform for your own gain without the permission of the streamer, I implore you to stop and think about what you are doing and the possible effect of doing so, and politely request that you find another method with which to steal the work of othe
+If your intent is to use this script to lazily rip and upload streams to another platform for your own gain without the permission of the streamer, I implore you to stop and think about what you are doing and the possible effect of doing so, and politely request that you find another method wit
