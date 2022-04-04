@@ -1,4 +1,4 @@
-**(2022-02-15) Version 2.0**
+**(2022-04-04) Version 2.0**
 
 For the past few ~~weeks~~ months I've been working to completely refactor the code as the original v1.0 was built when I was just beginning to understand Python - this lead to various issues with code standardization, cleanliness and the foundational logic of the code which made it increasingly difficult to track down bugs and add new features.
 
@@ -8,41 +8,41 @@ With all that said, I've tried to test this code as much as possible - but with 
 
 A quick note for anyone who used any of the beta releases, many things have changed during the course of development, and I would strongly recommend re-downloading any VODs downloaded with these beta versions as they may be incomplete or contain errors.
 
-* What's new:
-    * New video and chat download methods:
-      * Improved speed and reliability.
-      * Better error handling.
-      * Less reliance on external sources in case Twitch makes any breaking changes.
-    * True live archiving is now implemented, with parts downloaded as they are streamed.
-    * Added a configuration file for storing secrets for reuse.
-    * Added progress bars to download, conversion and export of video files and chat logs.
-    * Added a check on run and command-line notification if a new update is released.
-    * A more verbose chat log is are now archived along with a readable version.
-    * Added the ability to choose the number of download threads with an argument '--threads'.
-    * Added the ability to archive individual (or multiple) VODs.
-    * Added the ability to archive multiple channels in one command.
-    * Added the ability to print the saved config.
-    * Added the ability to choose the downloaded stream resolution and framerate.
-    * Added error handling for VODs with segment discontinuities.
-    * Added the '--quiet' and '--debug' arguments.
-    * Added an option for logging to a file.
-    * Added a license (GNU Affero Public License).
+**What's new:**
+  * New video and chat download methods:
+    * Improved speed and reliability.
+    * Better error handling.
+    * Less reliance on external sources in case Twitch makes any breaking changes.
+  * True live archiving is now implemented, with parts downloaded as they are streamed.
+  * Added a configuration file for storing secrets for reuse.
+  * Added progress bars to download, conversion and export of video files and chat logs.
+  * Added a check on run and command-line notification if a new update is released.
+  * A more verbose chat log is are now archived along with a readable version.
+  * Added the ability to choose the number of download threads with an argument '--threads'.
+  * Added the ability to archive individual (or multiple) VODs.
+  * Added the ability to archive multiple channels in one command.
+  * Added the ability to print the saved config.
+  * Added the ability to choose the downloaded stream resolution and framerate.
+  * Added error handling for VODs with segment discontinuities.
+  * Added the '--quiet' and '--debug' arguments.
+  * Added an option for logging to a file.
+  * Added a license (GNU Affero Public License).
 
 
-* What's changed:
-    * Variables can now be passed as arguments rather than via a file.
-    * OAuth token is saved in the configuration rather than a file.
-    * Implemented a new, more accurate method for determining whether a VOD is live or not.
-    * Transitioned to a single database for all archived channel VODs.
-    * Removed erroneous characters from VOD directory names.
-    * Modified database schema. See [this gist](https://gist.github.com/522bffef7bee7eb17c1eacbf1a35aadc) if you wish to migrate your TA v1.x database(s) to the new format and location. This needs to be done to seamlessly resume archiving channels.
-    * Repository renamed (twitch-vod-archiver -> twitch-archiver).
-    * Improved VOD length verification.
-    * Chat logs are now saved while archiving live VODs rather than after stream finishes.
-    * Greatly improved logging.
-    * Various minor fixes and improvements.
-    * Overhauled changelog and readme.
-    * Added minimum ffmpeg version (4.3.1)
+**What's changed:**
+  * Variables can now be passed as arguments rather than via a file.
+  * OAuth token is saved in the configuration rather than a file.
+  * Implemented a new, more accurate method for determining whether a VOD is live or not.
+  * Transitioned to a single database for all archived channel VODs.
+  * Removed erroneous characters from VOD directory names.
+  * Modified database schema. See [this gist](https://gist.github.com/522bffef7bee7eb17c1eacbf1a35aadc) if you wish to migrate your TA v1.x database(s) to the new format and location. This needs to be done to seamlessly resume archiving channels.
+  * Repository renamed (twitch-vod-archiver -> twitch-archiver).
+  * Improved VOD length verification.
+  * Chat logs are now saved while archiving live VODs rather than after stream finishes.
+  * Greatly improved logging.
+  * Various minor fixes and improvements.
+  * Overhauled changelog and readme.
+  * Added minimum ffmpeg version (4.3.1)
 
 **(2022-01-23) Version 1.3.1**
 
