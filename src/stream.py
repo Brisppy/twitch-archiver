@@ -13,6 +13,7 @@ from time import sleep
 from src.api import Api
 from src.exceptions import TwitchAPIErrorNotFound
 from src.twitch import Twitch
+from src.utils import Utils
 
 
 class Stream:
@@ -60,8 +61,8 @@ class Stream:
                     return
 
                 if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
-                    shutil.move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
-                                Path(output_dir, str('{:05d}'.format(last_id)) + '.ts'))
+                    Utils.safe_move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
+                                    Path(output_dir, str('{:05d}'.format(last_id)) + '.ts'))
 
                 return
 
@@ -122,21 +123,16 @@ class Stream:
 
                 # rename file if 5 chunks found
                 if len(segments) == 5:
-                    tmp_ts_file = Path(tempfile.gettempdir(), segment_ids[seg_id])
-                    ts_path = Path(output_dir, str('{:05d}'.format(seg_id) + '.ts'))
-
-                    if tmp_ts_file.exists:
-                        # remove if matches destination
-                        if os.path.exists(ts_path) and os.path.samefile(ts_path, tmp_ts_file):
-                            os.remove(tmp_ts_file)
-
-                        else:
-                            # first move to temp file
-                            shutil.move(tmp_ts_file, ts_path.with_suffix('.ts.tmp'))
-                            # rename temp file after it has successfully been moved
-                            shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
-
+                    # move finished ts file to destination storage
+                    try:
+                        Utils.safe_move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
+                                        Path(output_dir, str('{:05d}'.format(seg_id) + '.ts')))
                         self.log.debug(f'Live piece: {seg_id} completed.')
                         completed_segments.append(seg_id)
 
+                    except Exception as e:
+                        self.log.debug(f'Exception while moving stream segment {seg_id}. {e}')
+                        pass
+
+            # wait before checking for new segments
             sleep(4)

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 import requests
 import shutil
@@ -393,6 +394,38 @@ class Utils:
 
             except Exception as e:
                 log.error(f'Error sending push. {title} - {body}. {e}')
+
+    # reference:
+    #   https://alexwlchan.net/2019/03/atomic-cross-filesystem-moves-in-python/
+    @staticmethod
+    def safe_move(src_file, dst_file):
+        """Atomically moves src_file to dst_file
+
+        :param src_file: source file to copy
+        :param dst_file: path to copy file to
+        :raises FileNotFoundError: if src_file does not exist
+        """
+        log.debug(f'Moving "{src_file}" to "{dst_file}".')
+
+        if Path(src_file).exists:
+            # remove source file if it matches destination file
+            if os.path.exists(dst_file) and os.path.samefile(src_file, dst_file):
+                log.debug(f'{dst_file} already exists and matches {src_file}.')
+                os.remove(src_file)
+
+            else:
+                # generate temp file path and copy src file to it
+                tmp_file = Path(Path(dst_file.parent), os.urandom(6).hex())
+                shutil.copyfile(src_file, tmp_file)
+
+                # rename temp file
+                os.rename(tmp_file, dst_file)
+
+                # delete stc_file
+                os.remove(src_file)
+
+        else:
+            raise FileNotFoundError
 
 
 class Progress:

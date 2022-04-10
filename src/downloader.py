@@ -10,7 +10,7 @@ from pathlib import Path
 
 from src.api import Api
 from src.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound
-from src.utils import Progress
+from src.utils import Utils, Progress
 
 
 class Downloader:
@@ -91,62 +91,56 @@ class Downloader:
 
         :param ts_url: url of .ts file to download
         :param ts_path: destination path for .ts file after downloading
+        :return: error on failure
         """
         self.log.debug(f'Downloading segment {ts_url} to {ts_path}')
 
         # don't bother if piece already downloaded
-        try:
-            if os.path.exists(ts_path):
-                return
+        if os.path.exists(ts_path):
+            return
 
-            # files are downloaded to $TMP, then moved to final destination
-            # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
-            #   a better method would be to have 20 workers downloading, and 20 moving temp
-            #   files from storage avoiding any downtime downloading
+        # files are downloaded to $TMP, then moved to final destination
+        # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
+        #   a better method would be to have 20 workers downloading, and 20 moving temp
+        #   files from storage avoiding any downtime downloading
 
-            # create temporary file for downloading to
-            with open(Path(tempfile.gettempdir(), os.urandom(24).hex()), 'wb') as tmp_ts_file:
-                for _ in range(6):
-                    if _ > 4:
-                        self.log.debug(f'Maximum retries for segment {Path(ts_path).stem} reached.')
-                        return 'Download attempt limit reached.'
+        # create temporary file for downloading to
+        with open(Path(tempfile.gettempdir(), os.urandom(24).hex()), 'wb') as tmp_ts_file:
+            for _ in range(6):
+                if _ > 4:
+                    self.log.debug(f'Maximum retries for segment {Path(ts_path).stem} reached.')
+                    return f'Maximum retries for segment {Path(ts_path).stem} reached.'
 
-                    try:
-                        _r = requests.get(ts_url, stream=True)
+                try:
+                    _r = requests.get(ts_url, stream=True)
 
-                        # break on non 200 status code
-                        if _r.status_code != 200:
-                            self.log.error('Code other than 200 received when trying to download segment.')
-                            break
-
-                        # write downloaded chunks to temporary file
-                        for chunk in _r.iter_content(chunk_size=1024):
-                            tmp_ts_file.write(chunk)
-
+                    # break on non 200 status code
+                    if _r.status_code != 200:
+                        self.log.error('Code other than 200 received when trying to download segment.')
                         break
 
-                    except requests.exceptions.ChunkedEncodingError as e:
-                        self.log.debug(f'Segment {Path(ts_path).stem} download failed (Attempt {_ + 1}). {e})')
-                        continue
+                    # write downloaded chunks to temporary file
+                    for chunk in _r.iter_content(chunk_size=1024):
+                        tmp_ts_file.write(chunk)
 
+                    self.log.debug(f'Segment {Path(ts_path).stem} download completed.')
+
+                    break
+
+                except requests.exceptions.ChunkedEncodingError as e:
+                    self.log.debug(f'Segment {Path(ts_path).stem} download failed (Attempt {_ + 1}). {e})')
+                    continue
+
+        try:
             # move part to destination storage
-            if Path(tmp_ts_file.name).exists:
-                # remove if matches destination
-                if os.path.exists(ts_path) and os.path.samefile(ts_path, tmp_ts_file.name):
-                    os.remove(tmp_ts_file.name)
+            Utils.safe_move(tmp_ts_file.name, ts_path)
+            self.log.debug(f'Segment {Path(ts_path).stem} completed.')
 
-                else:
-                    # first move to temp file
-                    shutil.move(tmp_ts_file.name, ts_path.with_suffix('.ts.tmp'))
-                    # rename temp file after it has successfully been moved
-                    shutil.move(ts_path.with_suffix('.ts.tmp'), ts_path)
-                    self.log.debug(f'Segment {Path(ts_path).stem} completed.')
-
-            else:
-                raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}')
+        except FileNotFoundError:
+            raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}')
 
         except Exception as e:
-            self.log.error(f'Exception encountered while downloading MPEG-TS segment {ts_url}.', exc_info=True)
+            self.log.error(f'Exception encountered while moving downloaded MPEG-TS segment {ts_url}.', exc_info=True)
             return e
 
     def get_chat(self, vod_json, offset=0):
