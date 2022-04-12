@@ -49,6 +49,8 @@ class Stream:
         completed_segments = []
 
         while True:
+            start_timestamp = int(datetime.utcnow().timestamp())
+
             try:
                 incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
 
@@ -134,5 +136,6 @@ class Stream:
                         self.log.debug(f'Exception while moving stream segment {seg_id}. {e}')
                         pass
 
-            # wait before checking for new segments
-            sleep(4)
+            # sleep if processing time < 4s before checking for new segments
+            if (remaining_time := int(datetime.utcnow().timestamp() - start_timestamp)) < 4:
+                sleep(remaining_time)
