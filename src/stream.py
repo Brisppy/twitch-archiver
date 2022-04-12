@@ -2,7 +2,6 @@ import logging
 import m3u8
 import os
 import requests
-import shutil
 import tempfile
 
 from datetime import datetime
@@ -47,6 +46,7 @@ class Stream:
         segment_ids = {}
         downloaded_segments = []
         completed_segments = []
+        bad_segment_count = 0
 
         while True:
             start_timestamp = int(datetime.utcnow().timestamp())
@@ -56,7 +56,7 @@ class Stream:
 
             except TwitchAPIErrorNotFound:
                 self.log.info('Stream has ended.')
-                # rename most recent downloaded .ts files if they are .ts.tmp parts
+                # rename most recent downloaded .ts file if stream ends before final segment is meets requirements
                 try:
                     last_id = seg_id
                 except NameError:
@@ -72,6 +72,16 @@ class Stream:
                 # skip ad segments
                 if segment['title'] != 'live':
                     self.log.debug('Ad segment detected, skipping.')
+                    continue
+
+                # catch streams with varying part length
+                if bad_segment_count > 1:
+                    self.log.error('Multiple segments with varying duration found - These cannot be accurately '
+                                   'combined and so are not supported. Falling back to VOD archiver only.')
+                    return
+
+                if segment['duration'] != 2.0:
+                    bad_segment_count += 1
                     continue
 
                 # get time between vod start and segment time
@@ -123,8 +133,8 @@ class Stream:
                 # get segments with matching id
                 segments = [seg for seg in downloaded_segments if seg[2] == seg_id]
 
-                # rename file if 5 chunks found
-                if len(segments) == 5:
+                # rename file if 5 chunks found and combined length is 10s
+                if len(segments) == 5 and sum([seg[3] for seg in segments]) == 10.0:
                     # move finished ts file to destination storage
                     try:
                         Utils.safe_move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
