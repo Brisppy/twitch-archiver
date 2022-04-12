@@ -151,10 +151,10 @@ If for any reason you need to change your credentials, you can either manually e
 
 ## Retrieving Tokens
 ### To retrieve the CLIENT_ID and CLIENT_SECRET:
-1. Navigate to [dev.twitch.tv](https://dev.twitch.tv/) and log in
-2. Register a new app called Twitch VOD Archiver with any redirect URL and under any Category
-3. The provided Client ID is used as the `CLIENT_ID` variable
-4. The provided Client Secret is used as the `CLIENT_SECRET` variable
+1. Navigate to [dev.twitch.tv](https://dev.twitch.tv/) and log in.
+2. Register a new app called Twitch VOD Archiver with any redirect URL and under any Category.
+3. The provided Client ID is used as the `CLIENT_ID` variable.
+4. The provided Client Secret is used as the `CLIENT_SECRET` variable.
 
 ## Extra Info
 ### Notes
@@ -163,6 +163,7 @@ If for any reason you need to change your credentials, you can either manually e
 * If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the `nobrl` option on linux.
 * If you intend to push chat logs to an ELK stack, [this gist](https://gist.github.com/Brisppy/ddcf4d5bbb73f957181743faadb959e3) should have everything you need.
 * By default, the highest quality VOD is downloaded. This can be changed via the `-q QUALITY` argument, where quality can be `best`, `worst`, or a custom value in the format `[resolution]p[framerate]`, for example `1080p60` or `720p30` would be valid values. If an exact match for the quality cannot be found, any quality of a matching **resolution** will be downloaded; for example, if you select `720p60`, and only `720p30` is available, `720p30` would be downloaded. Similarly, if you select `1080p30` and only `1080p60` is found, then `1080p60` would be downloaded instead. If no match is found, the highest quality will be downloaded.
+* Console logging only works on Linux, push the logs to a file with `-L file` instead.
 
 ### How files are stored
 VODs are downloaded to the specified directory. If downloading a channel, an individual folder will be created for that specific channel.
