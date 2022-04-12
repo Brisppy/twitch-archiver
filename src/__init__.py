@@ -57,9 +57,9 @@ def main():
                              '(default: best)', default='best')
     parser.add_argument('-d', '--directory', action='store',
                         help='Directory to store archived VOD(s), use TWO slashes for Windows paths.\n'
-                             '(default: %(default)s)',
-                        default=Path(os.getcwd()))
-    parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', default=False)
+                             '(default: %(default)s)', type=Path, default=Path(os.getcwd()))
+    parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
+                        default=False)
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
                         help='Directory to store configuration, VOD database and lock files.\n(default: %(default)s)',
                         default=Path(os.path.expanduser("~"), '.config', 'twitch-archiver'))
