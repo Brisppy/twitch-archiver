@@ -43,6 +43,9 @@ class Arguments:
         if Arguments.get('quality') not in ['best', 'worst']:
             Arguments.set('quality', Arguments.get('quality').split('p'))
 
+        if Arguments.get('watch'):
+            print('Launching Twitch-Archiver in watch mode.')
+
     @staticmethod
     def set(name, value):
         """Set a specified class attribute.

@@ -111,6 +111,7 @@ optional arguments:
   -d DIRECTORY, --directory DIRECTORY
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
                         (default: $CURRENT_DIRECTORY)
+  -w, --watch           Continually check every 10 seconds for new streams from the specified channel.
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR

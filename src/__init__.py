@@ -4,6 +4,7 @@ import sys
 import textwrap
 
 from pathlib import Path
+from time import sleep
 
 from src.arguments import Arguments
 from src.configuration import Configuration
@@ -58,6 +59,8 @@ def main():
     parser.add_argument('-d', '--directory', action='store',
                         help='Directory to store archived VOD(s), use TWO slashes for Windows paths.\n'
                              '(default: %(default)s)', type=Path, default=Path(os.getcwd()))
+    parser.add_argument('-w', '--watch', action='store_true',
+                        help='Continually check every 10 seconds for new streams/VODs from a specified channel.')
     parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
                         default=False)
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
@@ -113,8 +116,15 @@ def main():
 
     process = Processing(config.get(), args.get())
 
-    if args.get('channel') is not None:
-        process.get_channel(args.get('channel'))
+    while True:
+        if args.get('channel') is not None:
+            process.get_channel(args.get('channel'))
 
-    elif args.get('vod_id') is not None:
+        if args.get('watch'):
+            sleep(10)
+
+        else:
+            break
+
+    if args.get('vod_id') is not None:
         process.get_vod_connector(args.get('vod_id'))
