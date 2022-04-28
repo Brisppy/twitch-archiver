@@ -1,3 +1,13 @@
+**(2022-05-01) Version 2.1**
+
+**Additions:**
+  * TA can now be launched in 'watch' mode, checking for new streams/vods for a specified channel every 10 seconds.
+
+**Changes and Fixes:**
+  * Fixed stream downloader loop missing parts if the processing time and wait period exceeded the time vod parts were advertised by Twitch.
+  * Streams with variable length segments will only be downloaded via the VOD downloader as the stream downloader cannot combine them reliably.
+  * Added typing to some arguments.
+
 **(2022-04-04) Version 2.0**
 
 For the past few ~~weeks~~ months I've been working to completely refactor the code as the original v1.0 was built when I was just beginning to understand Python - this lead to various issues with code standardization, cleanliness and the foundational logic of the code which made it increasingly difficult to track down bugs and add new features.
