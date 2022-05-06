@@ -31,6 +31,11 @@ class Stream:
         """
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+        buffer = {}
+        segment_ids = {}
+        completed_segments = []
+        bad_segments = []
+
         try:
             index_uri = self.callTwitch.get_channel_hls_index(channel, quality)
             user_id = self.callTwitch.get_api(f'users?login={channel}')['data'][0]['id']
@@ -42,12 +47,6 @@ class Stream:
             self.log.error('Stream offline.')
             return
 
-        buffer = []
-        segment_ids = {}
-        downloaded_segments = []
-        completed_segments = []
-        bad_segments = []
-
         while True:
             start_timestamp = int(datetime.utcnow().timestamp())
 
@@ -56,18 +55,24 @@ class Stream:
 
             except TwitchAPIErrorNotFound:
                 self.log.info('Stream has ended.')
-                # rename most recent downloaded .ts file if stream ends before final segment is meets requirements
-                try:
-                    last_id = seg_id
-                except NameError:
-                    return
+                # export the highest segment if stream ends before final segment meets requirements
+                last_id = max(buffer.keys())
 
                 if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
-                    Utils.safe_move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
-                                    Path(output_dir, str('{:05d}'.format(last_id)) + '.ts'))
+                    for attempt in range(6):
+                        if attempt > 4:
+                            self.log.debug(f'Maximum attempts reached while downloading segment {last_id}.')
+                            break
+
+                        if self.write_buffer_segment(last_id, output_dir, segment_ids[last_id], buffer[last_id]):
+                            continue
+
+                        else:
+                            break
 
                 return
 
+            # manage incoming segments and create buffer of segments to download
             for segment in incoming_segments['segments']:
                 self.log.debug(f'Processing part: {segment}')
 
@@ -83,7 +88,7 @@ class Stream:
                     return
 
                 if segment['duration'] != 2.0 and segment not in bad_segments:
-                    self.log.debug(f'Part has invalid duration ({segment[-1]}).')
+                    self.log.debug(f"Part has invalid duration ({segment['duration']}).")
                     bad_segments.append(segment)
                     continue
 
@@ -91,64 +96,79 @@ class Stream:
                 time_since_start = \
                     segment['program_date_time'].replace(tzinfo=None).timestamp() - latest_vod_created_time.timestamp()
 
+                # get segment id based on time since vod start
                 # manual offset of 4 seconds is added - it just works
                 segment_id = floor((4 + time_since_start) / 10)
+
+                if segment_id in completed_segments:
+                    continue
+
                 if segment_id not in segment_ids.keys():
                     self.log.debug(f'New live segment found: {segment_id}')
-                    segment_ids.update({segment_id: os.urandom(24).hex()})
-                segment = tuple((segment['uri'], segment['program_date_time'].replace(tzinfo=None),
-                                 segment_id, segment['duration']))
+                    # give each segment id a unique id
+                    segment_ids[segment_id] = os.urandom(24).hex()
+                    buffer[segment_id] = []
 
-                # append if part hasn't been added to buffer yet or downloaded
-                if segment not in buffer and segment not in downloaded_segments:
-                    self.log.debug(f'New part added to buffer: {segment}')
-                    buffer.append(segment)
+                segment = tuple((segment['uri'], segment['program_date_time'].replace(tzinfo=None), segment['duration']))
 
-            # iterate over buffer segments which aren't yet downloaded
-            for segment in [seg for seg in buffer if seg not in downloaded_segments]:
-                with open(Path(tempfile.gettempdir(), segment_ids[segment[2]]), 'ab') as tmp_ts_file:
-                    for attempt in range(6):
-                        if attempt > 4:
-                            self.log.debug('Maximum retries reach for stream part download.')
-                            break
+                # append if part hasn't been added to buffer yet
+                if segment not in buffer[segment_id]:
+                    self.log.debug(f'New part added to buffer: {segment_id} : {segment}')
+                    buffer[segment_id].append(segment)
 
-                        try:
-                            _r = requests.get(segment[0], stream=True)
+            # download any full segments (contains 5 parts)
+            for segment_id in [seg_id for seg_id in buffer.keys() if len(buffer[seg_id]) == 5]:
+                for attempt in range(6):
+                    if attempt > 4:
+                        self.log.debug(f'Maximum attempts reached while downloading segment {segment_id}.')
+                        break
 
-                            if _r.status_code != 200:
-                                break
+                    if self.write_buffer_segment(segment_id, output_dir, segment_ids[segment_id], buffer[segment_id]):
+                        continue
 
-                            # write part to file
-                            for chunk in _r.iter_content(chunk_size=1024):
-                                tmp_ts_file.write(chunk)
-
-                            buffer.remove(segment)
-                            downloaded_segments.append(segment)
-
-                            break
-
-                        except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ReadTimeout) as e:
-                            self.log.debug(f'Error downloading VOD part, retrying. {e}')
-                            continue
-
-            # rename .tmp segments when they are finished
-            for seg_id in [seg for seg in segment_ids.keys() if seg not in completed_segments]:
-                # get segments with matching id
-                segments = [seg for seg in downloaded_segments if seg[2] == seg_id]
-
-                # rename file if 5 chunks found and combined length is 10s
-                if len(segments) == 5 and sum([seg[3] for seg in segments]) == 10.0:
-                    # move finished ts file to destination storage
-                    try:
-                        Utils.safe_move(Path(tempfile.gettempdir(), segment_ids[seg_id]),
-                                        Path(output_dir, str('{:05d}'.format(seg_id) + '.ts')))
-                        self.log.debug(f'Live piece: {seg_id} completed.')
-                        completed_segments.append(seg_id)
-
-                    except Exception as e:
-                        self.log.debug(f'Exception while moving stream segment {seg_id}. {e}')
-                        pass
+                    else:
+                        # clean buffer
+                        buffer.pop(segment_id)
+                        completed_segments.append(segment_id)
+                        break
 
             # sleep if processing time < 4s before checking for new segments
-            if (remaining_time := int(datetime.utcnow().timestamp() - start_timestamp)) < 4:
+            if (remaining_time := int(datetime.utcnow().timestamp() - start_timestamp)) < 2:
                 sleep(remaining_time)
+
+    def write_buffer_segment(self, segment_id, output_dir, tmp_file, segment_parts):
+        """Downloads and moves a given segment from the buffer.
+
+        :param segment_id: numbered segment to download
+        :param output_dir: location to output segment to
+        :param tmp_file: name of temporary file
+        :param segment_parts: list of parts which make up the segment
+        :return: True on error
+        """
+        with open(Path(tempfile.gettempdir(), tmp_file), 'wb') as tmp_ts_file:
+            for segment in segment_parts:
+                try:
+                    _r = requests.get(segment[0], stream=True)
+
+                    if _r.status_code != 200:
+                        return True
+
+                    # write part to file
+                    for chunk in _r.iter_content(chunk_size=1024):
+                        tmp_ts_file.write(chunk)
+
+                except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ReadTimeout) as e:
+                    self.log.debug(f'Error downloading VOD stream segment {segment_id} : {segment}. Error: {e}')
+                    return True
+
+        # move finished ts file to destination storage
+        try:
+            Utils.safe_move(Path(tempfile.gettempdir(), tmp_file),
+                            Path(output_dir, str('{:05d}'.format(segment_id) + '.ts')))
+            self.log.debug(f'Live segment: {segment_id} completed.')
+
+        except Exception as e:
+            self.log.debug(f'Exception while moving stream segment {segment_id}. {e}')
+            return True
+
+        return
