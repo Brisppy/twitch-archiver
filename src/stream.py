@@ -46,7 +46,7 @@ class Stream:
         segment_ids = {}
         downloaded_segments = []
         completed_segments = []
-        bad_segment_count = 0
+        bad_segments = []
 
         while True:
             start_timestamp = int(datetime.utcnow().timestamp())
@@ -69,19 +69,22 @@ class Stream:
                 return
 
             for segment in incoming_segments['segments']:
+                self.log.debug(f'Processing part: {segment}')
+
                 # skip ad segments
                 if segment['title'] != 'live':
-                    self.log.debug('Ad segment detected, skipping.')
+                    self.log.debug('Ad detected, skipping.')
                     continue
 
-                # catch streams with varying part length
-                if bad_segment_count > 1:
-                    self.log.error('Multiple segments with varying duration found - These cannot be accurately '
-                                   'combined and so are not supported. Falling back to VOD archiver only.')
+                # catch streams with dynamic part length
+                if len(bad_segments) > 1:
+                    self.log.error('Multiple parts with varying duration found - These cannot be accurately '
+                                   'combined so are not supported. Falling back to VOD archiver only.')
                     return
 
-                if segment['duration'] != 2.0:
-                    bad_segment_count += 1
+                if segment['duration'] != 2.0 and segment not in bad_segments:
+                    self.log.debug(f'Part has invalid duration ({segment[-1]}).')
+                    bad_segments.append(segment)
                     continue
 
                 # get time between vod start and segment time
