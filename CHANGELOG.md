@@ -1,3 +1,9 @@
+**(2022-05-11) Version 2.1.1**
+
+**Changes and Fixes:**
+  * Fixed an issue where the same segment would increment the bad segment counter repeatedly.
+  * Rewrote stream downloader to resolve rare VOD corruption issues.
+
 **(2022-05-01) Version 2.1**
 
 **Additions:**
