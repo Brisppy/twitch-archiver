@@ -87,7 +87,9 @@ def main():
     latest_version, release_notes = Utils.get_latest_version()
     if Utils.version_tuple(__version__) < Utils.version_tuple(latest_version):
         log.warning(f'New version of Twitch-Archiver available - Version {latest_version}:\n'
-                    f'https://github.com/Brisppy/twitch-archiver/releases/latest\nRelease notes:\n\n{release_notes}')
+                    f'https://github.com/Brisppy/twitch-archiver/releases/latest\nRelease notes:\n\n{release_notes}\n')
+    else:
+        log.info(f'Twitch Archiver v{__version__} - https://github.com/Brisppy/twitch-archiver')
 
     # load configuration from ini
     config = Configuration()
