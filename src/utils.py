@@ -328,6 +328,11 @@ class Utils:
 
     @staticmethod
     def get_latest_version():
+        """Fetches the latest release information from GitHub.
+
+        :return: latest version number
+        :return: latest release notes
+        """
         try:
             _r = requests.get(
                 'https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest').json()
@@ -350,8 +355,8 @@ class Utils:
     def get_quality_index(desired_quality, available_qualities):
         """Finds the index of a user defined quality from a list of available stream qualities.
 
-        :param desired_quality: the desired quality to search for
-        :param available_qualities: list of available qualities, in the form [resolution, framerate]
+        :param desired_quality: desired quality to search for - best, worst or [resolution, framerate]
+        :param available_qualities: list of available qualities as [[resolution, framerate], ...]
         :return: list index of desired quality if found
         """
         if desired_quality not in ['best', 'worst']:
@@ -414,14 +419,14 @@ class Utils:
                 os.remove(src_file)
 
             else:
-                # generate temp file path and copy src file to it
+                # generate temp file path and copy source file to it
                 tmp_file = Path(Path(dst_file.parent), os.urandom(6).hex())
                 shutil.copyfile(src_file, tmp_file)
 
                 # rename temp file
                 os.rename(tmp_file, dst_file)
 
-                # delete stc_file
+                # delete source file
                 os.remove(src_file)
 
         else:

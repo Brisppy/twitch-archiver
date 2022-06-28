@@ -37,6 +37,7 @@ class Stream:
         bad_segments = []
 
         try:
+            self.log.debug('Fetching required stream information.')
             index_uri = self.callTwitch.get_channel_hls_index(channel, quality)
             user_id = self.callTwitch.get_api(f'users?login={channel}')['data'][0]['id']
             latest_vod_created_time = self.callTwitch.get_api(f'videos?user_id={user_id}')['data'][0]['created_at']
@@ -51,6 +52,7 @@ class Stream:
             start_timestamp = int(datetime.utcnow().timestamp())
 
             try:
+                self.log.debug('Fetching incoming stream segments.')
                 incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
 
             except TwitchAPIErrorNotFound:
@@ -59,6 +61,8 @@ class Stream:
                 last_id = max(buffer.keys())
 
                 if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
+                    self.log.debug('Final part not found in output directory, assuming last segment is complete and'
+                                   ' downloading.')
                     for attempt in range(6):
                         if attempt > 4:
                             self.log.debug(f'Maximum attempts reached while downloading segment {last_id}.')
@@ -113,7 +117,7 @@ class Stream:
 
                 # append if part hasn't been added to buffer yet
                 if segment not in buffer[segment_id]:
-                    self.log.debug(f'New part added to buffer: {segment_id} : {segment}')
+                    self.log.debug(f'New part added to buffer: {segment_id} <- {segment}')
                     buffer[segment_id].append(segment)
 
             # download any full segments (contains 5 parts)

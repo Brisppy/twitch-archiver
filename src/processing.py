@@ -82,8 +82,8 @@ class Processing:
                 self.log.error(f'Error retrieving VODs from Twitch. Error: {e}')
                 continue
 
-            self.log.info(f'Available vods: {available_vods}' if self.debug
-                          else f'Available vods: {len(available_vods)}')
+            self.log.info(f'Online vods: {available_vods}' if self.debug
+                          else f'Online vods: {len(available_vods)}')
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
@@ -95,7 +95,7 @@ class Processing:
             # generate vod queue using downloaded and available vods
             vod_queue = [vod_id for vod_id in available_vods if vod_id not in downloaded_vods]
             if not available_vods or not vod_queue:
-                self.log.info('No VODs are available for download.')
+                self.log.info('No new VODs were found.')
                 continue
 
             self.log.info(f'{len(vod_queue)} VOD(s) in download queue.')
