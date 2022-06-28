@@ -182,8 +182,20 @@ class Utils:
                 if 'Packet corrupt' in line:
                     log.error(f'Corrupt packet encountered. Timestamp: {current_time}')
                     p.kill()
+
+                    corrupt_part = floor(current_time / 10)
+                    # get part 10 less than corrupt part, 0 if it is less than
+                    lowest_part = '{:05d}'.format(
+                        (corrupt_part - 10) if corrupt_part >= 10 else 0)
+                    # get part 10 higher than corrupt part, last part if it is more than
+                    highest_part = '{:05d}'.format((corrupt_part + 10)
+                                                   if corrupt_part <= floor(vod_json['duration_seconds'] / 10) - 10
+                                                   else floor(vod_json['duration_seconds'] / 10))
+
                     raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
-                                          "-downloaded. Ensure VOD is still available and delete 'parts' directory.")
+                                          f"-downloaded. Ensure VOD is still available and either delete files "
+                                          f"'{lowest_part}.ts' - '{highest_part}.ts' from 'parts' directory or, entire "
+                                          f"'parts' directory if issue persists.")
 
                 if 'time=' in line:
                     # extract current timestamp from output
