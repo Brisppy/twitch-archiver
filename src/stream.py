@@ -85,8 +85,8 @@ class Stream:
                     self.log.debug('Ad detected, skipping.')
                     continue
 
-                # catch streams with dynamic part length
-                if len(bad_segments) > 1:
+                # catch streams with dynamic part length - set to 2 as often the final 2 segments are < 2s
+                if len(bad_segments) > 2:
                     self.log.error('Multiple parts with varying duration found - These cannot be accurately '
                                    'combined so are not supported. Falling back to VOD archiver only.')
                     return
