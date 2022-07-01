@@ -97,6 +97,23 @@ class Configuration:
 
         return Configuration.__conf[name]
 
+    @staticmethod
+    def get_sanitized(name=None):
+        """Retrieves a specified attribute, sanitizing secrets.
+
+        :param name: name of attribute to retrieve value of - 'None' returns all attributes
+        :return: requested value(s)
+        """
+        configuration = Configuration.__conf.copy()
+        for key in ['client_id', 'client_secret', 'oauth_token', 'pushbullet_key']:
+            if configuration[key] != '':
+                configuration.update({key: 24 * '*' + configuration[key][24:]})
+
+        if name is None:
+            return configuration
+
+        return configuration[name]
+
     # reference:
     #   https://stackoverflow.com/questions/35247900/python-creating-an-ini-or-config-file-in-the-users-home-directory
     def save(self, conf_file, name=None):
