@@ -8,6 +8,7 @@ from time import sleep
 
 from src.arguments import Arguments
 from src.configuration import Configuration
+from src.exceptions import TwitchAPIError
 from src.logger import Logger
 from src.processing import Processing
 from src.twitch import Twitch
@@ -108,13 +109,18 @@ def main():
 
     log.debug('Performing Twitch authentication.')
     callTwitch = Twitch(config.get('client_id'), config.get('client_secret'), config.get('oauth_token'))
-    # generate oauth token if it is missing, or expires soon
+    # generate oauth token if it is missing, is invalid, or expiring soon
     if config.get('oauth_token') == '' or callTwitch.validate_oauth_token() < 604800:
-        log.debug('No OAuth token found, or OAuth token expiring soon - generating a new one.')
-        config.set('oauth_token', callTwitch.generate_oauth_token())
-        log.debug(f'New OAuth token is: {config.get_sanitized("oauth_token")}')
-        # store returned token
-        config.save(Path(args.get('config_dir'), 'config.ini'))
+        log.debug('No OAuth token found, or token is invalid or expiring soon - generating a new one.')
+        try:
+            config.set('oauth_token', callTwitch.generate_oauth_token())
+            log.debug(f'New OAuth token is: {config.get_sanitized("oauth_token")}')
+            # store returned token
+            config.save(Path(args.get('config_dir'), 'config.ini'))
+        except TwitchAPIError as e:
+            log.error(f'OAuth token generation failed. Error: {str(e)}')
+            Utils.send_push(config.get('pushbullet_key'), 'OAuth token generation failed.', str(e))
+            sys.exit(1)
 
     process = Processing(config.get(), args.get())
 
