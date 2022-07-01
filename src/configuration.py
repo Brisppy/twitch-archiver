@@ -21,9 +21,9 @@ class Configuration:
         self.log = logging.getLogger()
 
     def generate_config(self, args):
-        """
-        Generates the required configuration from provided arguments, overwriting loaded settings.\n
-            Args: arguments to generate config from
+        """Generates the required configuration from provided arguments, overwriting loaded settings.
+
+        :param args: arguments to generate config from
         """
         self.log.debug('Generating config from provided arguments.')
 
@@ -34,9 +34,9 @@ class Configuration:
                 self.set(argument, args.get(argument))
 
     def load_config(self, conf_file):
-        """
-        Loads the settings stored in the configuration ini file.\n
-            conf_file: path to configuration file
+        """Loads the settings stored in the configuration ini file.
+
+        :param conf_file: path to configuration file
         """
         # create conf file if it doesn't exist
         if not os.path.isfile(conf_file):
@@ -53,9 +53,9 @@ class Configuration:
             self.set(setting, config['settings'][setting])
 
     def create_config_file(self, conf_file):
-        """
-        Creates a configuration file for the storing of settings.\n
-            conf_file: path to configuration file
+        """Creates a configuration file for the storing of settings.\n
+
+        :param conf_file: path to configuration file
         """
         self.log.debug('Creating directories for log file.')
         os.makedirs(conf_file.parent, exist_ok=True)
@@ -74,10 +74,10 @@ class Configuration:
 
     @staticmethod
     def set(name, value):
-        """
-        Set a specified attribute.\n
-            name:  name of attribute to change
-            value: value to set attribute to
+        """Set a specified attribute.
+
+        :param name:  name of attribute to change
+        :param value: value to set attribute to
         """
         if name in Configuration.__conf:
             Configuration.__conf[name] = value
@@ -87,9 +87,10 @@ class Configuration:
 
     @staticmethod
     def get(name=None):
-        """
-        Retrieve a specified attribute.\n
-            name: name of attribute to retrieve value of - 'None' returns all attributes
+        """Retrieve a specified attribute.
+
+        :param name: name of attribute to retrieve value of - 'None' returns all attributes
+        :return: requested value(s)
         """
         if name is None:
             return Configuration.__conf
