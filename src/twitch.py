@@ -6,6 +6,7 @@ from random import randrange
 from time import sleep
 
 from src.api import Api
+from src.exceptions import TwitchAPIError
 from src.utils import Utils
 
 
@@ -55,10 +56,18 @@ class Twitch:
         """
         self.log.debug('Verifying OAuth token.')
         _h = {'Authorization': f'Bearer {self.oauth_token}'}
-        _r = Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
-        self.log.info(f'OAuth token verified successfully. Expiring in {_r.json()["expires_in"]}')
 
-        return _r.json()['expires_in']
+        try:
+            _r = Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
+
+            self.log.info(f'OAuth token verified successfully. Expiring in {_r.json()["expires_in"]}')
+            return _r.json()['expires_in']
+
+        except TwitchAPIError as e:
+            self.log.debug(f'OAuth token validation failed. Error: {str(e)}')
+            # error on expired or invalid credentials
+            if e.args[1] == 401:
+                return 1
 
     @staticmethod
     def get_playback_access_token(vod_id):
