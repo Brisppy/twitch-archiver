@@ -94,11 +94,11 @@ def main():
     # load configuration from ini
     config = Configuration()
     config.load_config(Path(args.get('config_dir'), 'config.ini'))
-    log.debug(f'Settings prior to loading config: {config.get()}')
+    log.debug(f'Settings prior to loading config: {config.get_sanitized()}')
 
     # overwrite different or missing configuration variables
     config.generate_config(args.get())
-    log.debug(f'Settings after loading config: {config.get()}')
+    log.debug(f'Settings after loading config: {config.get_sanitized()}')
 
     # prompt if client id or secret empty
     if config.get('client_id') == '' or config.get('client_secret') == '':
@@ -112,7 +112,7 @@ def main():
     if config.get('oauth_token') == '' or callTwitch.validate_oauth_token() < 604800:
         log.debug('No OAuth token found, or OAuth token expiring soon - generating a new one.')
         config.set('oauth_token', callTwitch.generate_oauth_token())
-        log.debug(f'New OAuth token is: {config.get("oauth_token")}')
+        log.debug(f'New OAuth token is: {config.get_sanitized("oauth_token")}')
         # store returned token
         config.save(Path(args.get('config_dir'), 'config.ini'))
 
