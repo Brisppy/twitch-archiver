@@ -33,7 +33,7 @@ class Stream:
 
         buffer = {}
         segment_ids = {}
-        completed_segments = []
+        completed_segments = set()
         bad_segments = []
 
         try:
@@ -133,7 +133,7 @@ class Stream:
                     else:
                         # clean buffer
                         buffer.pop(segment_id)
-                        completed_segments.append(segment_id)
+                        completed_segments.add(segment_id)
                         break
 
             # sleep if processing time < 4s before checking for new segments
