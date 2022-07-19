@@ -5,7 +5,7 @@ from sqlite3 import Error
 
 from src.exceptions import DatabaseError, DatabaseQueryError
 
-__db_version__ = 2
+__db_version__ = 3
 
 
 class Database:
@@ -37,7 +37,7 @@ class Database:
         self.log.debug("Setting up vods table if it doesn't already exist.")
 
         with Database(self.database_path) as db:
-            db.execute_query(create_vods_table)
+            [db.execute_query(query) for query in create_vods_table]
 
     def update_database(self, version):
         """
@@ -90,51 +90,30 @@ class Database:
         return _r
 
 
-create_vods_table = """
-    CREATE TABLE IF NOT EXISTS vods (
-    id INTEGER PRIMARY KEY,
-    stream_id INTEGER,
-    user_id INTEGER,
-    user_login TEXT,
-    user_name TEXT,
-    title TEXT,
-    description TEXT,
-    created_at TEXT,
-    published_at TEXT,
-    url TEXT,
-    thumbnail_url TEXT,
-    viewable TEXT,
-    view_count INTEGER,
-    language TEXT,
-    type TEXT,
-    duration TEXT,
-    muted_segments TEXT,
-    store_directory TEXT,
-    duration_seconds INTEGER
-    );
-"""
-
-column_list = {
-    'id': 'INTEGER PRIMARY KEY',
-    'stream_id': 'INTEGER',
-    'user_id': 'INTEGER',
-    'user_login': 'TEXT',
-    'user_name': 'TEXT',
-    'title': 'TEXT',
-    'description': 'TEXT',
-    'created_at': 'TEXT',
-    'published_at': 'TEXT',
-    'url': 'TEXT',
-    'thumbnail_url': 'TEXT',
-    'viewable': 'TEXT',
-    'view_count': 'INTEGER',
-    'language': 'TEXT',
-    'type': 'TEXT',
-    'duration': 'TEXT',
-    'muted_segments': 'TEXT',
-    'store_directory': 'TEXT',
-    'duration_seconds': 'INTEGER'
-}
+create_vods_table = [
+    """CREATE TABLE "vods" (
+        "id"                INTEGER,
+        "stream_id"         INTEGER,
+        "user_id"           INTEGER,
+        "user_login"        TEXT,
+        "user_name"         TEXT,
+        "title"             TEXT,
+        "description"       TEXT,
+        "created_at"        DATETIME,
+        "published_at"      DATETIME,
+        "url"               TEXT,
+        "thumbnail_url"     TEXT,
+        "viewable"          TEXT,
+        "view_count"        TEXT,
+        "language"          TEXT,
+        "type"              TEXT,
+        "duration"          TEXT,
+        "muted_segments"    TEXT,
+        "store_directory"   TEXT,
+        "duration_seconds"  INTEGER,
+        PRIMARY KEY("user_id","created_at")
+    );""",
+    f"PRAGMA user_version = {__db_version__};"]
 
 create_vod = """
 INSERT INTO
@@ -144,3 +123,33 @@ vods (id, stream_id, user_id, user_login, user_name, title, description, created
 VALUES
 (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
+
+# change pk from id to user_id + created_at
+# change type of created_at, published_at from TEXT to DATETIME
+version_2_to_3_upgrade = [
+    "ALTER TABLE vods RENAME TO vods_bak;",
+    """CREATE TABLE "vods" (
+        "id"                INTEGER,
+        "stream_id"         INTEGER,
+        "user_id"           INTEGER,
+        "user_login"        TEXT,
+        "user_name"         TEXT,
+        "title"             TEXT,
+        "description"       TEXT,
+        "created_at"        DATETIME,
+        "published_at"      DATETIME,
+        "url"               TEXT,
+        "thumbnail_url"     TEXT,
+        "viewable"          TEXT,
+        "view_count"        TEXT,
+        "language"          TEXT,
+        "type"              TEXT,
+        "duration"          TEXT,
+        "muted_segments"    TEXT,
+        "store_directory"   TEXT,
+        "duration_seconds"  INTEGER,
+        PRIMARY KEY("user_id","created_at")
+    );""",
+    "INSERT INTO vods SELECT * FROM vods_bak;",
+    "DROP TABLE vods_bak;",
+    "PRAGMA user_version = 3;"]
