@@ -5,6 +5,7 @@ import requests
 import tempfile
 
 from datetime import datetime
+from glob import glob
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -22,12 +23,15 @@ class Stream:
 
         self.callTwitch = Twitch(client_id, client_secret, oauth_token)
 
-    def get_stream(self, channel, output_dir, quality='best'):
+    def get_stream(self, channel, output_dir, quality='best', sync_vod_segments=True):
         """Retrieves a stream for a specified channel.
 
         :param channel: name of twitch channel to download
         :param output_dir: location to place downloaded .ts chunks
         :param quality: desired quality in the format [resolution]p[framerate] or 'best', 'worst'
+        :param sync_vod_segments: create segments for combining with archived VOD parts. If true we will try to recreate
+                                  the segment numbering scheme Twitch uses, otherwise we use our own numbering scheme.
+                                  Used when archiving a live stream without a VOD.
         """
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -36,10 +40,24 @@ class Stream:
         completed_segments = set()
         bad_segments = []
 
+        # vars for unsynced download
+        if not sync_vod_segments:
+            processed_segments = set()
+            # get existing parts to resume counting if archiving halted
+            if existing_parts := [Path(p) for p in sorted(glob(str(Path(output_dir, '*.ts'))))]:
+                # set to 1 above highest numbered part
+                segment_id = int(existing_parts[-1].name.strip('.ts')) + 1
+            else:
+                segment_id = 0
+
+            buffer[segment_id] = []
+            segment_ids[segment_id] = os.urandom(24).hex()
+
         try:
             self.log.debug('Fetching required stream information.')
             index_uri = self.callTwitch.get_channel_hls_index(channel, quality)
-            user_id = self.callTwitch.get_api(f'users?login={channel}')['data'][0]['id']
+            stream_json = self.callTwitch.get_api(f'users?login={channel}')['data'][0]
+            user_id = stream_json['id']
             latest_vod_created_time = self.callTwitch.get_api(f'videos?user_id={user_id}')['data'][0]['created_at']
             latest_vod_created_time = datetime.strptime(latest_vod_created_time, '%Y-%m-%dT%H:%M:%SZ')
 
@@ -91,34 +109,59 @@ class Stream:
                                    'combined. Falling back to VOD archiver only.')
                     return
 
-                if segment['duration'] != 2.0 and segment not in bad_segments:
-                    self.log.debug(f"Part has invalid duration ({segment['duration']}).")
-                    bad_segments.append(segment)
-                    continue
+                if sync_vod_segments:
+                    if segment['duration'] != 2.0 and segment not in bad_segments:
+                        self.log.debug(f"Part has invalid duration ({segment['duration']}).")
+                        bad_segments.append(segment)
+                        continue
 
-                # get time between vod start and segment time
-                time_since_start = \
-                    segment['program_date_time'].replace(tzinfo=None).timestamp() - latest_vod_created_time.timestamp()
+                    # get time between vod start and segment time
+                    time_since_start = \
+                        segment['program_date_time'].replace(
+                            tzinfo=None).timestamp() - latest_vod_created_time.timestamp()
 
-                # get segment id based on time since vod start
-                # manual offset of 4 seconds is added - it just works
-                segment_id = floor((4 + time_since_start) / 10)
+                    # get segment id based on time since vod start
+                    # manual offset of 4 seconds is added - it just works
+                    segment_id = floor((4 + time_since_start) / 10)
 
-                if segment_id in completed_segments:
-                    continue
+                    if segment_id in completed_segments:
+                        continue
 
-                if segment_id not in segment_ids.keys():
-                    self.log.debug(f'New live segment found: {segment_id}')
-                    # give each segment id a unique id
-                    segment_ids[segment_id] = os.urandom(24).hex()
-                    buffer[segment_id] = []
+                    if segment_id not in segment_ids.keys():
+                        self.log.debug(f'New live segment found: {segment_id}')
+                        # give each segment id a unique id
+                        segment_ids[segment_id] = os.urandom(24).hex()
+                        buffer[segment_id] = []
 
-                segment = tuple((segment['uri'], segment['program_date_time'].replace(tzinfo=None), segment['duration']))
+                    segment = tuple(
+                        (segment['uri'], segment['program_date_time'].replace(tzinfo=None), segment['duration']))
 
-                # append if part hasn't been added to buffer yet
-                if segment not in buffer[segment_id]:
-                    self.log.debug(f'New part added to buffer: {segment_id} <- {segment}')
-                    buffer[segment_id].append(segment)
+                    # only continue processing if segment not yet in buffer for segment id
+                    if segment in buffer[segment_id]:
+                        continue
+
+                else:
+                    segment = tuple(
+                        (segment['uri'], segment['program_date_time'].replace(tzinfo=None), segment['duration']))
+
+                    # skip already processed segments
+                    if segment in processed_segments:
+                        continue
+                    else:
+                        processed_segments.add(segment)
+
+                    # check if segment already completed as id may not have been incremented if current segment is
+                    # completed before the next pass causing a KeyError
+                    if segment_id in completed_segments or len(buffer[segment_id]) == 5:
+                        segment_id += 1
+
+                    # add segment id to buffer if not present
+                    if segment_id not in buffer.keys():
+                        segment_ids[segment_id] = os.urandom(24).hex()
+                        buffer[segment_id] = []
+
+                self.log.debug(f'New part added to buffer: {segment_id} <- {segment}')
+                buffer[segment_id].append(segment)
 
             # download any full segments (contains 5 parts)
             for segment_id in [seg_id for seg_id in buffer.keys() if len(buffer[seg_id]) == 5]:
