@@ -137,8 +137,8 @@ class Stream:
                         break
 
             # sleep if processing time < 4s before checking for new segments
-            if (remaining_time := int(datetime.utcnow().timestamp() - start_timestamp)) < 2:
-                sleep(remaining_time)
+            if (processing_time := int(datetime.utcnow().timestamp() - start_timestamp)) < 4:
+                sleep(4 - processing_time)
 
     def write_buffer_segment(self, segment_id, output_dir, tmp_file, segment_parts):
         """Downloads and moves a given segment from the buffer.
