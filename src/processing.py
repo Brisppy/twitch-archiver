@@ -61,11 +61,21 @@ class Processing:
 
             # setup database
             with Database(Path(self.config_dir, 'vods.db')) as db:
-                db.setup_database()
+                # check db version
                 version = db.execute_query('pragma user_version')[0][0]
 
-                if version == 0:
-                    db.execute_query(f'pragma user_version = {__db_version__}')
+                if version != __db_version__:
+                    # incremental database updating based on version number
+                    # create the latest db schema if none exists
+                    if version == 0:
+                        self.log.debug('No schema found, creating database.')
+                        db.setup_database()
+
+                    # update version 2 schema to version 3
+                    if version == 2:
+                        self.log.debug('Performing incremental DB update. Version 2 -> Version 3.')
+                        db.update_database(2)
+                        version = 3
 
             # retrieve available vods
             available_vods = []
