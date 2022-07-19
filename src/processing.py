@@ -164,7 +164,7 @@ class Processing:
             vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
 
             # get vod status
-            vod_live = self.callTwitch.get_vod_status(vod_json)
+            vod_live = self.callTwitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
 
             self.log.info(f"VOD {'currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'}")
 

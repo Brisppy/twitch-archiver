@@ -189,17 +189,23 @@ class Twitch:
 
         return _r.json()['data']['streamPlaybackAccessToken']
 
-    def get_vod_status(self, vod_json):
+    def get_vod_status(self, user_id, vod_created_time):
+        """Determines whether a live stream is paired with a given vod.
+
+        :param user_id: twitch channel name
+        :param vod_created_time: time and date a vod was created
+        :return: True if vod and stream creation dates match
+        """
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
-        time_since_created = Utils.time_since_date(vod_json['created_at'])
+        time_since_created = Utils.time_since_date(vod_created_time)
         if time_since_created < 60:
             sleep(60 - time_since_created)
         try:
             # if stream live and vod start time matches
             stream_created_time = \
-                datetime.strptime(self.get_api(f'streams?user_id={vod_json["user_id"]}')['data'][0]['started_at'],
+                datetime.strptime(self.get_api(f'streams?user_id={user_id}')['data'][0]['started_at'],
                                   '%Y-%m-%dT%H:%M:%SZ').timestamp()
-            vod_created_time = datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
+            vod_created_time = datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').timestamp()
             # if vod created within 10s of stream created time
             if 10 >= vod_created_time - stream_created_time >= -10:
                 self.log.debug('VOD creation time is within 10s of stream created time, running in live mode.')
