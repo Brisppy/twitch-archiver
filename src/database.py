@@ -39,6 +39,18 @@ class Database:
         with Database(self.database_path) as db:
             db.execute_query(create_vods_table)
 
+    def update_database(self, version):
+        """
+        Updates database to given version.
+
+        :param version: desired version to upgrade to
+        """
+        self.log.debug("Setting up vods table if it doesn't already exist.")
+
+        if version == 2:
+            with Database(self.database_path) as db:
+                [db.execute_query(query) for query in version_2_to_3_upgrade]
+
     # reference:
     #   https://codereview.stackexchange.com/questions/182700/python-class-to-manage-a-table-in-sqlite
     def __enter__(self):
