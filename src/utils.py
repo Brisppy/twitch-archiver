@@ -298,6 +298,18 @@ class Utils:
             return (int(duration[0]) * 3600) + (int(duration[1]) * 60) + int(duration[2])
 
     @staticmethod
+    def convert_to_hms(seconds):
+        """Converts a given time in seconds to the format HHhMMmSSs.
+
+        :param seconds: time in seconds
+        :return: time in HHhMMmSSs format
+        """
+        minutes = seconds // 60
+        hours = minutes // 60
+
+        return "%02dh%02dm%02ds" % (hours, minutes % 60, seconds % 60)
+
+    @staticmethod
     def create_lock(ini_path, vod_id):
         """Creates a lock file for a given VOD.
 
