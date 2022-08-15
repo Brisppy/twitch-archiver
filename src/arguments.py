@@ -1,3 +1,4 @@
+import re
 import sys
 
 from pathlib import Path
@@ -33,11 +34,32 @@ class Arguments:
 
         # generate list from comma-separated vods
         if Arguments.get('vod_id'):
-            Arguments.set('vod_id', list([vod_id for vod_id in Arguments.get('vod_id').split(',')]))
+            # generate vod list
+            vod_ids = [vod_id for vod_id in Arguments.get('vod_id').split(',')]
+
+            # format urls to just vod ids
+            for i in range(len(vod_ids)):
+                # test match and replace
+                if match := re.findall("(?<=twitch\.tv\/videos\/)[0-9]*", vod_ids[i]):
+                    vod_ids[i] = match[0]
+
+            # insert formatted vods
+            Arguments.set('vod_id', vod_ids)
 
         # generate list from comma-separated channels
         elif Arguments.get('channel'):
-            Arguments.set('channel', list([channel for channel in Arguments.get('channel').split(',')]))
+            # generate channel list
+            channels = [channel for channel in Arguments.get('channel').split(',')]
+
+            # format urls to just channel name
+            for i in range(len(channels)):
+                # test and replace
+                if match := re.findall("(?<=twitch\.tv\/)[a-zA-Z0-9]*", channels[i]):
+                    channels[i] = match[0]
+
+            # insert formatted channels
+            Arguments.set('channel', channels)
+
 
         # split quality into [resolution, framerate]
         if Arguments.get('quality') not in ['best', 'worst']:
