@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import multiprocessing
@@ -32,6 +33,7 @@ class Processing:
         self.video = args['video']
         self.chat = args['chat']
         self.quality = args['quality']
+        self.stream_only = args['stream_only']
         self.config_dir = args['config_dir']
         self.quiet = args['quiet']
         self.debug = args['debug']
@@ -56,6 +58,9 @@ class Processing:
             user_data = self.callTwitch.get_api(f'users?login={channel}')['data'][0]
             user_id = user_data['id']
             user_name = user_data['display_name']
+
+            channel_live = False
+            live_vod_exists = False
 
             self.vod_directory = Path(self.directory, user_name)
 
@@ -92,8 +97,8 @@ class Processing:
                 self.log.error(f'Error retrieving VODs from Twitch. Error: {e}')
                 continue
 
-            self.log.info(f'Online vods: {available_vods}' if self.debug
-                          else f'Online vods: {len(available_vods)}')
+            self.log.info(f'Online VODs: {available_vods}' if self.debug
+                          else f'Online VODs: {len(available_vods)}')
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
@@ -104,13 +109,75 @@ class Processing:
 
             # generate vod queue using downloaded and available vods
             vod_queue = [vod_id for vod_id in available_vods if vod_id not in downloaded_vods]
-            if not available_vods or not vod_queue:
-                self.log.info('No new VODs were found.')
+
+            # get latest vod created time if there are available vods
+            latest_vod_id = max(available_vods)
+            latest_vod_json = self.callTwitch.get_api(f'videos?id={latest_vod_id}')['data'][0] if available_vods else 0
+
+            # check if channel is online and stream type is live
+            if (channel_data := self.callTwitch.get_api(f'streams?user_id={user_id}')['data'])\
+                    and channel_data[0]['type'] == 'live':
+                channel_live = True
+                # check if live stream has a paired vod
+                live_vod_exists = self.callTwitch.get_vod_status(user_id, latest_vod_json['created_at'])
+
+            # exit if stream_only arg used and stream is offline
+            if self.stream_only and not channel_live:
+                continue
+
+            # move on if channel offline and no vods are available
+            if not channel_live and not available_vods:
+                self.log.info(f'No VODs were found for {user_name}.')
+                continue
+
+            # archive stream in non-segmented mode if no paired vod exists
+            if channel_live and not live_vod_exists and self.video:
+                self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
+                self.log.debug('Creating lock file for stream.')
+
+                if Utils.create_lock(self.config_dir, user_name):
+                    self.log.info(f'Lock file present for stream by {user_name}, skipping.')
+                    pass
+
+                else:
+                    # check if stream in database
+                    with Database(Path(self.config_dir, 'vods.db')) as db:
+                        downloaded_vods = \
+                            [str(i[0]) for i in db.execute_query(f'select * from vods where user_id is {user_id}')]
+
+                    # Check if stream id in database
+                    if channel_data[0]['id'] in downloaded_vods:
+                        self.log.info('Stream has already been downloaded.')
+                        pass
+
+                    else:
+                        stream_json = self.get_unsynced_stream(channel_data[0])
+
+                        if stream_json:
+                            # add to database
+                            self.log.debug('Adding stream info to database.')
+                            with Database(Path(self.config_dir, 'vods.db')) as db:
+                                db.execute_query(create_vod, stream_json)
+
+                            # remove lock
+                            self.log.debug('Removing lock file.')
+                            if Utils.remove_lock(self.config_dir, user_name):
+                                raise UnlockingError(user_name)
+
+                        else:
+                            self.log.debug('No stream information returned to channel function, stream downloader'
+                                           ' exited with error.')
+                            pass
+
+            # exit if vod queue empty
+            if not vod_queue:
+                self.log.info(f'No new VODs were found for {user_name}.')
                 continue
 
             self.log.info(f'{len(vod_queue)} VOD(s) in download queue.')
             self.log.debug(f'VOD queue: {vod_queue}')
 
+            # begin processing each available vod
             for vod_id in vod_queue:
                 self.log.debug(f'Processing VOD {vod_id} by {user_name}')
                 self.log.debug('Creating lock file for VOD.')
@@ -312,7 +379,7 @@ class Processing:
                 if Path(self.config_dir, f'.lock.{vod_id}').exists():
                     Utils.remove_lock(self.config_dir, vod_id)
 
-                sys.exit(1)
+                sys.exit(0)
 
             # catch halting errors, send notification and remove lock file
             except (RequestError, VodDownloadError, ChatDownloadError, VodMergeError, ChatExportError) as e:
@@ -341,8 +408,7 @@ class Processing:
 
                 Utils.send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id}', str(e))
                 self.log.error(f'Exception encountered while downloading VOD {vod_id}.', exc_info=True)
-
-                vod_json = False
+                return
 
         # this is only used when archiving a channel
         return vod_json
