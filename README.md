@@ -36,6 +36,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 * Allows the downloading of **live** VODs *before sections can be muted or deleted*.[^2]
 * Generates and saves a readable chat log with timestamps and user badges.
 * Allows for the archiving of both video and chat.
+* Supports archiving streams without an associated VOD.
 * Error notifications sent via pushbullet.
 * Supports fully automated archiving.
 * Requires minimal setup or external programs.
@@ -115,6 +116,7 @@ optional arguments:
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
                         (default: $CURRENT_DIRECTORY)
   -w, --watch           Continually check every 10 seconds for new streams from the specified channel.
+  -S, --stream-only     Only download streams which are currently live.
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
@@ -165,6 +167,7 @@ These authentication parameters are loaded into TA **first**, but will be overwr
 
 ## Extra Info
 ### Notes
+* Some streamers opt to place their music on a separate audio track which isn't archived by Twitch. Due to the way LIVE archiving is done with TA, the music may cut in and out intermittently, often due to an ad being played and the stream archiver not being able to grab those parts. To avoid this entirely, use the `--vod-only` option which will not have this track at all, though this archive is ~5 minutes delayed and so will miss the end of a VOD if it is deleted.
 * We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD finishes before the timestamp end is reached), create a file named `.ignorelength` inside the VOD's directory (where `vod.json` and `verbose_chat.log` are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
 * If a VOD is deleted while it is being archived, all the vod information will be saved, and the VOD will be combined as-is and chat exported. 
 * If your config (and thus vod database) is stored on an SMB/CIFS share, you may encounter issues with querying and adding to the sqlite database. This can be resolved by mounting the share with the `nobrl` option on linux.
@@ -207,7 +210,9 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
 - [ ] Allow archiving of subscriber-only VODs (need an account with a subscription for development + testing).
 - [ ] Improve VOD download speed using separate download and file move workers (may need someone to test with >1Gbit connection).
 - [ ] Release python package.
-- [ ] Allow archiving of livestreams without VODs.
+- [x] Implement video archiving for streams without VODs.
+- [ ] Implement chat archiving for streams without VODs.
+- [ ] Track and store games played during streams.
 
 ### Why?
 To put it simply - **I don't like when data is deleted**.
