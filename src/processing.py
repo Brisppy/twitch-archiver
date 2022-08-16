@@ -145,6 +145,73 @@ class Processing:
                     self.log.debug('No VOD information returned to channel function, downloader exited with error.')
                     continue
 
+    def get_unsynced_stream(self, channel_data):
+        """Archives a live stream without a paired VOD.
+
+        :param channel_data: json retrieved from channel endpoint
+        :return: sanitized / formatted stream json
+        """
+        try:
+            # generate stream dict
+            stream_json_keys = \
+                ['id', 'stream_id', 'user_id', 'user_login', 'user_name', 'title', 'description', 'created_at',
+                 'published_at', 'url', 'thumbnail_url', 'viewable', 'view_count', 'language', 'type', 'duration',
+                 'muted_segments', 'store_directory', 'duration_seconds']
+            stream_json = {k: None for k in stream_json_keys}
+
+            stream_json.update(
+                {'stream_id': channel_data['id'], 'user_id': channel_data['user_id'],
+                 'user_login': channel_data['user_login'], 'user_name': channel_data['user_name'],
+                 'title': channel_data['title'], 'created_at': channel_data['started_at'],
+                 'published_at': channel_data['started_at'], 'language': channel_data['language'],
+                 'type': channel_data['type']})
+
+            stream_json['store_directory'] = \
+                str(Path(self.vod_directory, f'{Utils.sanitize_date(stream_json["created_at"])} - '
+                                             f'{Utils.sanitize_text(stream_json["title"])} - NO_VOD'))
+
+            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+
+            stream.get_stream(
+                stream_json['user_name'], Path(stream_json['store_directory'], 'parts'), self.quality, False)
+
+            # insert duration into json using stream created datetime
+            created_at = int((datetime.datetime.strptime(stream_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()))
+            stream_json['duration_seconds'] = datetime.datetime.now().timestamp() - created_at
+            stream_json['duration'] = Utils.convert_to_hms(['duration_seconds'])
+
+            # merge stream segments and convert to mp4
+            try:
+                Utils.combine_vod_parts(stream_json, print_progress=False if self.quiet else True)
+                Utils.convert_vod(stream_json, print_progress=False if self.quiet else True)
+
+            except Exception as e:
+                raise VodMergeError(e)
+
+            self.log.debug('Cleaning up temporary files...')
+            Utils.cleanup_vod_parts(stream_json['store_directory'])
+
+            return stream_json
+
+        except KeyboardInterrupt:
+            self.log.debug('User requested stop, halting stream downloader.')
+            if Path(self.config_dir, f'.lock.{stream_json["display_name"]}').exists():
+                Utils.remove_lock(self.config_dir, stream_json["display_name"])
+
+            sys.exit(0)
+
+        except (RequestError, VodMergeError) as e:
+            self.log.debug('Exception downloading or merging stream.\n{e}', exc_info=True)
+            Utils.send_push(self.pushbullet_key, 'Exception encountered while downloading or merging downloaded stream '
+                                                 f'by {stream_json["display_name"]}', str(e))
+            return
+
+        except Exception as e:
+            self.log.error(f'Unexpected exception encountered while downloading live-only stream.\n{e}', exc_info=True)
+            Utils.send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream'
+                                                 f'by {stream_json["display_name"]}', str(e))
+            return
+
     def get_vod_connector(self, vods):
         """Download a single vod or list of vod IDs.
 
