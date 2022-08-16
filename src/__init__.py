@@ -62,6 +62,9 @@ def main():
                              '(default: %(default)s)', type=Path, default=Path(os.getcwd()))
     parser.add_argument('-w', '--watch', action='store_true',
                         help='Continually check every 10 seconds for new streams/VODs from a specified channel.')
+    parser.add_argument('-S', '--stream-only', action='store_true',
+                        help='Only download streams which are currently live.',
+                        default=False)
     parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
                         default=False)
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
