@@ -262,21 +262,21 @@ class Processing:
 
         except KeyboardInterrupt:
             self.log.debug('User requested stop, halting stream downloader.')
-            if Path(self.config_dir, f'.lock.{stream_json["display_name"]}').exists():
-                Utils.remove_lock(self.config_dir, stream_json["display_name"])
+            if Path(self.config_dir, f'.lock.{channel_data["user_name"]}').exists():
+                Utils.remove_lock(self.config_dir, channel_data["user_name"])
 
             sys.exit(0)
 
         except (RequestError, VodMergeError) as e:
             self.log.debug('Exception downloading or merging stream.\n{e}', exc_info=True)
             Utils.send_push(self.pushbullet_key, 'Exception encountered while downloading or merging downloaded stream '
-                                                 f'by {stream_json["display_name"]}', str(e))
+                                                 f'by {channel_data["user_name"]}', str(e))
             return
 
         except Exception as e:
             self.log.error(f'Unexpected exception encountered while downloading live-only stream.\n{e}', exc_info=True)
             Utils.send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream'
-                                                 f'by {stream_json["display_name"]}', str(e))
+                                                 f'by {channel_data["user_name"]}', str(e))
             return
 
     def get_vod_connector(self, vods):
