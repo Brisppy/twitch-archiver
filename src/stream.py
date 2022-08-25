@@ -75,24 +75,11 @@ class Stream:
 
             except TwitchAPIErrorNotFound:
                 self.log.info('Stream has ended.')
-                # export the highest segment if stream ends before final segment meets requirements
-                last_id = max(buffer.keys())
+                self.get_final_segment(buffer, output_dir, segment_ids)
 
-                if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
-                    self.log.debug('Final part not found in output directory, assuming last segment is complete and'
-                                   ' downloading.')
-                    for attempt in range(6):
-                        if attempt > 4:
-                            self.log.debug(f'Maximum attempts reached while downloading segment {last_id}.')
-                            break
-
-                        if self.write_buffer_segment(last_id, output_dir, segment_ids[last_id], buffer[last_id]):
-                            continue
-
-                        else:
-                            break
-
-                return
+            # assume stream has ended once >20s has passed since the last segment was advertised
+            if buffer and Utils.time_since_date(buffer[max(buffer.keys())]['program_date_time'].timestamp()) > 20:
+                self.get_final_segment(buffer, output_dir, segment_ids)
 
             # manage incoming segments and create buffer of segments to download
             for segment in incoming_segments['segments']:
