@@ -121,10 +121,6 @@ class Processing:
                 # check if live stream has a paired vod
                 live_vod_exists = self.callTwitch.get_vod_status(user_id, latest_vod_json['created_at'])
 
-            # exit if stream_only arg used and stream is offline
-            if self.stream_only and not channel_live:
-                continue
-
             # move on if channel offline and no vods are available
             if not channel_live and not available_vods:
                 self.log.info(f'No VODs were found for {user_name}.')
@@ -168,6 +164,10 @@ class Processing:
                             self.log.debug('No stream information returned to channel function, stream downloader'
                                            ' exited with error.')
                             pass
+
+            # exit if stream_only arg used
+            if self.stream_only:
+                sys.exit(0)
 
             # exit if vod queue empty
             if not vod_queue:
