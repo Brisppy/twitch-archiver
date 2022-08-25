@@ -243,9 +243,9 @@ class Processing:
                 stream_json['user_name'], Path(stream_json['store_directory'], 'parts'), self.quality, False)
 
             # insert duration into json using stream created datetime
-            created_at = int((datetime.datetime.strptime(stream_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()))
-            stream_json['duration_seconds'] = datetime.datetime.now().timestamp() - created_at
-            stream_json['duration'] = Utils.convert_to_hms(['duration_seconds'])
+            created_at = int((datetime.strptime(stream_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()))
+            stream_json['duration_seconds'] = int(datetime.utcnow().timestamp() - created_at)
+            stream_json['duration'] = Utils.convert_to_hms(stream_json['duration_seconds'])
 
             # merge stream segments and convert to mp4
             try:
