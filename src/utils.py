@@ -339,13 +339,13 @@ class Utils:
             return e
 
     @staticmethod
-    def time_since_date(created_at):
-        """Returns the time in seconds between a given date and now.
+    def time_since_date(timestamp):
+        """Returns the time in seconds between a given datetime and now.
 
-        :param created_at: timestamp retrieve from twitch to get time since
+        :param timestamp: utc timestamp to compare current datetime to
         :return: the time in seconds since the given date
         """
-        created_at = int((datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%SZ').timestamp()))
+        created_at = int(timestamp)
         current_time = int(datetime.utcnow().timestamp())
 
         return current_time - created_at

@@ -1,4 +1,3 @@
-import datetime
 import json
 import logging
 import multiprocessing
@@ -6,6 +5,7 @@ import m3u8
 import re
 import sys
 
+from datetime import datetime
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -424,12 +424,13 @@ class Processing:
         Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
 
         # wait if vod recently created
-        if Utils.time_since_date(vod_json['created_at']) < 300:
+        if Utils.time_since_date(datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()) < 300:
             self.log.info('Waiting 5m to download initial VOD parts as it was created very recently. Live archiving '
                           'will still function.')
             sleep(300)
 
-        if Utils.time_since_date(vod_json['created_at']) < (vod_json['duration_seconds'] + 360):
+        if Utils.time_since_date(datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp())\
+                < (vod_json['duration_seconds'] + 360):
             self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
                            'Running in live mode in case not all parts are available yet.')
             vod_live = True
