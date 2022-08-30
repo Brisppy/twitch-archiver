@@ -4,7 +4,7 @@ import os
 import requests
 import tempfile
 
-from datetime import datetime
+from datetime import datetime, timezone
 from glob import glob
 from math import floor
 from pathlib import Path
@@ -39,6 +39,7 @@ class Stream:
         segment_ids = {}
         completed_segments = set()
         bad_segments = []
+        latest_segment = None
 
         # vars for unsynced download
         if not sync_vod_segments:
@@ -73,13 +74,20 @@ class Stream:
                 self.log.debug('Fetching incoming stream segments.')
                 incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
 
+            # stream has ended if exception encountered
             except TwitchAPIErrorNotFound:
-                self.log.info('Stream has ended.')
                 self.get_final_segment(buffer, output_dir, segment_ids)
+                return
+
+            # set latest segment and timestamp if new segment found
+            if incoming_segments['segments'][-1]['uri'] != latest_segment:
+                latest_segment = incoming_segments['segments'][-1]['uri']
+                latest_segment_timestamp = int(datetime.now(timezone.utc).timestamp())
 
             # assume stream has ended once >20s has passed since the last segment was advertised
-            if buffer and Utils.time_since_date(buffer[max(buffer.keys())]['program_date_time'].timestamp()) > 20:
+            if buffer and Utils.time_since_date(latest_segment_timestamp) > 20:
                 self.get_final_segment(buffer, output_dir, segment_ids)
+                return
 
             # manage incoming segments and create buffer of segments to download
             for segment in incoming_segments['segments']:
