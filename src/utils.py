@@ -396,6 +396,7 @@ class Utils:
 
                 except ValueError:
                     log.info('No match found for user requested resolution. Defaulting to best.')
+                    return 0
 
         elif desired_quality == 'worst':
             return -1
