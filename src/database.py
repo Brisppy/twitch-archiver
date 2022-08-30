@@ -5,7 +5,7 @@ from sqlite3 import Error
 
 from src.exceptions import DatabaseError, DatabaseQueryError
 
-__db_version__ = 3
+__db_version__ = 4
 
 
 class Database:
@@ -51,6 +51,10 @@ class Database:
             with Database(self.database_path) as db:
                 [db.execute_query(query) for query in version_2_to_3_upgrade]
 
+        if version == 3:
+            with Database(self.database_path) as db:
+                [db.execute_query(query) for query in version_3_to_4_upgrade]
+
     # reference:
     #   https://codereview.stackexchange.com/questions/182700/python-class-to-manage-a-table-in-sqlite
     def __enter__(self):
@@ -92,7 +96,7 @@ class Database:
 
 create_vods_table = [
     """CREATE TABLE "vods" (
-        "id"                INTEGER,
+        "vod_id"            INTEGER,
         "stream_id"         INTEGER,
         "user_id"           INTEGER,
         "user_login"        TEXT,
@@ -107,21 +111,22 @@ create_vods_table = [
         "view_count"        TEXT,
         "language"          TEXT,
         "type"              TEXT,
-        "duration"          TEXT,
+        "duration"          INTEGER,
         "muted_segments"    TEXT,
         "store_directory"   TEXT,
-        "duration_seconds"  INTEGER,
-        PRIMARY KEY("user_id","created_at")
+        "video_archived"    BIT,
+        "chat_archived"     BIT,
+        PRIMARY KEY("vod_id","stream_id")
     );""",
     f"PRAGMA user_version = {__db_version__};"]
 
 create_vod = """
 INSERT INTO
-vods (id, stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url,
-        thumbnail_url, viewable, view_count, language, type, duration, muted_segments, store_directory,
-        duration_seconds)
+vods (stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url, thumbnail_url,
+      viewable, view_count, language, type, duration, muted_segments, vod_id, store_directory, video_archived,
+      chat_archived)
 VALUES
-(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 # change pk from id to user_id + created_at
@@ -153,3 +158,43 @@ version_2_to_3_upgrade = [
     "INSERT INTO vods SELECT * FROM vods_bak;",
     "DROP TABLE vods_bak;",
     "PRAGMA user_version = 3;"]
+
+# renamed id -> vod_id
+# changed pk from user_id + created_at -> vod_id + stream_id
+#   older vods do not have a stream id, so the vod_id will be copied in its place
+# changed duration column type from TEXT -> INTEGER
+#   duration_seconds will replace the current value
+# removed duration_seconds column
+# add video_archived and chat_archived columns
+#   these are both set to 1 (true) for already archived streams
+version_3_to_4_upgrade = [
+    "ALTER TABLE vods RENAME TO vods_bak;",
+    "UPDATE vods_bak SET stream_id = id WHERE stream_id IS NULL;",
+    """CREATE TABLE "vods" (
+        "vod_id"            INTEGER,
+        "stream_id"         INTEGER,
+        "user_id"           INTEGER,
+        "user_login"        TEXT,
+        "user_name"         TEXT,
+        "title"             TEXT,
+        "description"       TEXT,
+        "created_at"        DATETIME,
+        "published_at"      DATETIME,
+        "url"               TEXT,
+        "thumbnail_url"     TEXT,
+        "viewable"          TEXT,
+        "view_count"        TEXT,
+        "language"          TEXT,
+        "type"              TEXT,
+        "duration"          INTEGER,
+        "muted_segments"    TEXT,
+        "store_directory"   TEXT,
+        "video_archived"    BIT,
+        "chat_archived"     BIT,
+        PRIMARY KEY("vod_id","stream_id")
+    );""",
+    "INSERT INTO vods SELECT id, stream_id, user_id, user_login, user_name, title, description, created_at, "
+    "published_at, url, thumbnail_url, viewable, view_count, language, type, duration_seconds, muted_segments, "
+    "store_directory, 1, 1 FROM vods_bak;",
+    "DROP TABLE vods_bak;",
+    "PRAGMA user_version = 4;"]
