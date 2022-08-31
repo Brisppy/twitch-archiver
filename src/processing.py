@@ -250,7 +250,7 @@ class Processing:
             # merge stream segments and convert to mp4
             try:
                 Utils.combine_vod_parts(stream_json, print_progress=False if self.quiet else True)
-                Utils.convert_vod(stream_json, print_progress=False if self.quiet else True)
+                Utils.convert_vod(stream_json, True, print_progress=False if self.quiet else True)
 
             except Exception as e:
                 raise VodMergeError(e)

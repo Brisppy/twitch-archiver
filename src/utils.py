@@ -161,10 +161,12 @@ class Utils:
                     raise VodConvertError(f'VOD merger exited with error. Command: {p.args}.')
 
     @staticmethod
-    def convert_vod(vod_json, print_progress=True):
+    def convert_vod(vod_json, ignore_corruptions=False, print_progress=True):
         """Converts the VOD from a .ts format to .mp4.
 
         :param vod_json: dict of vod parameters retrieved from twitch
+        :param ignore_corruptions: boolean whether to ignore corrupt packets which can appear when downloading
+                                   a live stream.
         :param print_progress: boolean whether to print progress bar
         :raises vodConvertError: error encountered during conversion process
         """
@@ -179,7 +181,15 @@ class Utils:
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
-                if 'Packet corrupt' in line:
+                if 'time=' in line:
+                    # extract current timestamp from output
+                    current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
+                    current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
+
+                    if print_progress:
+                        progress.print_progress(int(current_time), vod_json['duration'])
+
+                if not ignore_corruptions and 'Packet corrupt' in line:
                     log.error(f'Corrupt packet encountered. Timestamp: {current_time}')
                     p.kill()
 
@@ -196,14 +206,6 @@ class Utils:
                                           f"-downloaded. Ensure VOD is still available and either delete files "
                                           f"'{lowest_part}.ts' - '{highest_part}.ts' from 'parts' directory or, entire "
                                           f"'parts' directory if issue persists.")
-
-                if 'time=' in line:
-                    # extract current timestamp from output
-                    current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
-                    current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
-
-                    if print_progress:
-                        progress.print_progress(int(current_time), vod_json['duration_seconds'])
 
         if p.returncode:
             log.error(f'VOD converter exited with error. Command: {p.args}.')
