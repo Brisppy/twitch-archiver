@@ -129,6 +129,14 @@ VALUES
 (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
+update_vod = """
+UPDATE vods
+SET stream_id=?, user_id=?, user_login=?, user_name=?, title=?, description=?, created_at=?,
+    published_at=?, url=?, thumbnail_url=?, viewable=?, view_count=?, language=?, type=?,
+    duration=?, muted_segments=?, vod_id=?, store_directory=?, video_archived=?, chat_archived=?
+WHERE stream_id IS ?;
+"""
+
 # change pk from id to user_id + created_at
 # change type of created_at, published_at from TEXT to DATETIME
 version_2_to_3_upgrade = [
