@@ -144,4 +144,5 @@ def main():
             break
 
     if args.get('vod_id') is not None:
-        process.get_vod_connector(args.get('vod_id'))
+        for vod_id in args.get('vod_id'):
+            process.get_vod_connector(vod_id, args.get('video'), args.get('chat'))
