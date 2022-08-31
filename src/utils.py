@@ -6,7 +6,7 @@ import requests
 import shutil
 import subprocess
 
-from datetime import datetime
+from datetime import datetime, timezone
 from glob import glob
 from math import ceil, floor
 from pathlib import Path
@@ -348,7 +348,7 @@ class Utils:
         :return: the time in seconds since the given date
         """
         created_at = int(timestamp)
-        current_time = int(datetime.utcnow().timestamp())
+        current_time = int(datetime.now(timezone.utc).timestamp())
 
         return current_time - created_at
 
