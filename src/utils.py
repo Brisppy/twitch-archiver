@@ -154,7 +154,7 @@ class Utils:
                             int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
 
                         if print_progress:
-                            progress.print_progress(int(current_time), vod_json['duration_seconds'])
+                            progress.print_progress(int(current_time), vod_json['duration'])
 
                 if p.returncode:
                     log.error(f'VOD merger exited with error. Command: {p.args}.')
@@ -199,8 +199,8 @@ class Utils:
                         (corrupt_part - 10) if corrupt_part >= 10 else 0)
                     # get part 10 higher than corrupt part, last part if it is more than
                     highest_part = '{:05d}'.format((corrupt_part + 10)
-                                                   if corrupt_part <= floor(vod_json['duration_seconds'] / 10) - 10
-                                                   else floor(vod_json['duration_seconds'] / 10))
+                                                   if corrupt_part <= floor(vod_json['duration'] / 10) - 10
+                                                   else floor(vod_json['duration'] / 10))
 
                     raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
                                           f"-downloaded. Ensure VOD is still available and either delete files "
@@ -241,10 +241,10 @@ class Utils:
             log.error(f'Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. {e}')
             raise VodConvertError(str(e))
 
-        log.debug(f'Downloaded VOD length is {downloaded_length}. Expected length is {vod_json["duration_seconds"]}.')
+        log.debug(f'Downloaded VOD length is {downloaded_length}. Expected length is {vod_json["duration"]}.')
 
         # pass verification if downloaded file is within 2s of expected length
-        if 2 >= downloaded_length - vod_json['duration_seconds'] >= -2:
+        if 2 >= downloaded_length - vod_json['duration'] >= -2:
             log.debug('VOD passed length verification.')
             return False
 

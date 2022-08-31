@@ -2,7 +2,6 @@ from glob import glob
 import logging
 import os
 import requests
-import shutil
 import tempfile
 
 from concurrent.futures import ThreadPoolExecutor
@@ -155,7 +154,7 @@ class Downloader:
         _s.headers.update({'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'})
 
         # grab initial chat segment containing cursor
-        initial_segment, cursor = self.get_chat_segment(_s, vod_json['id'], offset=offset)
+        initial_segment, cursor = self.get_chat_segment(_s, vod_json['vod_id'], offset=offset)
         chat_log.extend(initial_segment)
 
         progress = Progress()
@@ -166,14 +165,14 @@ class Downloader:
 
             try:
                 # grab next chat segment along with cursor for next segment
-                segment, cursor = self.get_chat_segment(_s, vod_json['id'], cursor=cursor)
+                segment, cursor = self.get_chat_segment(_s, vod_json['vod_id'], cursor=cursor)
                 chat_log.extend(segment)
                 # vod duration in seconds is used as the total for progress bar
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
                 if not self.quiet:
                     progress.print_progress(int(segment[-1]['content_offset_seconds']),
-                                            vod_json['duration_seconds'], False if cursor else True)
+                                            vod_json['duration'], False if cursor else True)
 
             except TwitchAPIErrorNotFound:
                 break

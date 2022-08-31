@@ -244,8 +244,7 @@ class Processing:
 
             # insert duration into json using stream created datetime
             created_at = int((datetime.strptime(stream_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp()))
-            stream_json['duration_seconds'] = int(datetime.utcnow().timestamp() - created_at)
-            stream_json['duration'] = Utils.convert_to_hms(stream_json['duration_seconds'])
+            stream_json['duration'] = int(datetime.utcnow().timestamp() - created_at)
 
             # merge stream segments and convert to mp4
             try:
@@ -295,7 +294,7 @@ class Processing:
             vod_json['store_directory'] = \
                 str(Path(self.vod_directory, f'{Utils.sanitize_date(vod_json["created_at"])} - '
                                              f'{Utils.sanitize_text(vod_json["title"])} - {vod_id}'))
-            vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
+            vod_json['duration'] = Utils.convert_to_seconds(vod_json['duration'])
 
             # get vod status
             vod_live = self.callTwitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
@@ -430,7 +429,7 @@ class Processing:
             sleep(300)
 
         if Utils.time_since_date(datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').timestamp())\
-                < (vod_json['duration_seconds'] + 360):
+                < (vod_json['duration'] + 360):
             self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
                            'Running in live mode in case not all parts are available yet.')
             vod_live = True
@@ -446,14 +445,15 @@ class Processing:
         # loop for processing live vods
         while True:
             try:
-                _r = self.callTwitch.get_api(f'videos?id={vod_json["id"]}')
+                _r = self.callTwitch.get_api(f'videos?id={vod_json["vod_id"]}')
 
                 vod_json = _r['data'][0]
-                vod_json['muted_segments'] = str(vod_json['muted_segments'])
+                vod_json['vod_id'] = vod_json.pop('id')
+                vod_json['muted_segments'] = str(vod_json['muted_segments']) if vod_json['muted_segments'] else None
                 vod_json['store_directory'] = \
                     str(Path(self.vod_directory, f'{Utils.sanitize_date(vod_json["created_at"])} - '
-                                                 f'{Utils.sanitize_text(vod_json["title"])} - {vod_json["id"]}'))
-                vod_json['duration_seconds'] = Utils.convert_to_seconds(vod_json['duration'])
+                                                 f'{Utils.sanitize_text(vod_json["title"])} - {vod_json["vod_id"]}'))
+                vod_json['duration'] = Utils.convert_to_seconds(vod_json['duration'])
 
                 Utils.export_json(vod_json)
 
@@ -468,13 +468,13 @@ class Processing:
                 # download all available vod parts
                 self.log.info('Grabbing video...')
                 try:
-                    vod_index = self.callTwitch.get_vod_index(vod_json['id'], self.quality)
+                    vod_index = self.callTwitch.get_vod_index(vod_json['vod_id'], self.quality)
 
                     vod_playlist = Api.get_request(vod_index).text
 
                     # update vod json with m3u8 duration - more accurate than twitch API
                     _m = re.findall('(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', vod_playlist)[0]
-                    vod_json['duration_seconds'] = floor(float(_m))
+                    vod_json['duration'] = floor(float(_m))
                     Utils.export_json(vod_json)
 
                     # replace extra chars in base_url like /chunked/index[-muted-JU07DEVBNK.m3u8]
@@ -501,7 +501,7 @@ class Processing:
                         chat_log = self.download.get_chat(vod_json)
 
                     # only try to grab more chat logs if we aren't past vod length
-                    elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration_seconds']:
+                    elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration']:
                         self.log.debug(f'Grabbing chat logs from offset: {chat_log[-1]["content_offset_seconds"]}')
                         chat_log.extend(
                             [n for n in
