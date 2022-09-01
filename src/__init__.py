@@ -42,6 +42,7 @@ def main():
     Both the video and chat logs are grabbed if neither are specified.
     """), formatter_class=argparse.RawTextHelpFormatter)
     mode = parser.add_mutually_exclusive_group(required=False if '--show-config' in sys.argv else True)
+    stream = parser.add_mutually_exclusive_group(required=False)
     loglevel = parser.add_mutually_exclusive_group(required=False)
     mode.add_argument('-c', '--channel', type=str, action='store',
                       help='A single twitch channel to download, or multiple comma-separated channels.')
@@ -62,8 +63,11 @@ def main():
                              '(default: %(default)s)', type=Path, default=Path(os.getcwd()))
     parser.add_argument('-w', '--watch', action='store_true',
                         help='Continually check every 10 seconds for new streams/VODs from a specified channel.')
-    parser.add_argument('-S', '--stream-only', action='store_true',
+    stream.add_argument('-S', '--stream-only', action='store_true',
                         help='Only download streams which are currently live.',
+                        default=False)
+    stream.add_argument('-N', '--no-stream', action='store_true',
+                        help="Don't download streams which are currently live.",
                         default=False)
     parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
                         default=False)

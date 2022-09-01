@@ -34,6 +34,7 @@ class Processing:
         self.chat = args['chat']
         self.quality = args['quality']
         self.stream_only = args['stream_only']
+        self.no_stream = args['no_stream']
         self.config_dir = args['config_dir']
         self.quiet = args['quiet']
         self.debug = args['debug']
@@ -152,7 +153,7 @@ class Processing:
                 sys.exit(0)
 
             # archive stream in non-segmented mode if no paired vod exists
-            if channel_live and not live_vod_exists and self.video:
+            if not self.no_stream and channel_live and not live_vod_exists and self.video:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
@@ -203,6 +204,10 @@ class Processing:
                 vod_id = vod_queue[stream_id][0]
                 # skip if we are only after the current stream
                 if self.stream_only and stream_id != int(channel_data[0]['id']):
+                    continue
+
+                elif self.no_stream and stream_id == int(channel_data[0]['id']):
+                    self.log.info('Skipping VOD as it is live and no-stream argument provided.')
                     continue
 
                 self.log.debug(f'Processing VOD {vod_id} by {user_name}')
