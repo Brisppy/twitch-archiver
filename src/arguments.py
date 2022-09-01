@@ -40,7 +40,8 @@ class Arguments:
             # format urls to just vod ids
             for i in range(len(vod_ids)):
                 # test match and replace
-                if match := re.findall("(?<=twitch\.tv\/videos\/)[0-9]*", vod_ids[i]):
+                match = re.findall("(?<=twitch\.tv\/videos\/)[0-9]*", vod_ids[i])
+                if match:
                     vod_ids[i] = match[0]
 
             # insert formatted vods
@@ -54,7 +55,8 @@ class Arguments:
             # format urls to just channel name
             for i in range(len(channels)):
                 # test and replace
-                if match := re.findall("(?<=twitch\.tv\/)[a-zA-Z0-9]*", channels[i]):
+                match = re.findall("(?<=twitch\.tv\/)[a-zA-Z0-9]*", channels[i])
+                if match:
                     channels[i] = match[0]
 
             # insert formatted channels

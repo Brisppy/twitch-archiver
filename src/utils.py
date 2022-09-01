@@ -117,7 +117,8 @@ class Utils:
         last_part = int(vod_parts[-1].name.strip('.ts'))
         part_list = [int(i.name.strip('.ts')) for i in vod_parts]
 
-        if not (dicontinuity := set([i for i in range(last_part + 1)]).difference(part_list)):
+        dicontinuity = set([i for i in range(last_part + 1)]).difference(part_list)
+        if not dicontinuity:
             # merge all .ts files by concatenating them
             with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
                 pr = 0

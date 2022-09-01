@@ -136,8 +136,8 @@ class Processing:
                                                   not downloaded_vods[stream_id][2] and self.chat)})
 
             # check if channel is online and stream type is live
-            if (channel_data := self.callTwitch.get_api(f'streams?user_id={user_id}')['data'])\
-                    and channel_data[0]['type'] == 'live':
+            channel_data = self.callTwitch.get_api(f'streams?user_id={user_id}')['data']
+            if channel_data and channel_data[0]['type'] == 'live':
                 channel_live = True
                 # check if most recent vods stream_id matches current live stream id
                 live_vod_exists = int(channel_data[0]['id']) in available_vods.keys()
@@ -239,11 +239,13 @@ class Processing:
                         self.log.debug('Adding VOD info to database.')
                         with Database(Path(self.config_dir, 'vods.db')) as db:
                             # check if stream already exists and update if so
-                            if v := db.execute_query(f'SELECT stream_id, video_archived, chat_archived FROM vods WHERE '
-                                                     f'stream_id IS ?', {'stream_id': vod_json['stream_id']}):
+                            db_vod = db.execute_query(
+                                f'SELECT stream_id, video_archived, chat_archived FROM vods WHERE stream_id IS ?',
+                                {'stream_id': vod_json['stream_id']})
+                            if db_vod:
                                 # update archived flags using previous and current processing flags
-                                vod_json['video_archived'] = v[0][1] or vod_json['video_archived']
-                                vod_json['chat_archived'] = v[0][2] or vod_json['chat_archived']
+                                vod_json['video_archived'] = db_vod[0][1] or vod_json['video_archived']
+                                vod_json['chat_archived'] = db_vod[0][2] or vod_json['chat_archived']
                                 vod_json['sid'] = vod_json['stream_id']
                                 db.execute_query(update_vod, vod_json)
 

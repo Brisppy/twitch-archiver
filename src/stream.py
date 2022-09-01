@@ -45,7 +45,8 @@ class Stream:
         if not sync_vod_segments:
             processed_segments = set()
             # get existing parts to resume counting if archiving halted
-            if existing_parts := [Path(p) for p in sorted(glob(str(Path(output_dir, '*.ts'))))]:
+            existing_parts = [Path(p) for p in sorted(glob(str(Path(output_dir, '*.ts'))))]
+            if existing_parts:
                 # set to 1 above highest numbered part
                 segment_id = int(existing_parts[-1].name.strip('.ts')) + 1
             else:
@@ -175,7 +176,8 @@ class Stream:
                         break
 
             # sleep if processing time < 4s before checking for new segments
-            if (processing_time := int(datetime.utcnow().timestamp() - start_timestamp)) < 4:
+            processing_time = int(datetime.utcnow().timestamp() - start_timestamp)
+            if processing_time < 4:
                 sleep(4 - processing_time)
 
     def write_buffer_segment(self, segment_id, output_dir, tmp_file, segment_parts):
