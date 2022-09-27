@@ -144,13 +144,12 @@ class Processing:
                 live_vod_exists = int(channel_data[0]['id']) in available_vods.keys()
 
             # move on if channel offline and no vods are available
-            if not channel_live and not available_vods:
+            if not self.stream_only and not channel_live and not available_vods:
                 self.log.info(f'No VODs were found for {user_name}.')
                 continue
 
             elif not channel_live and self.stream_only:
-                self.log.debug('Exiting as stream_only flag set and channel offline.')
-                sys.exit(0)
+                continue
 
             # archive stream in non-segmented mode if no paired vod exists
             if not self.no_stream and channel_live and not live_vod_exists and self.video:
