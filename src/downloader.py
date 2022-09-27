@@ -116,7 +116,7 @@ class Downloader:
                     # break on non 200 status code
                     if _r.status_code != 200:
                         self.log.error('Code other than 200 received when trying to download segment.')
-                        break
+                        continue
 
                     # write downloaded chunks to temporary file
                     for chunk in _r.iter_content(chunk_size=1024):
