@@ -1,7 +1,7 @@
 import logging
 import m3u8
 
-from datetime import datetime
+from datetime import datetime, timezone
 from random import randrange
 from time import sleep
 
@@ -198,7 +198,7 @@ class Twitch:
         """
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
         time_since_created = Utils.time_since_date(
-            datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').timestamp())
+            datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
         if time_since_created < 60:
             sleep(60 - time_since_created)
         try:
