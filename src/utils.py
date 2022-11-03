@@ -362,7 +362,7 @@ class Utils:
         """
         try:
             _r = requests.get(
-                'https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest').json()
+                'https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest', timeout=10).json()
             latest_version = _r['tag_name'].replace('v', '')
             release_notes = _r['body']
 

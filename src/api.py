@@ -25,10 +25,10 @@ class Api:
         """
         try:
             if p is None:
-                _r = requests.get(url, headers=h)
+                _r = requests.get(url, headers=h, timeout=10)
 
             else:
-                _r = requests.get(url, params=p)
+                _r = requests.get(url, params=p, timeout=10)
 
         except requests.exceptions.RequestException as e:
             raise RequestError(url, e)
@@ -56,7 +56,7 @@ class Api:
         :return: entire requests response
         """
         try:
-            _r = session.get(url)
+            _r = session.get(url, timeout=10)
 
         except requests.exceptions.RequestException as e:
             raise RequestError(url, e)
@@ -87,10 +87,10 @@ class Api:
         """
         try:
             if j is None:
-                _r = requests.post(url, data=d, headers=h)
+                _r = requests.post(url, data=d, headers=h, timeout=10)
 
             elif d is None:
-                _r = requests.post(url, json=j, headers=h)
+                _r = requests.post(url, json=j, headers=h, timeout=10)
 
         except requests.exceptions.RequestException as e:
             raise RequestError(url, e)

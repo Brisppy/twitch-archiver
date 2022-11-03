@@ -192,7 +192,7 @@ class Stream:
         with open(Path(tempfile.gettempdir(), tmp_file), 'wb') as tmp_ts_file:
             for segment in segment_parts:
                 try:
-                    _r = requests.get(segment[0], stream=True)
+                    _r = requests.get(segment[0], stream=True, timeout=5)
 
                     if _r.status_code != 200:
                         return True

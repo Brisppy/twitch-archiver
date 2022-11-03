@@ -111,7 +111,7 @@ class Downloader:
                     return f'Maximum retries for segment {Path(ts_path).stem} reached.'
 
                 try:
-                    _r = requests.get(ts_url, stream=True)
+                    _r = requests.get(ts_url, stream=True, timeout=10)
 
                     # break on non 200 status code
                     if _r.status_code != 200:
