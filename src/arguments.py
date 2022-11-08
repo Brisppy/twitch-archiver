@@ -62,7 +62,6 @@ class Arguments:
             # insert formatted channels
             Arguments.set('channel', channels)
 
-
         # split quality into [resolution, framerate]
         if Arguments.get('quality') not in ['best', 'worst']:
             Arguments.set('quality', Arguments.get('quality').split('p'))

@@ -328,7 +328,7 @@ class Processing:
 
         except Exception as e:
             self.log.error(f'Unexpected exception encountered while downloading live-only stream.\n{e}', exc_info=True)
-            Utils.send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream'
+            Utils.send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream '
                                                  f'by {channel_data["user_name"]}', str(e))
             return
 
