@@ -15,7 +15,7 @@ from src.twitch import Twitch
 from src.utils import Utils
 
 __name__ = 'twitch-archiver'
-__version__ = '2.1.1'
+__version__ = '2.2.0'
 
 
 def main():

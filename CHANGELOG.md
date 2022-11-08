@@ -1,3 +1,32 @@
+**(2022-11-07) Version 2.2.0**
+
+**Additions:**
+  * Added issue templates.
+  * Added ability to show the current configuration.
+  * Added the ability to archive streams which aren't being saved by Twitch.
+  * Added support for providing URLs as arguments for the vods or channels to grab.
+  * Added an argument (--stream-only) for only grabbing currently live streams.
+  * When downloading channels, missing formats (video / chat) will now be grabbed on subsequent runs of TA.
+  * Added documentation for running TA as a systemd service.
+
+**Changes and Fixes:**
+  * Improved corrupt segment error logging.
+  * Added and updated various docstrings.
+  * Increased maximum allowed invalid segments when downloading streams.
+  * Sanitized credentials in debug logs.
+  * Added incremental database upgrading.
+  * Updated database schema (Version 2 -> 3 -> 4).
+  * Added the ability to update database vod entries.
+  * Fixed rate limiter for vod part grabber.
+  * Improved message for streams with unsupported part length.
+  * Fixed an issue with downloading the final stream segment(s).
+  * Fixed an issue if the user specified an invalid resolution.
+  * Fixed an issue with incorrect timestamps being used and stored.
+  * Fixed an issue with failed segments being marked as completed.
+  * Fixed an  issue where incorrect timestamps were being used to measure time since vods were created, causing new vods to error out as they were not yet available.
+  * Fixed an issue where TA would randomly freeze when fetching data due to lack of request timeouts.
+  * Minor formatting changes.
+
 **(2022-05-11) Version 2.1.1**
 
 **Changes and Fixes:**
