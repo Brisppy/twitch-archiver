@@ -224,19 +224,21 @@ class Stream:
         :param output_dir: location to move completed segment to
         :param segment_ids: segment id(s) to download
         """
-        # export the highest segment if stream ends before final segment meets requirements
-        last_id = max(buffer.keys())
+        # ensure final segment present
+        if buffer.keys():
+            # export the highest segment if stream ends before final segment meets requirements
+            last_id = max(buffer.keys())
 
-        if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
-            self.log.debug('Final part not found in output directory, assuming last segment is complete and'
-                           ' downloading.')
-            for attempt in range(6):
-                if attempt > 4:
-                    self.log.debug(f'Maximum attempts reached while downloading segment {last_id}.')
-                    break
+            if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
+                self.log.debug('Final part not found in output directory, assuming last segment is complete and'
+                               ' downloading.')
+                for attempt in range(6):
+                    if attempt > 4:
+                        self.log.debug(f'Maximum attempts reached while downloading segment {last_id}.')
+                        break
 
-                if self.write_buffer_segment(last_id, output_dir, segment_ids[last_id], buffer[last_id]):
-                    continue
+                    if self.write_buffer_segment(last_id, output_dir, segment_ids[last_id], buffer[last_id]):
+                        continue
 
-                else:
-                    break
+                    else:
+                        break
