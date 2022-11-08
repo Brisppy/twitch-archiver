@@ -24,6 +24,7 @@ Primarily focused on data preservation, this script can be used to archive an en
     * [Configuration](#configuration)
   * [Retrieving Tokens](#retrieving-tokens)
   * [Extra Info](#extra-info)
+    * [Running as a Service](#running-as-a-service)
     * [Notes](#notes)
     * [How files are stored](#how-files-are-stored)
     * [Planned Features](#planned-features)
@@ -35,17 +36,16 @@ Primarily focused on data preservation, this script can be used to archive an en
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle.[^1]
 * Allows the downloading of **live** VODs *before sections can be muted or deleted*.[^2]
 * Generates and saves a readable chat log with timestamps and user badges.
-* Allows for the archiving of both video and chat.
+* Allows for the archiving of both video and chat logs.
 * Supports archiving streams without an associated VOD.
 * Error notifications sent via pushbullet.
-* Supports fully automated archiving.
 * Requires minimal setup or external programs.
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
 [^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
 
 ## Requirements
-* **[Python](https://www.python.org/) >= 3.8**
+* **[Python](https://www.python.org/) >= 3.7**
 * Python **requests** and **m3u8** modules `python -m pip install requests m3u8` or `python -m pip install -r requirements.txt`
 * **[FFmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](#installation))
 
@@ -117,6 +117,7 @@ optional arguments:
                         (default: $CURRENT_DIRECTORY)
   -w, --watch           Continually check every 10 seconds for new streams from the specified channel.
   -S, --stream-only     Only download streams which are currently live.
+  -N, --no-stream       Don't download streams which are currently live.
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
@@ -129,6 +130,11 @@ optional arguments:
   --version             Show version number and exit.
   --show-config         Show saved config and exit.
 ```
+
+#### Watch Mode
+Watch mode can be used by adding the `-w` argument, repeatedly checking every 10 seconds for new VODs.
+
+My recommendation is to set up a systemd service to manage the starting / restarting of twitch-archiver, see [Systemd Service Setup](#systemd-service-setup) for how this can be done.
 
 #### Configuration
 By default, configuration files are stored in `$HOME/.config/twitch-archiver`
@@ -166,6 +172,24 @@ These authentication parameters are loaded into TA **first**, but will be overwr
 4. The provided Client Secret is used as the `CLIENT_SECRET` variable.
 
 ## Extra Info
+### Running TA as a service
+I would recommend running twitch-archiver as a service under Linux. This makes use of the watch mode to repeatedly look for new VODs or streams to download.
+
+The below section covers the setup of the service, which can be reused for every channel you wish to archiver by simply repeating steps 3 through 5.
+
+#### Systemd Service Setup
+To run twitch-archiver as an automatic, self-restarting service:
+
+First grab the service unit file and reload systemd.
+
+    # wget https://gist.githubusercontent.com/Brisppy/cdaa7bd812b11c07fdbb16e935777a48/raw/f71a8db4da7fe7abfb0c3ef974834f15befc8930/twitch-archiver@.service -P /etc/system/systemd/
+    # systemctl daemon-reload
+
+Then start twitch-archiver replacing `CHANNEL` with the name of a channel you wish to archive. Repeat this for every channel you want to archive.
+
+    # systemctl start twitch-archiver@CHANNEL.service
+    # systemctl enable twitch-archiver@CHANNEL.service
+
 ### Notes
 * Some streamers opt to place their music on a separate audio track which isn't archived by Twitch. Due to the way LIVE archiving is done with TA, the music may cut in and out intermittently, often due to an ad being played and the stream archiver not being able to grab those parts. To avoid this entirely, use the `--vod-only` option which will not have this track at all, though this archive is ~5 minutes delayed and so will miss the end of a VOD if it is deleted.
 * We use the downloaded VOD duration to ensure that the VOD was successfully downloaded and combined properly, this is checked against Twitch's own API, which can show incorrect values. If you come across a VOD with a displayed length in the Twitch player longer than it actually goes for (If the VOD finishes before the timestamp end is reached), create a file named `.ignorelength` inside the VOD's directory (where `vod.json` and `verbose_chat.log` are stored), you may also want to verify that the VOD file matches the Twitch video after archiving too.
@@ -174,6 +198,7 @@ These authentication parameters are loaded into TA **first**, but will be overwr
 * If you intend to push chat logs to an ELK stack, [this gist](https://gist.github.com/Brisppy/ddcf4d5bbb73f957181743faadb959e3) should have everything you need.
 * By default, the highest quality VOD is downloaded. This can be changed via the `-q QUALITY` argument, where quality can be `best`, `worst`, or a custom value in the format `[resolution]p[framerate]`, for example `1080p60` or `720p30` would be valid values. If an exact match for the quality cannot be found, any quality of a matching **resolution** will be downloaded; for example, if you select `720p60`, and only `720p30` is available, `720p30` would be downloaded. Similarly, if you select `1080p30` and only `1080p60` is found, then `1080p60` would be downloaded instead. If no match is found, the highest quality will be downloaded.
 * Debug logging only works on Linux. If you know how to get Python logging to work on all operating systems *with multiprocessing*, i'd be grateful if you could submit a PR with the required changes. 
+* Dashboard uploads are not currently supported by the channel archiver. Only archived streams will be grabbed.
 
 ### How files are stored
 VODs are downloaded to the specified directory. If downloading a channel, an individual folder will be created for that specific channel.
@@ -213,6 +238,7 @@ When supplying just VOD ID(s), the vod is downloaded to a folder inside the supp
 - [x] Implement video archiving for streams without VODs.
 - [ ] Implement chat archiving for streams without VODs.
 - [ ] Track and store games played during streams.
+- [ ] Create and release packaged .exe
 
 ### Why?
 To put it simply - **I don't like when data is deleted**.
