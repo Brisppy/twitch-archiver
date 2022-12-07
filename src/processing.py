@@ -202,10 +202,10 @@ class Processing:
             for stream_id in vod_queue:
                 vod_id = vod_queue[stream_id][0]
                 # skip if we are only after the current stream
-                if self.stream_only and stream_id != int(channel_data[0]['id']):
+                if channel_data and self.stream_only and stream_id != int(channel_data[0]['id']):
                     continue
 
-                elif self.no_stream and stream_id == int(channel_data[0]['id']):
+                elif channel_data and self.no_stream and stream_id == int(channel_data[0]['id']):
                     self.log.info('Skipping VOD as it is live and no-stream argument provided.')
                     continue
 
