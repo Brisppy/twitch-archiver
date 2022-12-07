@@ -232,7 +232,8 @@ class Processing:
                 if vod_json:
                     # insert video, chat archival flags
                     vod_json['video_archived'] = vod_queue[stream_id][1]
-                    vod_json['chat_archived'] = vod_queue[stream_id][2]
+                    if 'chat_archived' not in vod_json.keys():
+                        vod_json['chat_archived'] = vod_queue[stream_id][2]
                     # null empty values
                     for key in vod_json.keys():
                         if type(vod_json[key]) == str and vod_json[key] == "":
@@ -400,21 +401,27 @@ class Processing:
                                         "'vod/parts' directory if VOD still available.")
 
             if get_chat:
-                with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
-                    chat_log = json.loads(chat_file.read())
+                try:
+                    with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
+                        chat_log = json.loads(chat_file.read())
 
-                # generate and export the readable chat log
-                if chat_log:
-                    try:
-                        self.log.debug('Generating readable chat log and saving to disk...')
-                        r_chat_log = Utils.generate_readable_chat_log(chat_log)
-                        Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
+                    # generate and export the readable chat log
+                    if chat_log:
+                        try:
+                            self.log.debug('Generating readable chat log and saving to disk...')
+                            r_chat_log = Utils.generate_readable_chat_log(chat_log)
+                            Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
 
-                    except Exception as e:
-                        raise ChatExportError(e)
+                        except Exception as e:
+                            raise ChatExportError(e)
 
-                else:
-                    self.log.info('No chat messages found.')
+                    else:
+                        self.log.info('No chat messages found.')
+
+                # catch missing chat log and modify database insert
+                except FileNotFoundError:
+                    self.log.error('No chat log found, download likely failed or log unavailable.')
+                    vod_json['chat_archived'] = False
 
             if get_video:
                 # delete temporary .ts parts and merged.ts file
