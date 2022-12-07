@@ -112,7 +112,8 @@ class Processing:
             with Database(Path(self.config_dir, 'vods.db')) as db:
                 # dict containing stream_id: (vod_id, video_downloaded, chat_downloaded)
                 downloaded_vods = dict([(i[0], (i[1], i[2], i[3])) for i in db.execute_query(
-                    f'SELECT stream_id, vod_id, video_archived, chat_archived FROM vods WHERE user_id IS {user_id}')])
+                    'SELECT stream_id, vod_id, video_archived, chat_archived FROM vods WHERE user_id IS ?',
+                    {'user_id' : user_id})])
             self.log.info(f'Downloaded vods: {downloaded_vods}' if self.debug
                           else f'Downloaded vods: {len(downloaded_vods)}')
 
@@ -164,7 +165,7 @@ class Processing:
                     # check if stream in database
                     with Database(Path(self.config_dir, 'vods.db')) as db:
                         downloaded_streams = [str(i[0]) for i in db.execute_query(
-                            f'SELECT stream_id FROM vods WHERE user_id IS {user_id}')]
+                            'SELECT stream_id FROM vods WHERE user_id IS ?', {'user_id': user_id})]
 
                     # Check if stream id in database
                     if channel_data[0]['id'] in downloaded_streams:
@@ -219,7 +220,8 @@ class Processing:
                 # check if vod in database
                 with Database(Path(self.config_dir, 'vods.db')) as db:
                     downloaded_vod = db.execute_query(
-                        f'SELECT vod_id, video_archived, chat_archived FROM vods WHERE stream_id IS {stream_id}')
+                        'SELECT vod_id, video_archived, chat_archived FROM vods WHERE stream_id IS ?',
+                        {'stream_id': stream_id})
 
                 # check if vod_id exists in database in the requested format(s)
                 if downloaded_vod and vod_queue[stream_id][1] and downloaded_vod[0][1]\
@@ -245,7 +247,7 @@ class Processing:
                         with Database(Path(self.config_dir, 'vods.db')) as db:
                             # check if stream already exists and update if so
                             db_vod = db.execute_query(
-                                f'SELECT stream_id, video_archived, chat_archived FROM vods WHERE stream_id IS ?',
+                                'SELECT stream_id, video_archived, chat_archived FROM vods WHERE stream_id IS ?',
                                 {'stream_id': vod_json['stream_id']})
                             if db_vod:
                                 # update archived flags using previous and current processing flags
@@ -303,8 +305,8 @@ class Processing:
 
             # merge stream segments and convert to mp4
             try:
-                Utils.combine_vod_parts(stream_json, print_progress=False if self.quiet else True)
-                Utils.convert_vod(stream_json, True, print_progress=False if self.quiet else True)
+                Utils.combine_vod_parts(stream_json, print_progress=not self.quiet)
+                Utils.convert_vod(stream_json, True, print_progress=not self.quiet)
 
             except Exception as e:
                 raise VodMergeError(e)
@@ -536,12 +538,12 @@ class Processing:
                     vod_playlist = Api.get_request(vod_index).text
 
                     # update vod json with m3u8 duration - more accurate than twitch API
-                    _m = re.findall('(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', vod_playlist)[0]
+                    _m = re.findall(r'(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', vod_playlist)[0]
                     vod_json['duration'] = floor(float(_m))
                     Utils.export_json(vod_json)
 
                     # replace extra chars in base_url like /chunked/index[-muted-JU07DEVBNK.m3u8]
-                    _m = re.findall('(?<=\/)(index.*)', vod_index)[0]
+                    _m = re.findall(r'(?<=\/)(index.*)', vod_index)[0]
                     vod_base_url = vod_index.replace(_m, '')
 
                     self.download.get_m3u8_video(m3u8.loads(vod_playlist), vod_base_url, vod_json['store_directory'])
