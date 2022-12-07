@@ -409,7 +409,7 @@ class Processing:
                     if chat_log:
                         try:
                             self.log.debug('Generating readable chat log and saving to disk...')
-                            r_chat_log = Utils.generate_readable_chat_log(chat_log)
+                            r_chat_log = Utils.generate_readable_chat_log(chat_log, datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc))
                             Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
 
                         except Exception as e:
@@ -564,11 +564,11 @@ class Processing:
                         chat_log = self.download.get_chat(vod_json)
 
                     # only try to grab more chat logs if we aren't past vod length
-                    elif int(chat_log[-1]['content_offset_seconds']) < vod_json['duration']:
-                        self.log.debug(f'Grabbing chat logs from offset: {chat_log[-1]["content_offset_seconds"]}')
+                    elif int(chat_log[-1]['contentOffsetSeconds']) < vod_json['duration']:
+                        self.log.debug(f'Grabbing chat logs from offset: {chat_log[-1]["contentOffsetSeconds"]}')
                         chat_log.extend(
                             [n for n in
-                             self.download.get_chat(vod_json, floor(int(chat_log[-1]['content_offset_seconds'])))
+                             self.download.get_chat(vod_json, floor(int(chat_log[-1]['contentOffsetSeconds'])))
                              if n['_id'] not in [m['_id'] for m in chat_log]])
 
                     Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])

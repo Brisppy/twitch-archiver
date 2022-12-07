@@ -171,7 +171,7 @@ class Downloader:
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
                 if not self.quiet:
-                    progress.print_progress(int(segment[-1]['content_offset_seconds']),
+                    progress.print_progress(int(segment[-1]['contentOffsetSeconds']),
                                             vod_json['duration'], False if cursor else True)
 
             except TwitchAPIErrorNotFound:
@@ -194,16 +194,25 @@ class Downloader:
         :param cursor: cursor returned by a previous call of this function
         :return: list of comments and cursor if one is returned from twitch
         """
-        if not cursor or offset:
-            u = f'https://api.twitch.tv/v5/videos/{vod_id}/comments?content_offset_seconds={offset}'
+        # build payload
+        if offset is not None:
+            _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
+                   "variables": {"videoID": vod_id, "contentOffsetSeconds": offset}}]
 
         else:
-            u = f'https://api.twitch.tv/v5/videos/{vod_id}/comments?cursor={cursor}'
+            _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
+                   "variables": {"videoID": vod_id, "cursor": cursor}}]
 
-        _r = Api.get_request_with_session(u, session).json()
+        _p[0]['extensions'] =\
+            {'persistedQuery': {'version': 1,
+                                'sha256Hash': "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a"}}
 
-        try:
-            return _r['comments'], _r['_next']
+        _r = Api.post_request_with_session('https://gql.twitch.tv/gql', session, _p).json()
+        comments = _r[0]['data']['video']['comments']
 
-        except KeyError:
-            return _r['comments'], None
+        # check if next page exists
+        if comments['pageInfo']['hasNextPage']:
+            return [c['node'] for c in comments['edges']], comments['edges'][-1]['cursor']
+
+        else:
+            return [c['node'] for c in comments['edges']], None

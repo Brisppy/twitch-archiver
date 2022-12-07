@@ -21,20 +21,40 @@ class Utils:
     Various utility functions for modifying and saving data.
     """
     @staticmethod
-    def generate_readable_chat_log(chat_log):
+    def generate_readable_chat_log(chat_log, stream_start):
         """Converts the raw chat log into a scrollable, readable format.
 
         :param chat_log: list of chat messages retrieved from twitch which are to be converted
+        :param stream_start: stream start utc timestamp
         :return: formatted chat log
         """
         r_chat_log = []
         for comment in chat_log:
-            comment_time = '{:.3f}'.format(comment['content_offset_seconds'])
-            user_name = str(comment['commenter']['display_name'])
-            user_message = str(comment['message']['body'])
+            # format comments with / without millisecond timestamp
+            if '.' in comment['createdAt']:
+                created_time = \
+                    datetime.strptime(comment['createdAt'], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
+            else:
+                created_time = \
+                    datetime.strptime(comment['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+
+            comment_time = '{:.3f}'.format(Utils.get_time_difference(stream_start, created_time))
+
+            # catch comments without commenter informations
+            if comment['commenter']:
+                user_name = str(comment['commenter']['displayName'])
+            else:
+                user_name = '~MISSING_COMMENTER_INFO~'
+
+            # catch comments without data
+            if comment['message']['fragments']:
+                user_message = str(comment['message']['fragments'][0]['text'])
+            else:
+                user_message = '~MISSING_MESSAGE_INFO~'
+
             user_badges = ''
             try:
-                for badge in comment['message']['user_badges']:
+                for badge in comment['message']['userBadges']:
                     if 'broadcaster' in badge['_id']:
                         user_badges += '(B)'
 
