@@ -99,3 +99,20 @@ class Api:
             raise TwitchAPIError(url, _r.status_code, _r.text)
 
         return _r
+
+    @staticmethod
+    def post_request_with_session(url, session, j):
+        """Wrapper for post requests for catching exceptions and status code issues.
+
+        :param url: http/s endpoint to send request to
+        :param session: requests session
+        :param j: data to send with request as json
+        :return: entire requests response
+        """
+        try:
+            _r = session.post(url, json=j, timeout=10)
+
+        except requests.exceptions.RequestException as e:
+            raise RequestError(url, e)
+
+        return _r
