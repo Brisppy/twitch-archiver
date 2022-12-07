@@ -372,10 +372,12 @@ class Utils:
         :return: latest release notes
         """
         try:
-            _r = requests.get(
-                'https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest', timeout=10).json()
-            latest_version = _r['tag_name'].replace('v', '')
-            release_notes = _r['body']
+            _r = requests.get('https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest', timeout=10)
+            # catch error codes such as 403 in case of rate limiting
+            if _r.status_code != 200:
+                return '0.0.0', ''
+            latest_version = _r.json()['tag_name'].replace('v', '')
+            release_notes = _r.json()['body']
 
         # return a dummy value if request fails
         except Exception:
