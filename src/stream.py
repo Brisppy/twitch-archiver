@@ -201,7 +201,7 @@ class Stream:
                     for chunk in _r.iter_content(chunk_size=1024):
                         tmp_ts_file.write(chunk)
 
-                except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ReadTimeout) as e:
+                except requests.exceptions.RequestException as e:
                     self.log.debug(f'Error downloading VOD stream segment {segment_id} : {segment}. Error: {e}')
                     return True
 
