@@ -354,6 +354,17 @@ class Utils:
         return current_time - created_at
 
     @staticmethod
+    def get_time_difference(start_time, end_time):
+        """Returns the time in seconds between a given datetime and now.
+
+        :param start_time: start utc timestamp
+        :param end_time: end utc timestamp
+        :return: the time in seconds:milliseconds between the two datetimes
+        """
+
+        return (end_time - start_time).total_seconds()
+
+    @staticmethod
     def get_latest_version():
         """Fetches the latest release information from GitHub.
 
