@@ -1,9 +1,11 @@
-**(2022-12-07) Version 2.2.1**
+**(2022-12-08) Version 2.2.1**
 
 **Changes and Fixes:**
   * Fixed chat conversion erroring out if chat logs could not be grabbed.
   * Fixed request timeouts causing vod downloader to error out rather than retry.
   * Fixed an issue when using the '--no-stream' argument due to missing channel data (https://github.com/Brisppy/twitch-archiver/issues/5 - Thanks smeinecke).
+  * Updated chat archiver to support new Twitch API.
+  * Fixed an issue with GitHub version checker.
 
 **(2022-11-07) Version 2.2.0**
 
