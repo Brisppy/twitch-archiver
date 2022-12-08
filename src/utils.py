@@ -8,6 +8,7 @@ import subprocess
 
 from datetime import datetime, timezone
 from glob import glob
+from itertools import groupby
 from math import ceil, floor
 from pathlib import Path
 
@@ -182,18 +183,23 @@ class Utils:
                     raise VodConvertError(f'VOD merger exited with error. Command: {p.args}.')
 
     @staticmethod
-    def convert_vod(vod_json, ignore_corruptions=False, print_progress=True):
+    def convert_vod(vod_json, ignore_corruptions=None, print_progress=True):
         """Converts the VOD from a .ts format to .mp4.
 
         :param vod_json: dict of vod parameters retrieved from twitch
-        :param ignore_corruptions: boolean whether to ignore corrupt packets which can appear when downloading
-                                   a live stream.
+        :param ignore_corruptions: list of tuples containing (min, max) of corrupt segments which will be ignored
         :param print_progress: boolean whether to print progress bar
         :raises vodConvertError: error encountered during conversion process
         """
         log.info('Converting VOD to mp4. This may take a while.')
 
         progress = Progress()
+        corrupt_parts = set()
+        corrupt_part_whitelist = set()
+        if ignore_corruptions:
+            # create corrupt part whitelist form provided (min, max) ranges. The given range is expanded +-2 as the
+            # DTS timestamps can still be wonky past them
+            [corrupt_part_whitelist.update(r) for r in [range(t[0] - 2, t[1] + 3) for t in ignore_corruptions]]
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
@@ -202,35 +208,57 @@ class Utils:
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
-                if 'time=' in line:
+                # save dts offset incase corrupt segment found
+                if 'start: ' in line:
+                    dts_offset = float(re.search(r'(?<=start: ).*(?=, bitrate:)', line).group(0)) * 90000
+
+                elif 'time=' in line:
                     # extract current timestamp from output
-                    current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
+                    current_time = re.search(r'(?<=time=).*(?= bitrate=)', line).group(0).split(':')
                     current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
 
                     if print_progress:
                         progress.print_progress(int(current_time), vod_json['duration'])
 
-                if not ignore_corruptions and 'Packet corrupt' in line:
-                    log.error(f'Corrupt packet encountered. Timestamp: {current_time}')
-                    p.kill()
+                elif 'Packet corrupt' in line:
+                    dts_timestamp = int(re.search(r'(?<=dts = ).*(?=\).)', line).group(0))
+                    corrupt_part = floor((dts_timestamp - dts_offset) / 90000 / 10)
 
-                    corrupt_part = floor(current_time / 10)
-                    # get part 10 less than corrupt part, 0 if it is less than
-                    lowest_part = '{:05d}'.format(
-                        (corrupt_part - 10) if corrupt_part >= 10 else 0)
-                    # get part 10 higher than corrupt part, last part if it is more than
-                    highest_part = '{:05d}'.format((corrupt_part + 10)
-                                                   if corrupt_part <= floor(vod_json['duration'] / 10) - 10
-                                                   else floor(vod_json['duration'] / 10))
+                    # ignore if corrupt packet within ignore_corruptions range
+                    if corrupt_part in corrupt_part_whitelist:
+                        log.error(f'Ignoring corrupt packet as part in whitelist. Part: {corrupt_part}')
+                        pass
 
-                    raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
-                                          f"-downloaded. Ensure VOD is still available and either delete files "
-                                          f"'{lowest_part}.ts' - '{highest_part}.ts' from 'parts' directory or, entire "
-                                          f"'parts' directory if issue persists.")
+                    else:
+                        corrupt_parts.add(int(corrupt_part))
+                        log.error(f'Corrupt packet encountered. Part: {corrupt_part}')
 
         if p.returncode:
             log.error(f'VOD converter exited with error. Command: {p.args}.')
             raise VodConvertError(f'VOD converter exited with error. Command: {p.args}.')
+
+        if corrupt_parts:
+            # generate ranges of corrupted parts and format
+            corrupted_ranges = Utils.to_ranges(corrupt_parts)
+            formatted_ranges = []
+            for t in corrupted_ranges:
+                if t[0] == t[1]:
+                    formatted_ranges.append(f'{t[0]}.ts')
+                else:
+                    formatted_ranges.append(f'{t[0]}-{t[1]}.ts')
+
+            raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
+                                  "-downloaded. Ensure VOD is still available and either delete the .ts files listed "
+                                  "below from 'parts' directory or, entire 'parts' directory if issue persists.\n"
+                                  + (', '.join(formatted_ranges)))
+
+    # https://stackoverflow.com/a/43091576
+    @staticmethod
+    def to_ranges(iterable):
+        iterable = sorted(set(iterable))
+        for key, group in groupby(enumerate(iterable), lambda t: t[1] - t[0]):
+            group = list(group)
+            yield group[0][1], group[-1][1]
 
     @staticmethod
     def verify_vod_length(vod_json):
@@ -401,7 +429,7 @@ class Utils:
 
         # return a dummy value if request fails
         except Exception:
-            return '0.0.0'
+            return '0.0.0', ''
 
         return latest_version, release_notes
 

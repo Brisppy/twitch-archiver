@@ -1,4 +1,5 @@
 from glob import glob
+import json
 import logging
 import os
 import requests
@@ -45,19 +46,26 @@ class Downloader:
 
         ts_url_list = []
         ts_path_list = []
+        muted_segments = []
 
         # collect ids of all downloaded parts
         downloaded_ids = [str(Path(p).name)[:4].lstrip('0') + str(Path(p).name)[4:]
                           for p in glob(str(Path(store_directory, 'parts', '*.ts')))]
 
         # process all ids in playlist
-        for ts_id in [s.uri.replace('-muted', '') for s in m3u8_playlist.segments]:
+        for ts_id in [s.uri for s in m3u8_playlist.segments]:
+            if '-muted' in ts_id:
+                muted_segments.append(int(ts_id.replace('-muted.ts', '')))
             # append ts_id to to-download list if it isn't already downloaded
-            if ts_id not in downloaded_ids:
+            if ts_id.replace('-muted', '') not in downloaded_ids:
                 # create a tuple with (TS_URL, TS_PATH)
                 ts_url_list.append(m3u8_base_url + ts_id)
                 ts_path_list.append(Path(store_directory, 'parts',
-                                         str('{:05d}'.format(int(ts_id.split('.')[0])) + '.ts')))
+                                         str('{:05d}'.format(int(ts_id.split('.')[0].replace('-muted', ''))) + '.ts')))
+
+        # export list of muted ids if present
+        with open(Path(store_directory, 'parts', '.muted'), 'w') as mutefile:
+            json.dump(list(Utils.to_ranges(muted_segments)), mutefile)
 
         if ts_url_list and ts_path_list:
             # create worker pool for downloading vods

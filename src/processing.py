@@ -304,7 +304,7 @@ class Processing:
             # merge stream segments and convert to mp4
             try:
                 Utils.combine_vod_parts(stream_json, print_progress=False if self.quiet else True)
-                Utils.convert_vod(stream_json, True, print_progress=False if self.quiet else True)
+                Utils.convert_vod(stream_json, [(0, 99999)], print_progress=False if self.quiet else True)
 
             except Exception as e:
                 raise VodMergeError(e)
@@ -390,7 +390,10 @@ class Processing:
                 # combine all the 10s long .ts parts into a single file, then convert to .mp4
                 try:
                     Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
-                    Utils.convert_vod(vod_json, print_progress=False if self.quiet else True)
+                    # load muted segments if any exists
+                    with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r') as mutefile:
+                        muted_segments = json.load(mutefile)
+                    Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
 
                 except Exception as e:
                     raise VodMergeError(e)
