@@ -201,6 +201,16 @@ class Utils:
             # DTS timestamps can still be wonky past them
             [corrupt_part_whitelist.update(r) for r in [range(t[0] - 2, t[1] + 3) for t in ignore_corruptions]]
 
+        # get dts offset of first part
+        with subprocess.Popen(
+                f'ffprobe -v quiet -print_format json -show_format -show_streams "{Path(vod_json["store_directory"], "parts", "00000.ts")}"', shell=True,
+                stdout=subprocess.PIPE, universal_newlines=True) as p:
+            ts_file_data = ''
+            for line in p.stdout:
+                ts_file_data += line
+
+            dts_offset = float(json.loads(ts_file_data)['format']['start_time']) * 90000
+
         # convert merged .ts file to .mp4
         with subprocess.Popen(
                 f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" -c:a copy -c:v copy '
@@ -208,11 +218,7 @@ class Utils:
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and print progress bar
             for line in p.stderr:
-                # save dts offset incase corrupt segment found
-                if 'start: ' in line:
-                    dts_offset = float(re.search(r'(?<=start: ).*(?=, bitrate:)', line).group(0)) * 90000
-
-                elif 'time=' in line:
+                if 'time=' in line:
                     # extract current timestamp from output
                     current_time = re.search(r'(?<=time=).*(?= bitrate=)', line).group(0).split(':')
                     current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
