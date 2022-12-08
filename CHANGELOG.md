@@ -6,6 +6,8 @@
   * Fixed an issue when using the '--no-stream' argument due to missing channel data (https://github.com/Brisppy/twitch-archiver/issues/5 - Thanks smeinecke).
   * Updated chat archiver to support new Twitch API.
   * Fixed an issue with GitHub version checker.
+  * Added missing SQL escape and cleanup (https://github.com/Brisppy/twitch-archiver/pull/7 - Thanks koroban).
+  * Fixed an issue with VODs containing muted segments not downloading, and added method for ignoring muted segments which are identified as corrupt when converting the vod file (https://github.com/Brisppy/twitch-archiver/issues/8 - Thanks koroban for finding this).
 
 **(2022-11-07) Version 2.2.0**
 
