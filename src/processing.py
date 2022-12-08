@@ -306,7 +306,7 @@ class Processing:
             # merge stream segments and convert to mp4
             try:
                 Utils.combine_vod_parts(stream_json, print_progress=not self.quiet)
-                Utils.convert_vod(stream_json, True, print_progress=not self.quiet)
+                Utils.convert_vod(stream_json, [(0, 99999)], print_progress=not self.quiet)
 
             except Exception as e:
                 raise VodMergeError(e)
@@ -392,7 +392,10 @@ class Processing:
                 # combine all the 10s long .ts parts into a single file, then convert to .mp4
                 try:
                     Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
-                    Utils.convert_vod(vod_json, print_progress=False if self.quiet else True)
+                    # load muted segments if any exists
+                    with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r') as mutefile:
+                        muted_segments = json.load(mutefile)
+                    Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
 
                 except Exception as e:
                     raise VodMergeError(e)
@@ -571,7 +574,7 @@ class Processing:
                         chat_log.extend(
                             [n for n in
                              self.download.get_chat(vod_json, floor(int(chat_log[-1]['contentOffsetSeconds'])))
-                             if n['_id'] not in [m['_id'] for m in chat_log]])
+                             if n['id'] not in [m['id'] for m in chat_log]])
 
                     Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])
 
