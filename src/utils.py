@@ -56,13 +56,13 @@ class Utils:
             user_badges = ''
             try:
                 for badge in comment['message']['userBadges']:
-                    if 'broadcaster' in badge['_id']:
+                    if 'broadcaster' in badge['setID']:
                         user_badges += '(B)'
 
-                    if 'moderator' in badge['_id']:
+                    if 'moderator' in badge['setID']:
                         user_badges += '(M)'
 
-                    if 'subscriber' in badge['_id']:
+                    if 'subscriber' in badge['setID']:
                         user_badges += '(S)'
 
             except KeyError:
