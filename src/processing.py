@@ -507,6 +507,10 @@ class Processing:
             with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
                 chat_log = json.loads(chat_file.read())
 
+            # ignore chat logs created with older incompatible schema - see v2.2.1 changes
+            if chat_log and 'contentOffsetSeconds' not in chat_log[0].keys():
+                chat_log = []
+
         except FileNotFoundError:
             chat_log = []
 
