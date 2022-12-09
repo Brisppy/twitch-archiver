@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from src.api import Api
-from src.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound
+from src.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, ChatDownloadError, RequestError
 from src.utils import Utils, Progress
 
 
@@ -192,8 +192,7 @@ class Downloader:
 
         return chat_log
 
-    @staticmethod
-    def get_chat_segment(session, vod_id, offset=None, cursor=None):
+    def get_chat_segment(self, session, vod_id, offset=None, cursor=None):
         """Retrieves a single chat segment.
 
         :param session: requests session to link request to
@@ -215,7 +214,20 @@ class Downloader:
             {'persistedQuery': {'version': 1,
                                 'sha256Hash': "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a"}}
 
-        _r = Api.post_request_with_session('https://gql.twitch.tv/gql', session, _p).json()
+        for attempt in range(6):
+            if attempt > 4:
+                self.log.error(
+                    f'Maximum attempts reached while downloading chat segment at cursor or offset: {cursor, offset}.')
+                raise ChatDownloadError
+
+            try:
+                _r = Api.post_request_with_session('https://gql.twitch.tv/gql', session, _p).json()
+
+            except RequestError:
+                continue
+
+            break
+
         comments = _r[0]['data']['video']['comments']
 
         # check if next page exists
