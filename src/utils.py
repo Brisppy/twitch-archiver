@@ -216,8 +216,10 @@ class Utils:
                 f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" -c:a copy -c:v copy '
                 f'"{Path(vod_json["store_directory"], "vod.mp4")}"',
                 shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
-            # get progress from ffmpeg output and print progress bar
+            # get progress from ffmpeg output and catch corrupt segments
+            ffmpeg_log = ''
             for line in p.stderr:
+                ffmpeg_log += line
                 if 'time=' in line:
                     # extract current timestamp from output
                     current_time = re.search(r'(?<=time=).*(?= bitrate=)', line).group(0).split(':')
@@ -239,7 +241,7 @@ class Utils:
 
                     # ignore if corrupt packet within ignore_corruptions range
                     if corrupt_part in corrupt_part_whitelist:
-                        log.error(f'Ignoring corrupt packet as part in whitelist. Part: {corrupt_part}')
+                        log.debug(f'Ignoring corrupt packet as part in whitelist. Part: {corrupt_part}')
                         pass
 
                     else:
@@ -247,8 +249,11 @@ class Utils:
                         log.error(f'Corrupt packet encountered. Part: {corrupt_part}')
 
         if p.returncode:
-            log.error(f'VOD converter exited with error. Command: {p.args}.')
-            raise VodConvertError(f'VOD converter exited with error. Command: {p.args}.')
+            log.debug('FFmpeg exited with error code, output dumped to VOD directory.')
+            with open(Path(vod_json["store_directory"], 'parts', 'ffmpeg.log'), 'w') as ffout:
+                ffout.write(ffmpeg_log)
+
+            raise VodConvertError(f"VOD converter exited with error. Delete 'parts' directory and re-download VOD.")
 
         if corrupt_parts:
             # generate ranges of corrupted parts and format
