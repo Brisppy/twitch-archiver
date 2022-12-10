@@ -227,7 +227,14 @@ class Utils:
                         progress.print_progress(int(current_time), vod_json['duration'])
 
                 elif 'Packet corrupt' in line:
-                    dts_timestamp = int(re.search(r'(?<=dts = ).*(?=\).)', line).group(0))
+                    try:
+                        dts_timestamp = int(re.search(r'(?<=dts = ).*(?=\).)', line).group(0))
+
+                    # Catch corrupt parts without timestamp, shows up as 'NOPTS'
+                    except ValueError:
+                        raise VodConvertError("Corrupt packet encountered at unknown timestamp while converting VOD. "
+                                              "Delete 'parts' folder and re-download VOD.")
+
                     corrupt_part = floor((dts_timestamp - dts_offset) / 90000 / 10)
 
                     # ignore if corrupt packet within ignore_corruptions range
