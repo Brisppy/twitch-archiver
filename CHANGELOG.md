@@ -1,4 +1,4 @@
-**(2022-12-08) Version 2.2.1**
+**(2022-12-12) Version 2.2.1**
 
 **Changes and Fixes:**
   * Fixed chat conversion erroring out if chat logs could not be grabbed.
@@ -8,6 +8,9 @@
   * Fixed an issue with GitHub version checker.
   * Added missing SQL escape and cleanup (https://github.com/Brisppy/twitch-archiver/pull/7 - Thanks koroban).
   * Fixed an issue with VODs containing muted segments not downloading, and added method for ignoring muted segments which are identified as corrupt when converting the vod file (https://github.com/Brisppy/twitch-archiver/issues/8 - Thanks koroban for finding this).
+  * Added channel name to pushbullet notifications.
+  * Improved logging for FFmpeg VOD conversion.
+  * Moved extra README info to GitHub wiki.
 
 **(2022-11-07) Version 2.2.0**
 
