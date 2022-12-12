@@ -414,7 +414,8 @@ class Processing:
                     if chat_log:
                         try:
                             self.log.debug('Generating readable chat log and saving to disk...')
-                            r_chat_log = Utils.generate_readable_chat_log(chat_log, datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc))
+                            r_chat_log = Utils.generate_readable_chat_log(chat_log, datetime.strptime(
+                                vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc))
                             Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
 
                         except Exception as e:
@@ -492,12 +493,14 @@ class Processing:
         Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
 
         # wait if vod recently created
-        if Utils.time_since_date(datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) < 300:
+        if Utils.time_since_date(datetime.strptime(
+                vod_json['created_at'],'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) < 300:
             self.log.info('Waiting 5m to download initial VOD parts as it was created very recently. Live archiving '
                           'will still function.')
             sleep(300)
 
-        if Utils.time_since_date(datetime.strptime(vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) \
+        if Utils.time_since_date(datetime.strptime(
+                vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) \
                 < (vod_json['duration'] + 360):
             self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
                            'Running in live mode in case not all parts are available yet.')
