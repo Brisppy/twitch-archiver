@@ -431,6 +431,18 @@ class Processing:
                     vod_json['chat_archived'] = False
 
             if get_video:
+                # grab thumbnail at 1080p resolution - any resolution can be used but this should be fine for almost
+                # every stream
+                try:
+                    self.log.debug('Downloading VOD thumbnail.')
+                    thumbnail = Api.get_request(vod_json['thumbnail_url'].replace('%{width}x%{height}', '1920x1080'))
+                    with open(Path(vod_json['store_directory'], 'thumbnail.jpg'), 'wb') as thumbnail_file:
+                        thumbnail_file.write(thumbnail.content)
+
+                except Exception as e:
+                    self.log.error('Failed to grab thumbnail for VOD.', e)
+                    pass
+
                 # delete temporary .ts parts and merged.ts file
                 self.log.debug('Cleaning up temporary files...')
                 Utils.cleanup_vod_parts(vod_json['store_directory'])
