@@ -75,5 +75,10 @@ class DatabaseQueryError(Exception):
 
 
 class UnlockingError(Exception):
-    def __init__(self, vod_id):
-        self.message = f"Failed to remove VOD {vod_id}'s lock file. Check VOD downloaded correctly and remove manually."
+    def __init__(self, channel_name, stream_id, vod_id=None):
+        if vod_id:
+            self.message = f"Failed to remove lock file for VOD {vod_id} by {channel_name}. Check VOD downloaded correctly " \
+                           f"and remove '.lock.{stream_id}' file from config directory."
+        else:
+            self.message = f"Failed to remove lock file for stream {stream_id} by {channel_name}. Check strean" \
+                           f"downloaded correctly and remove '.lock.{stream_id}-stream-only' file from config directory."

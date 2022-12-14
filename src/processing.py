@@ -157,8 +157,9 @@ class Processing:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
-                if Utils.create_lock(self.config_dir, user_name):
-                    self.log.info(f'Lock file present for stream by {user_name}, skipping.')
+                if Utils.create_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                    self.log.info(f'Lock file present for stream by {user_name} (.lock.{channel_data[0]["id"]}'
+                                  f'-stream-only), skipping.')
                     pass
 
                 else:
@@ -183,8 +184,8 @@ class Processing:
 
                             # remove lock
                             self.log.debug('Removing lock file.')
-                            if Utils.remove_lock(self.config_dir, user_name):
-                                raise UnlockingError(user_name)
+                            if Utils.remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                                raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
 
                         else:
                             self.log.debug('No stream information returned to channel function, stream downloader'
@@ -213,8 +214,8 @@ class Processing:
                 self.log.debug(f'Processing VOD {vod_id} by {user_name}')
                 self.log.debug('Creating lock file for VOD.')
 
-                if Utils.create_lock(self.config_dir, vod_id):
-                    self.log.info(f'Lock file present for VOD {vod_id}, skipping.')
+                if Utils.create_lock(self.config_dir, stream_id):
+                    self.log.info(f'Lock file present for VOD {vod_id} (.lock.{stream_id}), skipping.')
                     continue
 
                 # check if vod in database
@@ -262,8 +263,8 @@ class Processing:
                     finally:
                         # remove lock
                         self.log.debug('Removing lock file.')
-                        if Utils.remove_lock(self.config_dir, vod_id):
-                            raise UnlockingError(vod_id)
+                        if Utils.remove_lock(self.config_dir, vod_json['stream_id']):
+                            raise UnlockingError(vod_json['user_name'], vod_json['stream_id'], vod_id)
 
                 else:
                     self.log.debug('No VOD information returned to channel function, downloader exited with error.')
@@ -319,7 +320,7 @@ class Processing:
         except KeyboardInterrupt:
             self.log.debug('User requested stop, halting stream downloader.')
             if Path(self.config_dir, f'.lock.{channel_data["user_name"]}').exists():
-                Utils.remove_lock(self.config_dir, channel_data["user_name"])
+                Utils.remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only')
 
             sys.exit(0)
 
@@ -442,8 +443,8 @@ class Processing:
                     worker.terminate()
                     worker.join()
 
-            if Path(self.config_dir, f'.lock.{vod_id}').exists():
-                Utils.remove_lock(self.config_dir, vod_id)
+            if Path(self.config_dir, f'.lock.{vod_json["stream_id"]}').exists():
+                Utils.remove_lock(self.config_dir, vod_json['stream_id'])
 
             sys.exit(0)
 
@@ -458,8 +459,8 @@ class Processing:
             self.log.error(f'Error downloading VOD {vod_id}.', exc_info=True)
             Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id} by {vod_json["user_name"]}', str(e))
             # remove lock file if archiving channel
-            if Path(self.config_dir, f'.lock.{vod_id}').exists():
-                Utils.remove_lock(self.config_dir, vod_id)
+            if Path(self.config_dir, f'.lock.{vod_json["stream_id"]}').exists():
+                Utils.remove_lock(self.config_dir, vod_json['stream_id'])
 
             # set to None so that channel function knows download failed
             vod_json = None
