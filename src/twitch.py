@@ -216,3 +216,34 @@ class Twitch:
             pass
 
         return False
+
+    @staticmethod
+    def get_vod_chapters(vod_id):
+        """Retrieves the chapters for a given Twitch VOD.
+
+        :param vod_id: id of twitch vod to retrieve chapters for
+        :return: list of vod chapters
+        """
+        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _q = [{
+            "extensions": {
+                "persistedQuery": {
+                    "sha256Hash": "8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41",
+                    "version": 1
+                }
+            },
+            "operationName": "VideoPlayer_ChapterSelectButtonVideo",
+            "variables": {
+                "includePrivate": False,
+                "videoID": str(vod_id)
+            }
+        }]
+
+        _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+
+        # extract and return list of moments from returned json
+        try:
+            return [node['node'] for node in _r.json()[0]['data']['video']['moments']['edges']]
+
+        except TypeError:
+            return []
