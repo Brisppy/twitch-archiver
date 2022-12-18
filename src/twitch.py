@@ -189,6 +189,36 @@ class Twitch:
 
         return _r.json()['data']['streamPlaybackAccessToken']
 
+    @staticmethod
+    def get_vod_category(vod_id):
+        """Retrieves category for a specified VOD.
+
+        :param vod_id: id of twitch vod to retrieve information for
+        :return: name of category / game
+        """
+        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _q = [{
+            "extensions": {
+                "persistedQuery": {
+                    "sha256Hash": "e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01",
+                    "version": 1
+                }
+            },
+            "operationName": "ComscoreStreamingQuery",
+            "variables": {
+                "channel": "",
+                "clipSlug": "",
+                "isClip": False,
+                "isLive": False,
+                "isVodOrCollection": True,
+                "vodID": str(vod_id)
+            }
+        }]
+
+        _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+
+        return _r.json()[0]['data']['video']['game']['name']
+
     def get_vod_status(self, user_id, vod_created_time):
         """Determines whether a live stream is paired with a given vod.
 
