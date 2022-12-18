@@ -392,6 +392,26 @@ class Processing:
             if get_video:
                 # combine all the 10s long .ts parts into a single file, then convert to .mp4
                 try:
+                    # retrieve vod chapters
+                    try:
+                        vod_chapters = Twitch.get_vod_chapters(vod_id)
+                        if vod_chapters:
+                            # write chapters to file
+                            with open(Path(vod_json['store_directory'], 'chapters.json'), 'w') as chapters_file:
+                                chapters_file.write(json.dumps(vod_chapters))
+
+                        else:
+                            # get category if no separate chapters found
+                            vod_chapters = (Twitch.get_vod_category(vod_id), 0, vod_json['duration'] * 1000)
+
+                        # format and write vod chapters to parts dir
+                        with open(Path(vod_json['store_directory'], 'parts', 'chapters.txt'), 'w') as chapters_file:
+                            chapters_file.write(Utils.format_vod_chapters(vod_chapters))
+
+                    except Exception as e:
+                        self.log.error('Failed to retrieve or insert chapters into VOD file.', e)
+                        pass
+
                     Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
                     # load muted segments if any exists
                     with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r') as mutefile:

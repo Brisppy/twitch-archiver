@@ -11,6 +11,7 @@ from glob import glob
 from itertools import groupby
 from math import ceil, floor
 from pathlib import Path
+from textwrap import dedent
 
 from src.exceptions import VodConvertError
 
@@ -211,11 +212,16 @@ class Utils:
 
             dts_offset = float(json.loads(ts_file_data)['format']['start_time']) * 90000
 
+        # create ffmpeg command
+        ffmpeg_cmd = f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" '
+        # insert metadata if present
+        if Path(vod_json['store_directory'], 'parts', 'chapters.txt').exists():
+            ffmpeg_cmd += f'-i "{Path(vod_json["store_directory"], "parts", "chapters.txt")}" -map_metadata 1 '
+
+        ffmpeg_cmd += f'-c:a copy -c:v copy "{Path(vod_json["store_directory"], "vod.mp4")}"'
+
         # convert merged .ts file to .mp4
-        with subprocess.Popen(
-                f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" -c:a copy -c:v copy '
-                f'"{Path(vod_json["store_directory"], "vod.mp4")}"',
-                shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
+        with subprocess.Popen(ffmpeg_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
             # get progress from ffmpeg output and catch corrupt segments
             ffmpeg_log = ''
             for line in p.stderr:
