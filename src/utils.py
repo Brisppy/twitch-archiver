@@ -539,6 +539,38 @@ class Utils:
         else:
             raise FileNotFoundError
 
+    @staticmethod
+    def format_vod_chapters(chapters):
+        """Formats vod chapters retrieved from Twitch into an FFmpeg insertable format
+
+        :param chapters: either a list of vod chapters or tuple containing (chapter_name, start, end)
+        :return: chapters formatted as a string readable by ffmpeg
+        """
+        formatted_chapters = ";FFMETADATA1\n"
+        chapter_base = dedent("""\
+        [CHAPTER]
+        TIMEBASE=1/1000
+        START={start}
+        END={end}
+        title={title}
+        
+        """)
+
+        if type(chapters) == tuple:
+            formatted_chapters += chapter_base.format(
+                start=chapters[1],
+                end=chapters[2],
+                title=chapters[0])
+
+        else:
+            for chapter in chapters:
+                formatted_chapters += chapter_base.format(
+                    start=chapter['positionMilliseconds'],
+                    end=chapter['positionMilliseconds'] + chapter['durationMilliseconds'],
+                    title=chapter['details']['game']['displayName'])
+
+        return formatted_chapters
+
 
 class Progress:
     """
