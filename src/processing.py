@@ -14,7 +14,7 @@ from src.api import Api
 from src.database import Database, create_vod, update_vod, __db_version__
 from src.downloader import Downloader
 from src.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
-    TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError
+    TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError, CorruptPartError
 from src.stream import Stream
 from src.twitch import Twitch
 from src.utils import Utils
@@ -412,11 +412,44 @@ class Processing:
                         self.log.error('Failed to retrieve or insert chapters into VOD file.', e)
                         pass
 
-                    Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
-                    # load muted segments if any exists
-                    with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r') as mutefile:
-                        muted_segments = json.load(mutefile)
-                    Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
+                    try:
+                        Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
+                        # load muted segments if any exists
+                        with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r') as mutefile:
+                            muted_segments = json.load(mutefile)
+                        Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
+
+                    except CorruptPartError as c_parts:
+                        self.log.error("Corrupt segments found while converting VOD. Attempting to retry parts:"
+                                       f"\n{', '.join(c_parts.args[1])}")
+
+                        # check vod still available
+                        if not self.callTwitch.get_vod_index(vod_id):
+                            raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
+                                                   "unable to re-download the missing segments. Either re-download "
+                                                   "the VOD if it is still available, or manually convert 'merged.ts' "
+                                                   f"using FFmpeg. Corrupt parts:\n{', '.join(c_parts.args[1])}")
+
+                        # rename corrupt segments
+                        for part in c_parts.args[0]:
+                            # convert part number to segment file
+                            part = str('{:05d}'.format(int(part)) + '.ts')
+
+                            # rename part
+                            Utils.safe_move(Path(vod_json['store_directory'], 'parts', part),
+                                            Path(vod_json['store_directory'], 'parts', part + '.corrupt'))
+
+                        # download and combine vod again
+                        try:
+                            self.get_vod(vod_json, True, False, False)
+                            Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
+                            Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
+
+                        except CorruptPartError as e:
+                            raise VodDownloadError(
+                                "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
+                                "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
+                                f"'parts' folder if issue persists.\n{', '.join(e.args[1])}")
 
                 except Exception as e:
                     raise VodMergeError(e)

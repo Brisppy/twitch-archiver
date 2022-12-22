@@ -48,6 +48,11 @@ class VodConvertError(Exception):
         self.message = f'Video conversion failed. Error: {error}'
 
 
+class CorruptPartError(Exception):
+    def __init__(self, parts, formatted_ranges):
+        self.message = f'Corrupt parts found when converting VOD file. Parts: {formatted_ranges}'
+
+
 class ChatDownloadError(Exception):
     def __init__(self, error):
         self.message = f'Chat download failed. Error: {error}'

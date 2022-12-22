@@ -13,7 +13,7 @@ from math import ceil, floor
 from pathlib import Path
 from textwrap import dedent
 
-from src.exceptions import VodConvertError
+from src.exceptions import VodConvertError, CorruptPartError
 
 log = logging.getLogger()
 
@@ -262,7 +262,6 @@ class Utils:
             raise VodConvertError(f"VOD converter exited with error. Delete 'parts' directory and re-download VOD.")
 
         if corrupt_parts:
-            # generate ranges of corrupted parts and format
             corrupted_ranges = Utils.to_ranges(corrupt_parts)
             formatted_ranges = []
             for t in corrupted_ranges:
@@ -271,10 +270,8 @@ class Utils:
                 else:
                     formatted_ranges.append(f'{t[0]}-{t[1]}.ts')
 
-            raise VodConvertError('Corrupt segment encountered while converting VOD. Stream parts need to be re'
-                                  "-downloaded. Ensure VOD is still available and either delete the .ts files listed "
-                                  "below from 'parts' directory or, entire 'parts' directory if issue persists.\n"
-                                  + (', '.join(formatted_ranges)))
+            # raise error so we can try to recover
+            raise CorruptPartError(corrupt_parts, formatted_ranges)
 
     # https://stackoverflow.com/a/43091576
     @staticmethod
