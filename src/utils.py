@@ -505,10 +505,10 @@ class Utils:
                 _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d))
 
                 if _r.status_code != 200:
-                    log.error(f'Error sending push. {title} - {body}')
+                    log.error(f'Error sending push. Error {_r.status_code}: {_r.text}')
 
             except Exception as e:
-                log.error(f'Error sending push. {title} - {body}. {e}')
+                log.error(f'Error sending push. Error: {e}')
 
     # reference:
     #   https://alexwlchan.net/2019/03/atomic-cross-filesystem-moves-in-python/
