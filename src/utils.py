@@ -505,7 +505,12 @@ class Utils:
                 _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d))
 
                 if _r.status_code != 200:
-                    log.error(f'Error sending push. Error {_r.status_code}: {_r.text}')
+                    if _r.json()['error']['code'] == 'pushbullet_pro_required':
+                        log.error('Error sending push. Likely rate limited (500/month). '
+                                  f'Error {_r.status_code}: {_r.text}')
+
+                    else:
+                        log.error(f'Error sending push. Error {_r.status_code}: {_r.text}')
 
             except Exception as e:
                 log.error(f'Error sending push. Error: {e}')
