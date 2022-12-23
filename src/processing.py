@@ -409,7 +409,7 @@ class Processing:
                             chapters_file.write(Utils.format_vod_chapters(vod_chapters))
 
                     except Exception as e:
-                        self.log.error('Failed to retrieve or insert chapters into VOD file.', e)
+                        self.log.error(f'Failed to retrieve or insert chapters into VOD file. {e}')
                         pass
 
                     try:

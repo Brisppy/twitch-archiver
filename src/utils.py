@@ -566,11 +566,12 @@ class Utils:
                 title=chapters[0])
 
         else:
+            # some chapters have no game attached and so the 'description' is used instead
             for chapter in chapters:
                 formatted_chapters += chapter_base.format(
                     start=chapter['positionMilliseconds'],
                     end=chapter['positionMilliseconds'] + chapter['durationMilliseconds'],
-                    title=chapter['details']['game']['displayName'])
+                    title=chapter['description'])
 
         return formatted_chapters
 
