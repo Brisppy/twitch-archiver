@@ -45,37 +45,38 @@ def main():
     stream = parser.add_mutually_exclusive_group(required=False)
     loglevel = parser.add_mutually_exclusive_group(required=False)
     mode.add_argument('-c', '--channel', type=str, action='store',
-                      help='A single twitch channel to download, or multiple comma-separated channels.')
+                      help='A single twitch channel to download, or multiple comma-separated channels.', default=os.getenv("TWITCH_ARCHIVER_CHANNEL"))
     mode.add_argument('-v', '--vod-id', type=str, action='store',
-                      help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).')
-    parser.add_argument('-i', '--client-id', action='store', help='Client ID retrieved from dev.twitch.tv')
-    parser.add_argument('-s', '--client-secret', action='store', help='Client secret retrieved from dev.twitch.tv')
-    parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.')
-    parser.add_argument('-V', '--video', action='store_true', help='Only save video.')
+                      help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).', default=os.getenv("TWITCH_ARCHIVER_VOD_ID"))
+    parser.add_argument('-i', '--client-id', action='store', help='Client ID retrieved from dev.twitch.tv', default=os.getenv("TWITCH_ARCHIVER_CLIENT_ID"))
+    parser.add_argument('-s', '--client-secret', action='store', help='Client secret retrieved from dev.twitch.tv', default=os.getenv("TWITCH_ARCHIVER_CLIENT_SECRET"))
+    parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.', default=os.getenv("TWITCH_ARCHIVER_CHAT", "FALSE").upper() == "TRUE")
+    parser.add_argument('-V', '--video', action='store_true', help='Only save video.', default=os.getenv("TWITCH_ARCHIVER_VIDEO", "FALSE").upper() == "TRUE")
     parser.add_argument('-t', '--threads', type=int, action='store',
-                        help='Number of video download threads. (default: %(default)s)', default=20)
+                        help='Number of video download threads. (default: %(default)s)', default=os.getenv("TWITCH_ARCHIVER_THREADS",20))
     parser.add_argument('-q', '--quality', type=str, action='store',
                         help="Quality to download. Options are 'best', 'worst' or a custom value.\n"
                              'Format for custom values is [resolution]p[framerate], (e.g 1080p60, 720p30).\n'
                              '(default: best)', default='best')
     parser.add_argument('-d', '--directory', action='store',
                         help='Directory to store archived VOD(s), use TWO slashes for Windows paths.\n'
-                             '(default: %(default)s)', type=Path, default=Path(os.getcwd()))
+                             '(default: %(default)s)', type=Path, default=os.getenv('TWITCH_ARCHIVER_DIRECTORY',Path(os.getcwd())))
     parser.add_argument('-w', '--watch', action='store_true',
-                        help='Continually check every 10 seconds for new streams/VODs from a specified channel.')
-    stream.add_argument('-S', '--stream-only', action='store_true',
-                        help='Only download streams which are currently live.',
-                        default=False)
+                        help='Continually check every 10 seconds for new streams/VODs from a specified channel.',
+                        default=(os.getenv('TWITCH_ARCHIVER_WATCH', 'FALSE').upper() == 'TRUE'))
+    stream.add_argument('-S', '--stream-only', action='store_true', 
+                        default=(os.getenv('TWITCH_ARCHIVER_STREAM_ONLY', 'FALSE').upper() == 'TRUE'),
+                        help='Only download streams which are currently live.')
     stream.add_argument('-N', '--no-stream', action='store_true',
                         help="Don't download streams which are currently live.",
-                        default=False)
+                        default=os.getenv("TWITCH_ARCHIVER_NO_STREAM", "FALSE").upper() == "TRUE")
     parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
-                        default=False)
+                        default=os.getenv("TWITCH_ARCHIVER_LOG_FILE", False))
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
                         help='Directory to store configuration, VOD database and lock files.\n(default: %(default)s)',
-                        default=Path(os.path.expanduser("~"), '.config', 'twitch-archiver'))
+                        default=os.getenv('TWITCH_ARCHIVER_CONFIG_DIR',Path(os.path.expanduser("~"), '.config', 'twitch-archiver')))
     parser.add_argument('-p', '--pushbullet-key', action='store',
-                        help='Pushbullet key for sending pushes on error. Enabled by supplying key.', default=False)
+                        help='Pushbullet key for sending pushes on error. Enabled by supplying key.', default=os.getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", False))
     loglevel.add_argument('-Q', '--quiet', action='store_const', help='Disable all log output.', const=50, default=0)
     loglevel.add_argument('-D', '--debug', action='store_const', help='Enable debug logs.', const=10, default=0)
     parser.add_argument('--version', action='version', version=f'{__name__} v{__version__}',
