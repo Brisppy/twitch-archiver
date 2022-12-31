@@ -145,7 +145,15 @@ The following environment variables are also supported for configuration. Comman
 |TWITCH_ARCHIVER_CONFIG_DIR    | --config-dir    |TWITCH_ARCHIVER_CONFIG_DIR=/var/twitch     |
 |TWITCH_ARCHIVER_PUSHBULLET_KEY| --pushbullet-key|TWITCH_ARCHIVER_PUSHBULLET_KEY=abc123      |
 
-
+#### Docker
+##### Build the container
+```bash
+docker build . -t twitch-archiver
+```
+##### Run the container
+```bash
+docker run -it -v {output_dir}:/output -v {config_dir}:/config twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "/output" -I "/config
+```
 ## Disclaimer
 This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
 
