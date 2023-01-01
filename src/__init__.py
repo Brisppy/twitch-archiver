@@ -41,7 +41,7 @@ def main():
                 
     Both the video and chat logs are grabbed if neither are specified.
     """), formatter_class=argparse.RawTextHelpFormatter)
-    mode = parser.add_mutually_exclusive_group(required=False if '--show-config' in sys.argv else True)
+    mode = parser.add_mutually_exclusive_group(required=False if (('--show-config' in sys.argv) or (os.getenv("TWITCH_ARCHIVER_CHANNEL")) is not None or (os.getenv("TWITCH_ARCHIVER_VOD_ID") is not None)) else True)
     stream = parser.add_mutually_exclusive_group(required=False)
     loglevel = parser.add_mutually_exclusive_group(required=False)
     mode.add_argument('-c', '--channel', type=str, action='store',
