@@ -90,7 +90,8 @@ def main():
     log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))
     log.debug('Debug logging enabled.')
 
-    args_sanitized = args.get()
+    # debug only: output sanitized version of arguments
+    args_sanitized = args.get().copy()
     for key in ['client_id', 'client_secret', 'pushbullet_key']:
         if args_sanitized[key]:
             args_sanitized.update({key: 24 * '*' + args_sanitized[key][24:]})
