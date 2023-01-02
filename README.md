@@ -151,6 +151,7 @@ The following environment variables are also supported for configuration. Comman
 docker build . -t twitch-archiver
 ```
 ##### Run the container
+*Configuration can also be provided via environment variables (see above)*
 ```bash
 docker run -it -v {output_dir}:/output -v {config_dir}:/config twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "/output" -I "/config
 ```
