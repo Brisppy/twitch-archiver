@@ -1,3 +1,17 @@
+**(2023-01-02) Version 2.2.2**
+
+**Additions:**
+  * Added grabbing of VOD thumbnail.
+  * Added grabbing of VOD chapters and inclusion in VOD file.
+
+**Changes and Fixes:**
+  * Fix overwriting of Twitch credentials provided as an argument (https://github.com/Brisppy/twitch-archiver/pull/13 - Thanks HeliosLHC).
+  * Add .gitignore (https://github.com/Brisppy/twitch-archiver/pull/15 - Thanks HeliosLHC).
+  * Increased chunk download size (https://github.com/Brisppy/twitch-archiver/pull/14 - Thanks HeliosLHC).
+  * Added logging for when pushbullet rate-limit is exceeded.
+  * Added limited retrying for downloaded segments which are corrupt.
+  * Changed to using stream_id rather than vod_id for stream lock files and cleaned up related log messages.
+
 **(2022-12-12) Version 2.2.1**
 
 **Changes and Fixes:**
