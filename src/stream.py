@@ -198,7 +198,7 @@ class Stream:
                         return True
 
                     # write part to file
-                    for chunk in _r.iter_content(chunk_size=1024):
+                    for chunk in _r.iter_content(chunk_size=262144):
                         tmp_ts_file.write(chunk)
 
                 except requests.exceptions.RequestException as e:
