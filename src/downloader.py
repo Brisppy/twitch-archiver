@@ -127,7 +127,7 @@ class Downloader:
                         continue
 
                     # write downloaded chunks to temporary file
-                    for chunk in _r.iter_content(chunk_size=1024):
+                    for chunk in _r.iter_content(chunk_size=262144):
                         tmp_ts_file.write(chunk)
 
                     self.log.debug(f'Segment {Path(ts_path).stem} download completed.')
