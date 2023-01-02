@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import os
@@ -514,6 +515,29 @@ class Utils:
 
             except Exception as e:
                 log.error(f'Error sending push. Error: {e}')
+
+    # reference:
+    #   https://www.geeksforgeeks.org/compare-two-files-using-hashing-in-python/
+    @staticmethod
+    def get_hash(file):
+        """Retrieves the hash for a given file.
+
+        :param file: path to file to hash
+        :return: hash of provided file
+        """
+        f_hash = hashlib.md5()
+
+        with open(Path(file), 'rb') as f:
+            while True:
+                # read in next chunk
+                _d = f.read(65536)
+
+                if not _d:
+                    break
+
+                f_hash.update(_d)
+
+            return f_hash.hexdigest()
 
     # reference:
     #   https://alexwlchan.net/2019/03/atomic-cross-filesystem-moves-in-python/
