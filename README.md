@@ -59,6 +59,8 @@ Run the script via your terminal of choice. Use ```python ./twitch-vod-archiver.
 
 More advanced usage such as watch mode and setting up a service can be found in the [Wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki).
 
+Envornment variables are also supported for configuration, see the Wiki section on [Envirionment Variables](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#environment-variables).
+
 #### Examples
 ```# python ./twitch-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
 

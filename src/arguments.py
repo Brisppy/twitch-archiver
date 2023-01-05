@@ -27,6 +27,14 @@ class Arguments:
             except FileNotFoundError:
                 sys.exit('Config not found. Run Twitch-Archiver once with your Client ID and Secret to generate one.')
 
+        # validate mutual exclusivity of arguments passed via CLI and environment variables
+        # required as values set via environment variables bypass argparse mutex handling
+        for mutex_args in (("vod_id", "channel"),("stream_only", "no_stream")):
+            mutex_arg_0, mutex_arg_1 = Arguments.get(mutex_args[0]), Arguments.get(mutex_args[1])
+            # check if both mutex args have a value (including empty string)
+            if mutex_arg_0 is not None and mutex_arg_1 is not None:
+                raise ValueError(f"Cannot accept both of the following mutually exclusive arguments: '{mutex_args[0]}={mutex_arg_0}' and '{mutex_args[1]}={mutex_arg_1}'")
+
         # get both video and chat logs if neither selected
         if not Arguments.get('chat') and not Arguments.get('video'):
             Arguments.set('chat', True)

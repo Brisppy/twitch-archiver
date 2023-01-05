@@ -546,6 +546,28 @@ class Utils:
 
         else:
             raise FileNotFoundError
+    @staticmethod
+    def getenv(name, default_val=None, is_bool=False):
+        """
+        Wrapper around os.getenv to convert empty strings to None type
+
+        :param name: environment variable name
+        :param default_val: default value to return if environment variable does not exist
+        :param is_bool: handle environment variable as a case-insensitive boolean string ('true' or 'false')
+        :return: environment variable value
+        """
+        val = os.getenv(name, default_val) 
+        
+        if is_bool and isinstance(val, str):
+            if val.upper() == "TRUE":
+                return True
+            elif val.upper() == "FALSE":
+                return False
+            else:
+                raise ValueError(f"Invalid boolean value (true or false) received for environment variable: {name}={val}")
+        else:
+            # return empty strings '' as None type
+            return val if val else None 
 
     @staticmethod
     def format_vod_chapters(chapters):
