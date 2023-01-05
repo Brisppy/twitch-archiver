@@ -3,6 +3,7 @@ import logging
 import multiprocessing
 import m3u8
 import re
+import shutil
 import sys
 
 from datetime import datetime, timezone
@@ -436,8 +437,8 @@ class Processing:
                             part = str('{:05d}'.format(int(part)) + '.ts')
 
                             # rename part
-                            Utils.safe_move(Path(vod_json['store_directory'], 'parts', part),
-                                            Path(vod_json['store_directory'], 'parts', part + '.corrupt'))
+                            shutil.move(Path(vod_json['store_directory'], 'parts', part),
+                                        Path(vod_json['store_directory'], 'parts', part + '.corrupt'))
 
                         # download and combine vod again
                         try:
