@@ -59,6 +59,8 @@ Run the script via your terminal of choice. Use ```python ./twitch-vod-archiver.
 
 More advanced usage such as watch mode and setting up a service can be found in the [Wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki).
 
+Envornment variables are also supported for configuration, see the Wiki section on [Envirionment Variables](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#environment-variables).
+
 #### Examples
 ```# python ./twitch-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
 
@@ -125,26 +127,6 @@ optional arguments:
   --version             Show version number and exit.
   --show-config         Show saved config and exit.
 ```
-#### Environment Variables
-The following environment variables are also supported for configuration. Command line arguments take precendence and the same default values (see above) are used for unset environment variables.
-
-|Environment Variable          |Equivalent Flag  |Example                                    |
-|------------------------------|-----------------|-------------------------------------------|
-|TWITCH_ARCHIVER_CHANNEL       | --channel       |TWITCH_ARCHIVER_CHANNEL=channel1,channel2  |
-|TWITCH_ARCHIVER_VOD_ID        | --vod-id        |TWITCH_ARCHIVER_VOD_ID=12763849            |
-|TWITCH_ARCHIVER_CLIENT_ID     | --client-id     |TWITCH_ARCHIVER_CLIENT_ID=abc123           |
-|TWITCH_ARCHIVER_CLIENT_SECRET | --client-secret |TWITCH_ARCHIVER_CLIENT_SECRET=abc123       |
-|TWITCH_ARCHIVER_CHAT          | --chat          |TWITCH_ARCHIVER_CHAT=false                 |
-|TWITCH_ARCHIVER_VIDEO         | --video         |TWITCH_ARCHIVER_VIDEO=false                |
-|TWITCH_ARCHIVER_THREADS       | --threads       |TWITCH_ARCHIVER_THREADS=30                 |
-|TWITCH_ARCHIVER_DIRECTORY     | --directory     |TWITCH_ARCHIVER_DIRECTORY=/var/archive     |
-|TWITCH_ARCHIVER_WATCH         | --watch         |TWITCH_ARCHIVER_WATCH=false                |
-|TWITCH_ARCHIVER_STREAM_ONLY   | --stream-only   |TWITCH_ARCHIVER_STREAM_ONLY=false          |
-|TWITCH_ARCHIVER_NO_STREAM     | --no-stream     |TWITCH_ARCHIVER_NO_STREAM=false            |
-|TWITCH_ARCHIVER_LOG_FILE      | --log-file      |TWITCH_ARCHIVER_LOG_FILE=/var/twitch.log   |
-|TWITCH_ARCHIVER_CONFIG_DIR    | --config-dir    |TWITCH_ARCHIVER_CONFIG_DIR=/var/twitch     |
-|TWITCH_ARCHIVER_PUSHBULLET_KEY| --pushbullet-key|TWITCH_ARCHIVER_PUSHBULLET_KEY=abc123      |
-
 
 ## Disclaimer
 This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
