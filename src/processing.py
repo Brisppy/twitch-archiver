@@ -420,19 +420,19 @@ class Processing:
                             muted_segments = json.load(mutefile)
                         Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
 
-                    except CorruptPartError as c_parts:
+                    except CorruptPartError as c:
                         self.log.error("Corrupt segments found while converting VOD. Attempting to retry parts:"
-                                       f"\n{', '.join(c_parts.args[1])}")
+                                       f"\n{', '.join([str(p) for p in c.parts])}")
 
                         # check vod still available
                         if not self.callTwitch.get_vod_index(vod_id):
                             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                                    "unable to re-download the missing segments. Either re-download "
                                                    "the VOD if it is still available, or manually convert 'merged.ts' "
-                                                   f"using FFmpeg. Corrupt parts:\n{', '.join(c_parts.args[1])}")
+                                                   f"using FFmpeg. Corrupt parts:\n{', '.join(c.f_parts)}")
 
                         # rename corrupt segments
-                        for part in c_parts.args[0]:
+                        for part in c.parts:
                             # convert part number to segment file
                             part = str('{:05d}'.format(int(part)) + '.ts')
 
@@ -450,7 +450,7 @@ class Processing:
                             raise VodDownloadError(
                                 "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
                                 "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
-                                f"'parts' folder if issue persists.\n{', '.join(e.args[1])}")
+                                f"'parts' folder if issue persists.\n{', '.join(c.f_parts)}")
 
                 except Exception as e:
                     raise VodMergeError(e)
