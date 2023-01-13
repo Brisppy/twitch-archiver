@@ -175,23 +175,30 @@ class Processing:
                         pass
 
                     else:
-                        stream_json = self.get_unsynced_stream(channel_data[0])
+                        try:
+                            stream_json = self.get_unsynced_stream(channel_data[0])
 
-                        if stream_json:
-                            # add to database
-                            self.log.debug('Adding stream info to database.')
-                            with Database(Path(self.config_dir, 'vods.db')) as db:
-                                db.execute_query(create_vod, stream_json)
+                            if stream_json:
+                                # add to database
+                                self.log.debug('Adding stream info to database.')
+                                with Database(Path(self.config_dir, 'vods.db')) as db:
+                                    db.execute_query(create_vod, stream_json)
 
+                            else:
+                                self.log.debug('No stream information returned to channel function, stream downloader'
+                                               ' exited with error.')
+                                pass
+
+                        except Exception as e:
+                            self.log.error(f'Exception encountered while archiving live-only stream by {user_name}.'
+                                           'Error:', e)
+                            return
+
+                        finally:
                             # remove lock
                             self.log.debug('Removing lock file.')
                             if Utils.remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
                                 raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
-
-                        else:
-                            self.log.debug('No stream information returned to channel function, stream downloader'
-                                           ' exited with error.')
-                            pass
 
             # exit if vod queue empty
             if not vod_queue:

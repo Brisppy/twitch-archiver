@@ -163,7 +163,7 @@ class Stream:
             for segment_id in [seg_id for seg_id in buffer.keys() if len(buffer[seg_id]) == 5]:
                 for attempt in range(6):
                     if attempt > 4:
-                        self.log.debug(f'Maximum attempts reached while downloading segment {segment_id}.')
+                        self.log.error(f'Maximum attempts reached while downloading segment {segment_id}.')
                         break
 
                     if self.write_buffer_segment(segment_id, output_dir, segment_ids[segment_id], buffer[segment_id]):
