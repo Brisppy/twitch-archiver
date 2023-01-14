@@ -128,6 +128,16 @@ optional arguments:
   --show-config         Show saved config and exit.
 ```
 
+#### Docker
+##### Build the container
+```bash
+docker build . -t twitch-archiver
+```
+##### Run the container
+*Configuration can also be provided via environment variables (see wiki)*
+```bash
+docker run -it -v {output_dir}:/output -v {config_dir}:/config twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "/output" -I "/config
+```
 ## Disclaimer
 This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
 
