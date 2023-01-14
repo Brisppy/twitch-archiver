@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "twitch-archiver"
+version = "2.2.2"
+authors = [
+  { name="Brisppy", email="brisppy@protonmail.com" },
+]
+description = "A simple, fast, platform-independent tool for downloading Twitch streams, videos, and chat logs."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Brisppy/twitch-archiver"
+"Bug Tracker" = "https://github.com/Brisppy/twitch-archiver/issues"
+
+[project.scripts]
+twitch-archiver = "twitcharchiver.__init__:main"

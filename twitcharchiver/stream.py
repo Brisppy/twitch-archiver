@@ -10,10 +10,10 @@ from math import floor
 from pathlib import Path
 from time import sleep
 
-from src.api import Api
-from src.exceptions import TwitchAPIErrorNotFound
-from src.twitch import Twitch
-from src.utils import Utils
+from twitcharchiver.api import Api
+from twitcharchiver.exceptions import TwitchAPIErrorNotFound
+from twitcharchiver.twitch import Twitch
+from twitcharchiver.utils import Utils
 
 
 class Stream:

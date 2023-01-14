@@ -3,7 +3,7 @@ import sqlite3
 
 from sqlite3 import Error
 
-from src.exceptions import DatabaseError, DatabaseQueryError
+from twitcharchiver.exceptions import DatabaseError, DatabaseQueryError
 
 __db_version__ = 4
 

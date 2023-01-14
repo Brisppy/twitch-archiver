@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from random import randrange
 from time import sleep
 
-from src.api import Api
-from src.exceptions import TwitchAPIError, TwitchAPIErrorForbidden
-from src.utils import Utils
+from twitcharchiver.api import Api
+from twitcharchiver.exceptions import TwitchAPIError, TwitchAPIErrorForbidden
+from twitcharchiver.utils import Utils
 
 
 class Twitch:

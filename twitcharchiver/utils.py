@@ -14,7 +14,7 @@ from math import ceil, floor
 from pathlib import Path
 from textwrap import dedent
 
-from src.exceptions import VodConvertError, CorruptPartError
+from twitcharchiver.exceptions import VodConvertError, CorruptPartError
 
 log = logging.getLogger()
 

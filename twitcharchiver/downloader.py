@@ -8,9 +8,9 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from src.api import Api
-from src.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, ChatDownloadError, RequestError
-from src.utils import Utils, Progress
+from twitcharchiver.api import Api
+from twitcharchiver.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, ChatDownloadError, RequestError
+from twitcharchiver.utils import Utils, Progress
 
 
 class Downloader:

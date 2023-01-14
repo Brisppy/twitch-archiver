@@ -1,6 +1,6 @@
 import requests
 
-from src.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
+from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
     TwitchAPIErrorBadRequest
 
 

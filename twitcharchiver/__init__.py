@@ -6,13 +6,13 @@ import textwrap
 from pathlib import Path
 from time import sleep
 
-from src.arguments import Arguments
-from src.configuration import Configuration
-from src.exceptions import TwitchAPIError
-from src.logger import Logger
-from src.processing import Processing
-from src.twitch import Twitch
-from src.utils import Utils
+from twitcharchiver.arguments import Arguments
+from twitcharchiver.configuration import Configuration
+from twitcharchiver.exceptions import TwitchAPIError
+from twitcharchiver.logger import Logger
+from twitcharchiver.processing import Processing
+from twitcharchiver.twitch import Twitch
+from twitcharchiver.utils import Utils
 
 __name__ = 'twitch-archiver'
 __version__ = '2.2.3'

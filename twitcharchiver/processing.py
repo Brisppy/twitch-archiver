@@ -11,14 +11,14 @@ from math import floor
 from pathlib import Path
 from time import sleep
 
-from src.api import Api
-from src.database import Database, create_vod, update_vod, __db_version__
-from src.downloader import Downloader
-from src.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
+from twitcharchiver.api import Api
+from twitcharchiver.database import Database, create_vod, update_vod, __db_version__
+from twitcharchiver.downloader import Downloader
+from twitcharchiver.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
     TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError, CorruptPartError
-from src.stream import Stream
-from src.twitch import Twitch
-from src.utils import Utils
+from twitcharchiver.stream import Stream
+from twitcharchiver.twitch import Twitch
+from twitcharchiver.utils import Utils
 
 
 class Processing:
