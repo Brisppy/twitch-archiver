@@ -1,3 +1,7 @@
+"""
+Handles parsing and storage of arguments passed to twitch-archiver.
+"""
+
 import re
 import sys
 
@@ -21,7 +25,7 @@ class Arguments:
 
         if Arguments.get('show_config'):
             try:
-                with open(Path(Arguments.get('config_dir'), 'config.ini'), 'r') as config:
+                with open(Path(Arguments.get('config_dir'), 'config.ini'), 'r', encoding='utf8') as config:
                     print(config.read())
                     sys.exit(0)
             except FileNotFoundError:
@@ -29,11 +33,12 @@ class Arguments:
 
         # validate mutual exclusivity of arguments passed via CLI and environment variables
         # required as values set via environment variables bypass argparse mutex handling
-        for mutex_args in (("vod_id", "channel"),("stream_only", "no_stream")):
+        for mutex_args in (("vod_id", "channel"), ("stream_only", "no_stream")):
             mutex_arg_0, mutex_arg_1 = Arguments.get(mutex_args[0]), Arguments.get(mutex_args[1])
             # check if both mutex args have a value (including empty string)
             if mutex_arg_0 is not None and mutex_arg_1 is not None:
-                raise ValueError(f"Cannot accept both of the following mutually exclusive arguments: '{mutex_args[0]}={mutex_arg_0}' and '{mutex_args[1]}={mutex_arg_1}'")
+                raise ValueError("Cannot accept both of the following mutually exclusive arguments: '"
+                                 f"{mutex_args[0]}={mutex_arg_0}' and '{mutex_args[1]}={mutex_arg_1}'")
 
         # get both video and chat logs if neither selected
         if not Arguments.get('chat') and not Arguments.get('video'):
@@ -43,14 +48,14 @@ class Arguments:
         # generate list from comma-separated vods
         if Arguments.get('vod_id'):
             # generate vod list
-            vod_ids = [vod_id for vod_id in Arguments.get('vod_id').split(',')]
+            vod_ids = list(Arguments.get('vod_id').split(','))
 
             # format urls to just vod ids
-            for i in range(len(vod_ids)):
+            for idx, vod_id in enumerate(vod_ids):
                 # test match and replace
-                match = re.findall("(?<=twitch\.tv\/videos\/)[0-9]*", vod_ids[i])
+                match = re.findall(r"(?<=twitch\.tv/videos/)[0-9]*", vod_id)
                 if match:
-                    vod_ids[i] = match[0]
+                    vod_ids[idx] = match[0]
 
             # insert formatted vods
             Arguments.set('vod_id', vod_ids)
@@ -58,14 +63,14 @@ class Arguments:
         # generate list from comma-separated channels
         elif Arguments.get('channel'):
             # generate channel list
-            channels = [channel for channel in Arguments.get('channel').split(',')]
+            channels = list(Arguments.get('channel').split(','))
 
             # format urls to just channel name
-            for i in range(len(channels)):
+            for idx, channel in enumerate(channels):
                 # test and replace
-                match = re.findall("(?<=twitch\.tv\/)[a-zA-Z0-9]*", channels[i])
+                match = re.findall(r"(?<=twitch\.tv/)[a-zA-Z0-9]*", channel)
                 if match:
-                    channels[i] = match[0]
+                    channels[idx] = match[0]
 
             # insert formatted channels
             Arguments.set('channel', channels)

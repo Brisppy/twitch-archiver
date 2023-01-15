@@ -1,13 +1,18 @@
+"""
+Handler for any requests made to the Twitch API.
+"""
+
 import logging
-import m3u8
 
 from datetime import datetime, timezone
 from random import randrange
 from time import sleep
 
+import m3u8
+
 from twitcharchiver.api import Api
 from twitcharchiver.exceptions import TwitchAPIError, TwitchAPIErrorForbidden
-from twitcharchiver.utils import Utils
+from twitcharchiver.utils import get_quality_index, time_since_date
 
 
 class Twitch:
@@ -60,14 +65,14 @@ class Twitch:
         try:
             _r = Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
 
-            self.log.info(f'OAuth token verified successfully. Expiring in {_r.json()["expires_in"]}')
+            self.log.info('OAuth token verified successfully. Expiring in %s', _r.json()["expires_in"])
             return _r.json()['expires_in']
 
         except TwitchAPIError as e:
-            self.log.debug(f'OAuth token validation failed. Error: {str(e)}')
-            # error on expired or invalid credentials
-            if e.args[1] == 401:
-                return 1
+            self.log.debug('OAuth token validation failed. Error: %s', str(e))
+
+        # error on expired or invalid credentials
+        return 1
 
     @staticmethod
     def get_playback_access_token(vod_id):
@@ -145,7 +150,7 @@ class Twitch:
             index_url = f'https://{cf_domain}.cloudfront.net/{vod_uid}/{quality}/index-dvr.m3u8'
             return index_url
 
-        return _index.playlists[Utils.get_quality_index(quality, available_resolutions)].uri
+        return _index.playlists[get_quality_index(quality, available_resolutions)].uri
 
     @staticmethod
     def get_channel_hls_index(channel, quality='best'):
@@ -180,7 +185,7 @@ class Twitch:
         # insert 'chunked' stream separately as its named differently and strip ' (source)' from name
         available_resolutions.insert(0, _index.media[0].name.strip(' (source)').split('p'))
 
-        return _index.playlists[Utils.get_quality_index(quality, available_resolutions)].uri
+        return _index.playlists[get_quality_index(quality, available_resolutions)].uri
 
     @staticmethod
     def get_stream_playback_access_token(channel):
@@ -248,7 +253,7 @@ class Twitch:
         :return: True if vod and stream creation dates match
         """
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
-        time_since_created = Utils.time_since_date(
+        time_since_created = time_since_date(
             datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
         if time_since_created < 60:
             sleep(60 - time_since_created)

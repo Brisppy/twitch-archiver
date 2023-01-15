@@ -1,7 +1,9 @@
+"""
+Module for downloading currently live Twitch broadcasts.
+"""
+
 import logging
-import m3u8
 import os
-import requests
 import tempfile
 
 from datetime import datetime, timezone
@@ -10,18 +12,24 @@ from math import floor
 from pathlib import Path
 from time import sleep
 
+import m3u8
+import requests
+
 from twitcharchiver.api import Api
 from twitcharchiver.exceptions import TwitchAPIErrorNotFound
 from twitcharchiver.twitch import Twitch
-from twitcharchiver.utils import Utils
+from twitcharchiver.utils import time_since_date, safe_move
 
 
 class Stream:
+    """
+    Functions pertaining to grabbing and downloading stream segments.
+    """
     def __init__(self, client_id, client_secret, oauth_token):
 
         self.log = logging.getLogger()
 
-        self.callTwitch = Twitch(client_id, client_secret, oauth_token)
+        self.call_twitch = Twitch(client_id, client_secret, oauth_token)
 
     def get_stream(self, channel, output_dir, quality='best', sync_vod_segments=True):
         """Retrieves a stream for a specified channel.
@@ -57,10 +65,10 @@ class Stream:
 
         try:
             self.log.debug('Fetching required stream information.')
-            index_uri = self.callTwitch.get_channel_hls_index(channel, quality)
-            stream_json = self.callTwitch.get_api(f'users?login={channel}')['data'][0]
+            index_uri = self.call_twitch.get_channel_hls_index(channel, quality)
+            stream_json = self.call_twitch.get_api(f'users?login={channel}')['data'][0]
             user_id = stream_json['id']
-            latest_vod_created_time = self.callTwitch.get_api(f'videos?user_id={user_id}')['data'][0]['created_at']
+            latest_vod_created_time = self.call_twitch.get_api(f'videos?user_id={user_id}')['data'][0]['created_at']
             latest_vod_created_time = datetime.strptime(latest_vod_created_time, '%Y-%m-%dT%H:%M:%SZ')
 
         # raised when channel goes offline
@@ -86,13 +94,13 @@ class Stream:
                 latest_segment_timestamp = int(datetime.now(timezone.utc).timestamp())
 
             # assume stream has ended once >20s has passed since the last segment was advertised
-            if buffer and Utils.time_since_date(latest_segment_timestamp) > 20:
+            if buffer and time_since_date(latest_segment_timestamp) > 20:
                 self.get_final_segment(buffer, output_dir, segment_ids)
                 return
 
             # manage incoming segments and create buffer of segments to download
             for segment in incoming_segments['segments']:
-                self.log.debug(f'Processing part: {segment}')
+                self.log.debug('Processing part: %s', segment)
 
                 # skip ad segments
                 if segment['title'] != 'live':
@@ -107,7 +115,7 @@ class Stream:
 
                 if sync_vod_segments:
                     if segment['duration'] != 2.0 and segment not in bad_segments:
-                        self.log.debug(f"Part has invalid duration ({segment['duration']}).")
+                        self.log.debug("Part has invalid duration (%s).", segment['duration'])
                         bad_segments.append(segment)
                         continue
 
@@ -124,7 +132,7 @@ class Stream:
                         continue
 
                     if segment_id not in segment_ids.keys():
-                        self.log.debug(f'New live segment found: {segment_id}')
+                        self.log.debug('New live segment found: %s', segment_id)
                         # give each segment id a unique id
                         segment_ids[segment_id] = os.urandom(24).hex()
                         buffer[segment_id] = []
@@ -143,8 +151,8 @@ class Stream:
                     # skip already processed segments
                     if segment in processed_segments:
                         continue
-                    else:
-                        processed_segments.add(segment)
+
+                    processed_segments.add(segment)
 
                     # check if segment already completed as id may not have been incremented if current segment is
                     # completed before the next pass causing a KeyError
@@ -156,24 +164,23 @@ class Stream:
                         segment_ids[segment_id] = os.urandom(24).hex()
                         buffer[segment_id] = []
 
-                self.log.debug(f'New part added to buffer: {segment_id} <- {segment}')
+                self.log.debug('New part added to buffer: %s <- %s', segment_id, segment)
                 buffer[segment_id].append(segment)
 
             # download any full segments (contains 5 parts)
             for segment_id in [seg_id for seg_id in buffer.keys() if len(buffer[seg_id]) == 5]:
                 for attempt in range(6):
                     if attempt > 4:
-                        self.log.error(f'Maximum attempts reached while downloading segment {segment_id}.')
+                        self.log.error('Maximum attempts reached while downloading segment %s.', segment_id)
                         break
 
                     if self.write_buffer_segment(segment_id, output_dir, segment_ids[segment_id], buffer[segment_id]):
                         continue
 
-                    else:
-                        # clean buffer
-                        buffer.pop(segment_id)
-                        completed_segments.add(segment_id)
-                        break
+                    # clean buffer
+                    buffer.pop(segment_id)
+                    completed_segments.add(segment_id)
+                    break
 
             # sleep if processing time < 4s before checking for new segments
             processing_time = int(datetime.utcnow().timestamp() - start_timestamp)
@@ -202,20 +209,20 @@ class Stream:
                         tmp_ts_file.write(chunk)
 
                 except requests.exceptions.RequestException as e:
-                    self.log.debug(f'Error downloading VOD stream segment {segment_id} : {segment}. Error: {e}')
+                    self.log.debug(
+                        'Error downloading VOD stream segment %s : %s. Error: %s', segment_id, segment, str(e))
                     return True
 
         # move finished ts file to destination storage
         try:
-            Utils.safe_move(Path(tempfile.gettempdir(), tmp_file),
-                            Path(output_dir, str('{:05d}'.format(segment_id) + '.ts')))
-            self.log.debug(f'Live segment: {segment_id} completed.')
+            safe_move(Path(tempfile.gettempdir(), tmp_file), Path(output_dir, str(f'{segment_id:05d}' + '.ts')))
+            self.log.debug('Live segment: %s completed.', segment_id)
 
-        except Exception as e:
-            self.log.debug(f'Exception while moving stream segment {segment_id}. {e}')
+        except BaseException as e:
+            self.log.debug('Exception while moving stream segment %s. Error: %s', segment_id, str(e))
             return True
 
-        return
+        return False
 
     def get_final_segment(self, buffer, output_dir, segment_ids):
         """Downloads and stores the final stream segments.
@@ -229,16 +236,15 @@ class Stream:
             # export the highest segment if stream ends before final segment meets requirements
             last_id = max(buffer.keys())
 
-            if not Path(output_dir, str('{:05d}'.format(last_id)) + '.ts').exists():
+            if not Path(output_dir, str(f'{last_id:05d}') + '.ts').exists():
                 self.log.debug('Final part not found in output directory, assuming last segment is complete and'
                                ' downloading.')
                 for attempt in range(6):
                     if attempt > 4:
-                        self.log.debug(f'Maximum attempts reached while downloading segment {last_id}.')
+                        self.log.debug('Maximum attempts reached while downloading segment %s.', last_id)
                         break
 
                     if self.write_buffer_segment(last_id, output_dir, segment_ids[last_id], buffer[last_id]):
                         continue
 
-                    else:
-                        break
+                    break

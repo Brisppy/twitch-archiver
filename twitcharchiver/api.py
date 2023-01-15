@@ -1,3 +1,7 @@
+"""
+Handler for API requests.
+"""
+
 import requests
 
 from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
@@ -30,8 +34,8 @@ class Api:
             else:
                 _r = requests.get(url, params=p, timeout=10)
 
-        except requests.exceptions.RequestException as e:
-            raise RequestError(url, e)
+        except requests.exceptions.RequestException as err:
+            raise RequestError(url, err) from err
 
         if _r.status_code == 400:
             raise TwitchAPIErrorBadRequest(_r)
@@ -58,8 +62,8 @@ class Api:
         try:
             _r = session.get(url, timeout=10)
 
-        except requests.exceptions.RequestException as e:
-            raise RequestError(url, e)
+        except requests.exceptions.RequestException as err:
+            raise RequestError(url, err) from err
 
         if _r.status_code == 400:
             raise TwitchAPIErrorBadRequest(_r)
@@ -92,8 +96,8 @@ class Api:
             elif d is None:
                 _r = requests.post(url, json=j, headers=h, timeout=10)
 
-        except requests.exceptions.RequestException as e:
-            raise RequestError(url, e)
+        except requests.exceptions.RequestException as err:
+            raise RequestError(url, err) from err
 
         if _r.status_code != 200:
             raise TwitchAPIError(_r)
@@ -112,7 +116,7 @@ class Api:
         try:
             _r = session.post(url, json=j, timeout=10)
 
-        except requests.exceptions.RequestException as e:
-            raise RequestError(url, e)
+        except requests.exceptions.RequestException as err:
+            raise RequestError(url, err) from err
 
         return _r

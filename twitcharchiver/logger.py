@@ -1,11 +1,13 @@
 # reference
 #   https://stackoverflow.com/questions/7621897/python-logging-module-globally
 
+"""
+Logging class used by Twitch Archiver.
+"""
+
+
 import sys
 import logging
-
-from logging import handlers
-
 
 class Logger:
     """

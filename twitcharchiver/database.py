@@ -1,3 +1,7 @@
+"""
+Module used for creating, accessing, updating and modifying database entries.
+"""
+
 import logging
 import sqlite3
 
@@ -22,13 +26,13 @@ class Database:
         self.database_path = str(database_path)
 
         try:
-            self.log.debug(f'Database path: {self.database_path}')
+            self.log.debug('Database path: %s', self.database_path)
             self.connection = sqlite3.connect(self.database_path)
             self.cursor = self.connection.cursor()
             self.log.debug('Connection to SQLite DB successful.')
 
         except Error as e:
-            raise DatabaseError(f'Connection to SQLite DB failed: {e}')
+            raise DatabaseError(f'Connection to SQLite DB failed: {e}') from e
 
     def setup_database(self):
         """
@@ -68,9 +72,8 @@ class Database:
             self.connection.close()
             raise DatabaseError(exc_value)
 
-        else:
-            self.connection.commit()
-            self.connection.close()
+        self.connection.commit()
+        self.connection.close()
 
     def execute_query(self, command, values=None):
         """Executes a given SQL statement.
@@ -79,17 +82,17 @@ class Database:
         :param values: values to pass if inserting data - 'None' sends no other data
         :return: response from sqlite database to statement
         """
-        self.log.debug(f'Executing SQL statement: {command}')
+        self.log.debug('Executing SQL statement: %s', command)
 
         try:
             if not values:
                 _r = self.cursor.execute(command).fetchall()
             else:
-                self.log.debug(f'Values: {values}')
+                self.log.debug('Values: %s', values)
                 _r = self.cursor.execute(command, list(values.values())).fetchall()
 
         except Exception as e:
-            raise DatabaseQueryError(str(e))
+            raise DatabaseQueryError(str(e)) from e
 
         return _r
 
@@ -120,7 +123,7 @@ create_vods_table = [
     );""",
     f"PRAGMA user_version = {__db_version__};"]
 
-create_vod = """
+CREATE_VOD = """
 INSERT INTO
 vods (stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url, thumbnail_url,
       viewable, view_count, language, type, duration, muted_segments, vod_id, store_directory, video_archived,
@@ -129,7 +132,7 @@ VALUES
 (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
-update_vod = """
+UPDATE_VOD = """
 UPDATE vods
 SET stream_id=?, user_id=?, user_login=?, user_name=?, title=?, description=?, created_at=?,
     published_at=?, url=?, thumbnail_url=?, viewable=?, view_count=?, language=?, type=?,

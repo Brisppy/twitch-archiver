@@ -1,3 +1,7 @@
+"""
+Custom exceptions used by Twitch Archiver.
+"""
+
 import logging
 
 log = logging.getLogger()
@@ -107,7 +111,7 @@ class DatabaseError(Exception):
             message = f'VOD {vod_id} database query failed.'
 
         else:
-            message = f'Sqlite database connection failed.'
+            message = 'Sqlite database connection failed.'
 
         message = f'{message} Error: {error}'
 

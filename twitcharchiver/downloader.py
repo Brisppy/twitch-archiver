@@ -1,16 +1,21 @@
+"""
+Module used for downloading archived videos and chat logs from Twitch.
+"""
+
 from glob import glob
 import json
 import logging
 import os
-import requests
 import tempfile
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import requests
+
 from twitcharchiver.api import Api
 from twitcharchiver.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, ChatDownloadError, RequestError
-from twitcharchiver.utils import Utils, Progress
+from twitcharchiver.utils import Progress, to_ranges, safe_move
 
 
 class Downloader:
@@ -67,11 +72,11 @@ class Downloader:
                 # create a tuple with (TS_URL, TS_PATH)
                 ts_url_list.append(m3u8_base_url + ts_id)
                 ts_path_list.append(Path(store_directory, 'parts',
-                                         str('{:05d}'.format(int(ts_id.split('.')[0].replace('-muted', ''))) + '.ts')))
+                                         str(f'{int(ts_id.split(".")[0].replace("-muted", "")):05d}' + '.ts')))
 
         # export list of muted ids if present
-        with open(Path(store_directory, 'parts', '.muted'), 'w') as mutefile:
-            json.dump(list(Utils.to_ranges(muted_segments)), mutefile)
+        with open(Path(store_directory, 'parts', '.muted'), 'w', encoding='utf8') as mutefile:
+            json.dump(list(to_ranges(muted_segments)), mutefile)
 
         if ts_url_list and ts_path_list:
             # create worker pool for downloading vods
@@ -106,11 +111,11 @@ class Downloader:
         :param ts_path: destination path for .ts file after downloading
         :return: error on failure
         """
-        self.log.debug(f'Downloading segment {ts_url} to {ts_path}')
+        self.log.debug('Downloading segment %s to %s', ts_url, ts_path)
 
         # don't bother if piece already downloaded
         if os.path.exists(ts_path):
-            return
+            return False
 
         # files are downloaded to $TMP, then moved to final destination
         # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
@@ -121,8 +126,8 @@ class Downloader:
         with open(Path(tempfile.gettempdir(), os.urandom(24).hex()), 'wb') as tmp_ts_file:
             for _ in range(6):
                 if _ > 4:
-                    self.log.debug(f'Maximum retries for segment {Path(ts_path).stem} reached.')
-                    return f'Maximum retries for segment {Path(ts_path).stem} reached.'
+                    self.log.debug('Maximum retries for segment %s reached.', Path(ts_path).stem)
+                    return {1, f'Maximum retries for segment {Path(ts_path).stem} reached.'}
 
                 try:
                     _r = requests.get(ts_url, stream=True, timeout=10)
@@ -136,25 +141,28 @@ class Downloader:
                     for chunk in _r.iter_content(chunk_size=262144):
                         tmp_ts_file.write(chunk)
 
-                    self.log.debug(f'Segment {Path(ts_path).stem} download completed.')
+                    self.log.debug('Segment %s download completed.', Path(ts_path).stem)
 
                     break
 
                 except requests.exceptions.RequestException as e:
-                    self.log.debug(f'Segment {Path(ts_path).stem} download failed (Attempt {_ + 1}). {e})')
+                    self.log.debug('Segment %s download failed (Attempt %s). Error: %s)',
+                                   Path(ts_path).stem, _ + 1, str(e))
                     continue
 
         try:
             # move part to destination storage
-            Utils.safe_move(tmp_ts_file.name, ts_path)
-            self.log.debug(f'Segment {Path(ts_path).stem} completed.')
+            safe_move(tmp_ts_file.name, ts_path)
+            self.log.debug('Segment %s completed.', Path(ts_path).stem)
 
-        except FileNotFoundError:
-            raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}')
+        except FileNotFoundError as e:
+            raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {ts_url}') from e
 
-        except Exception as e:
-            self.log.error(f'Exception encountered while moving downloaded MPEG-TS segment {ts_url}.', exc_info=True)
+        except BaseException as e:
+            self.log.error('Exception encountered while moving downloaded MPEG-TS segment %s.', ts_url, exc_info=True)
             return e
+
+        return False
 
     def get_chat(self, vod_json, offset=0):
         """Downloads the chat for a specified VOD, returning comments beginning from offset (if provided).
@@ -186,7 +194,7 @@ class Downloader:
                 # could be done properly if there was a way to get the total number of comments
                 if not self.quiet:
                     progress.print_progress(int(segment[-1]['contentOffsetSeconds']),
-                                            vod_json['duration'], False if cursor else True)
+                                            vod_json['duration'], not cursor)
 
             except TwitchAPIErrorNotFound:
                 break
@@ -194,7 +202,7 @@ class Downloader:
             finally:
                 _s.close()
 
-        self.log.info(f'Found {len(chat_log)} messages.')
+        self.log.info('Found %s messages.', len(chat_log))
 
         return chat_log
 
@@ -222,8 +230,8 @@ class Downloader:
 
         for attempt in range(6):
             if attempt > 4:
-                self.log.error(
-                    f'Maximum attempts reached while downloading chat segment at cursor or offset: {cursor, offset}.')
+                self.log.error('Maximum attempts reached while downloading chat segment at cursor or offset: %s, %s.',
+                               cursor, offset)
                 raise ChatDownloadError
 
             try:
@@ -240,5 +248,4 @@ class Downloader:
         if comments['pageInfo']['hasNextPage']:
             return [c['node'] for c in comments['edges']], comments['edges'][-1]['cursor']
 
-        else:
-            return [c['node'] for c in comments['edges']], None
+        return [c['node'] for c in comments['edges']], None

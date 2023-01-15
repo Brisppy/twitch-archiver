@@ -1,7 +1,10 @@
+"""
+Primary processing loops for calling the various download functions using the supplied user variables.
+"""
+
 import json
 import logging
 import multiprocessing
-import m3u8
 import re
 import shutil
 import sys
@@ -11,14 +14,19 @@ from math import floor
 from pathlib import Path
 from time import sleep
 
+import m3u8
+
 from twitcharchiver.api import Api
-from twitcharchiver.database import Database, create_vod, update_vod, __db_version__
+from twitcharchiver.database import Database, CREATE_VOD, UPDATE_VOD, __db_version__
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, UnlockingError, \
-    TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError, CorruptPartError
+from twitcharchiver.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError,\
+    UnlockingError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError, CorruptPartError
 from twitcharchiver.stream import Stream
 from twitcharchiver.twitch import Twitch
-from twitcharchiver.utils import Utils
+from twitcharchiver.utils import create_lock, remove_lock, sanitize_date, sanitize_text, combine_vod_parts, \
+    convert_vod, cleanup_vod_parts, send_push, convert_to_seconds, import_json, format_vod_chapters, \
+    verify_vod_length, generate_readable_chat_log, export_readable_chat_log, time_since_date, export_json, \
+    export_verbose_chat_log, get_hash
 
 
 class Processing:
@@ -46,7 +54,7 @@ class Processing:
 
         self.pushbullet_key = config['pushbullet_key']
 
-        self.callTwitch = Twitch(self.client_id, self.client_secret, self.oauth_token)
+        self.call_twitch = Twitch(self.client_id, self.client_secret, self.oauth_token)
         self.download = Downloader(self.client_id, self.oauth_token, args['threads'], args['quiet'])
 
     def get_channel(self, channels):
@@ -54,10 +62,10 @@ class Processing:
         Download all vods from a specified channel or list of channels.
         """
         for channel in channels:
-            self.log.info(f"Now archiving channel '{channel}'.")
+            self.log.info("Now archiving channel '%s'.", channel)
             self.log.debug('Fetching user data from Twitch.')
 
-            user_data = self.callTwitch.get_api(f'users?login={channel}')['data'][0]
+            user_data = self.call_twitch.get_api(f'users?login={channel}')['data'][0]
             user_id = user_data['id']
             user_name = user_data['display_name']
 
@@ -90,11 +98,11 @@ class Processing:
                         db.update_database(3)
 
             # fetch channel info and live status
-            channel_data = self.callTwitch.get_api(f'streams?user_id={user_id}')['data']
+            channel_data = self.call_twitch.get_api(f'streams?user_id={user_id}')['data']
             if channel_data and channel_data[0]['type'] == 'live':
                 channel_live = True
                 # ensure 10 seconds has passed since stream went live before grabbing list of vods
-                stream_length = Utils.time_since_date(datetime.strptime(
+                stream_length = time_since_date(datetime.strptime(
                     channel_data[0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
                 if stream_length < 30:
                     sleep(30 - stream_length)
@@ -104,7 +112,7 @@ class Processing:
             cursor = ''
             try:
                 while True:
-                    _r = self.callTwitch.get_api(f'videos?user_id={user_id}&first=100&type=archive&after={cursor}')
+                    _r = self.call_twitch.get_api(f'videos?user_id={user_id}&first=100&type=archive&after={cursor}')
                     if not _r['pagination']:
                         break
 
@@ -112,8 +120,8 @@ class Processing:
                     available_vods.update(dict([(int(vod['stream_id']), (vod['id'])) for vod in _r['data']]))
                     cursor = _r['pagination']['cursor']
 
-            except Exception as e:
-                self.log.error(f'Error retrieving VODs from Twitch. Error: {e}')
+            except BaseException as e:
+                self.log.error('Error retrieving VODs from Twitch. Error: %s', str(e))
                 continue
 
             self.log.info(f'Online VODs: {available_vods}' if self.debug
@@ -153,10 +161,10 @@ class Processing:
 
             # move on if channel offline and no vods are available
             if not self.stream_only and not channel_live and not available_vods:
-                self.log.info(f'No VODs were found for {user_name}.')
+                self.log.info('No VODs were found for %s.', user_name)
                 continue
 
-            elif not channel_live and self.stream_only:
+            if not channel_live and self.stream_only:
                 continue
 
             # archive stream in non-segmented mode if no paired vod exists
@@ -164,10 +172,9 @@ class Processing:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
-                if Utils.create_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
-                    self.log.info(f'Lock file present for stream by {user_name} (.lock.{channel_data[0]["id"]}'
-                                  f'-stream-only), skipping.')
-                    pass
+                if create_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                    self.log.info('Lock file present for stream by %s (.lock.%s-stream-only), skipping.',
+                                  user_name, channel_data[0]["id"])
 
                 else:
                     # check if stream in database
@@ -178,7 +185,6 @@ class Processing:
                     # Check if stream id in database
                     if channel_data[0]['id'] in downloaded_streams:
                         self.log.info('Stream has already been downloaded.')
-                        pass
 
                     else:
                         try:
@@ -188,31 +194,30 @@ class Processing:
                                 # add to database
                                 self.log.debug('Adding stream info to database.')
                                 with Database(Path(self.config_dir, 'vods.db')) as db:
-                                    db.execute_query(create_vod, stream_json)
+                                    db.execute_query(CREATE_VOD, stream_json)
 
                             else:
                                 self.log.debug('No stream information returned to channel function, stream downloader'
                                                ' exited with error.')
-                                pass
 
-                        except Exception as e:
-                            self.log.error(f'Exception encountered while archiving live-only stream by {user_name}.'
-                                           'Error:', e)
+                        except BaseException as e:
+                            self.log.error('Exception encountered while archiving live-only stream by %s. Error: %s',
+                                           {user_name}, str(e))
                             return
 
                         finally:
                             # remove lock
                             self.log.debug('Removing lock file.')
-                            if Utils.remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                            if remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
                                 raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
 
             # exit if vod queue empty
             if not vod_queue:
-                self.log.info(f'No new VODs were found for {user_name}.')
+                self.log.info('No new VODs were found for %s.', user_name)
                 continue
 
-            self.log.info(f'{len(vod_queue)} VOD(s) in download queue.')
-            self.log.debug(f'VOD queue: {vod_queue}')
+            self.log.info('%s VOD(s) in download queue.', len(vod_queue))
+            self.log.debug('VOD queue: %s', vod_queue)
 
             # begin processing each available vod
             for stream_id in vod_queue:
@@ -221,15 +226,15 @@ class Processing:
                 if channel_data and self.stream_only and stream_id != int(channel_data[0]['id']):
                     continue
 
-                elif channel_data and self.no_stream and stream_id == int(channel_data[0]['id']):
+                if channel_data and self.no_stream and stream_id == int(channel_data[0]['id']):
                     self.log.info('Skipping VOD as it is live and no-stream argument provided.')
                     continue
 
-                self.log.debug(f'Processing VOD {vod_id} by {user_name}')
+                self.log.debug('Processing VOD %s by %s', vod_id, user_name)
                 self.log.debug('Creating lock file for VOD.')
 
-                if Utils.create_lock(self.config_dir, stream_id):
-                    self.log.info(f'Lock file present for VOD {vod_id} (.lock.{stream_id}), skipping.')
+                if create_lock(self.config_dir, stream_id):
+                    self.log.info('Lock file present for VOD %s (.lock.%s), skipping.', vod_id, stream_id)
                     continue
 
                 # check if vod in database
@@ -253,7 +258,7 @@ class Processing:
                         vod_json['chat_archived'] = vod_queue[stream_id][2]
                     # null empty values
                     for key in vod_json.keys():
-                        if type(vod_json[key]) == str and vod_json[key] == "":
+                        if isinstance(vod_json[key], str) and vod_json[key] == "":
                             vod_json[key] = None
 
                     try:
@@ -269,15 +274,15 @@ class Processing:
                                 vod_json['video_archived'] = db_vod[0][1] or vod_json['video_archived']
                                 vod_json['chat_archived'] = db_vod[0][2] or vod_json['chat_archived']
                                 vod_json['sid'] = vod_json['stream_id']
-                                db.execute_query(update_vod, vod_json)
+                                db.execute_query(UPDATE_VOD, vod_json)
 
                             else:
-                                db.execute_query(create_vod, vod_json)
+                                db.execute_query(CREATE_VOD, vod_json)
 
                     finally:
                         # remove lock
                         self.log.debug('Removing lock file.')
-                        if Utils.remove_lock(self.config_dir, vod_json['stream_id']):
+                        if remove_lock(self.config_dir, vod_json['stream_id']):
                             raise UnlockingError(vod_json['user_name'], vod_json['stream_id'], vod_id)
 
                 else:
@@ -306,8 +311,8 @@ class Processing:
                  'type': channel_data['type'], 'video_archived': 1, 'chat_archived': 0})
 
             stream_json['store_directory'] = \
-                str(Path(self.vod_directory, f'{Utils.sanitize_date(stream_json["created_at"])} - '
-                                             f'{Utils.sanitize_text(stream_json["title"])} - STREAM_ONLY'))
+                str(Path(self.vod_directory, f'{sanitize_date(stream_json["created_at"])} - '
+                                             f'{sanitize_text(stream_json["title"])} - STREAM_ONLY'))
 
             stream = Stream(self.client_id, self.client_secret, self.oauth_token)
 
@@ -320,35 +325,36 @@ class Processing:
 
             # merge stream segments and convert to mp4
             try:
-                Utils.combine_vod_parts(stream_json, print_progress=not self.quiet)
-                Utils.convert_vod(stream_json, [(0, 99999)], print_progress=not self.quiet)
+                combine_vod_parts(stream_json, print_progress=not self.quiet)
+                convert_vod(stream_json, [(0, 99999)], print_progress=not self.quiet)
 
             except Exception as e:
-                raise VodMergeError(e)
+                raise VodMergeError(e) from e
 
             self.log.debug('Cleaning up temporary files...')
-            Utils.cleanup_vod_parts(stream_json['store_directory'])
+            cleanup_vod_parts(stream_json['store_directory'])
 
             return stream_json
 
         except KeyboardInterrupt:
             self.log.debug('User requested stop, halting stream downloader.')
             if Path(self.config_dir, f'.lock.{channel_data["user_name"]}').exists():
-                Utils.remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only')
+                remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only')
 
             sys.exit(0)
 
         except (RequestError, VodMergeError) as e:
             self.log.debug('Exception downloading or merging stream.\n{e}', exc_info=True)
-            Utils.send_push(self.pushbullet_key, 'Exception encountered while downloading or merging downloaded stream '
+            send_push(self.pushbullet_key, 'Exception encountered while downloading or merging downloaded stream '
                                                  f'by {channel_data["user_name"]}', str(e))
-            return
 
-        except Exception as e:
-            self.log.error(f'Unexpected exception encountered while downloading live-only stream.\n{e}', exc_info=True)
-            Utils.send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream '
+        except BaseException as e:
+            self.log.error('Unexpected exception encountered while downloading live-only stream.\n%s', str(e),
+                           exc_info=True)
+            send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream '
                                                  f'by {channel_data["user_name"]}', str(e))
-            return
+
+        return False
 
     def get_vod_connector(self, vod_id, get_video, get_chat):
         """Download a single vod or list of vod IDs.
@@ -358,19 +364,19 @@ class Processing:
         :param get_chat: bool whether to grab chat logs
         :return: dict containing current vod information returned by get_vod
         """
-        self.log.info(f'Now processing VOD: {vod_id}')
-        vod_json = self.callTwitch.get_api(f'videos?id={vod_id}')['data'][0]
+        self.log.info('Now processing VOD: %s', vod_id)
+        vod_json = self.call_twitch.get_api(f'videos?id={vod_id}')['data'][0]
         vod_json['vod_id'] = vod_json.pop('id')
         vod_json['muted_segments'] = str(vod_json['muted_segments'])
         vod_json['store_directory'] = \
-            str(Path(self.vod_directory, f'{Utils.sanitize_date(vod_json["created_at"])} - '
-                                         f'{Utils.sanitize_text(vod_json["title"])} - {vod_id}'))
-        vod_json['duration'] = Utils.convert_to_seconds(vod_json['duration'])
+            str(Path(self.vod_directory, f'{sanitize_date(vod_json["created_at"])} - '
+                                         f'{sanitize_text(vod_json["title"])} - {vod_id}'))
+        vod_json['duration'] = convert_to_seconds(vod_json['duration'])
 
         # get vod status
-        vod_live = self.callTwitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
+        vod_live = self.call_twitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
 
-        self.log.info(f"VOD {'currently or recently live. Running in LIVE mode.' if vod_live else 'offline.'}")
+        self.log.info("VOD %s", 'currently or recently live. Running in LIVE mode.' if vod_live else 'offline.')
 
         _r = None
 
@@ -400,7 +406,7 @@ class Processing:
 
             # return imported json rather than returning from get_vod process as there were issues with returning
             # values via multiprocessing
-            vod_json = Utils.import_json(vod_json)
+            vod_json = import_json(vod_json)
 
             # combine vod segments
             if get_video:
@@ -411,7 +417,8 @@ class Processing:
                         vod_chapters = Twitch.get_vod_chapters(vod_id)
                         if vod_chapters:
                             # write chapters to file
-                            with open(Path(vod_json['store_directory'], 'chapters.json'), 'w') as chapters_file:
+                            with open(Path(vod_json['store_directory'], 'chapters.json'), 'w',
+                                      encoding='utf8') as chapters_file:
                                 chapters_file.write(json.dumps(vod_chapters))
 
                         else:
@@ -419,26 +426,27 @@ class Processing:
                             vod_chapters = (Twitch.get_vod_category(vod_id), 0, vod_json['duration'] * 1000)
 
                         # format and write vod chapters to parts dir
-                        with open(Path(vod_json['store_directory'], 'parts', 'chapters.txt'), 'w') as chapters_file:
-                            chapters_file.write(Utils.format_vod_chapters(vod_chapters))
+                        with open(Path(vod_json['store_directory'], 'parts', 'chapters.txt'),
+                                  'w', encoding='utf8') as chapters_file:
+                            chapters_file.write(format_vod_chapters(vod_chapters))
 
-                    except Exception as e:
-                        self.log.error(f'Failed to retrieve or insert chapters into VOD file. {e}')
-                        pass
+                    except BaseException as e:
+                        self.log.error('Failed to retrieve or insert chapters into VOD file. %s', str(e))
 
                     try:
-                        Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
+                        combine_vod_parts(vod_json, print_progress=not self.quiet)
                         # load muted segments if any exists
-                        with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r') as mutefile:
+                        with open(Path(vod_json['store_directory'], 'parts', '.muted'), 'r',
+                                  encoding='utf8') as mutefile:
                             muted_segments = json.load(mutefile)
-                        Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
+                        convert_vod(vod_json, muted_segments, print_progress=not self.quiet)
 
                     except CorruptPartError as c:
                         self.log.error("Corrupt segments found while converting VOD. Attempting to retry parts:"
-                                       f"\n{', '.join([str(p) for p in c.parts])}")
+                                       "\n%s", ', '.join([str(p) for p in c.parts]))
 
                         # check vod still available
-                        if not self.callTwitch.get_vod_index(vod_json, self.quality):
+                        if not self.call_twitch.get_vod_index(vod_json, self.quality):
                             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                                    "unable to re-download the missing segments. Either re-download "
                                                    "the VOD if it is still available, or manually convert 'merged.ts' "
@@ -447,7 +455,7 @@ class Processing:
                         # rename corrupt segments
                         for part in c.parts:
                             # convert part number to segment file
-                            part = str('{:05d}'.format(int(part)) + '.ts')
+                            part = str(f'{int(part):05d}' + '.ts')
 
                             # rename part
                             shutil.move(Path(vod_json['store_directory'], 'parts', part),
@@ -463,44 +471,45 @@ class Processing:
                                 part = str('{:05d}'.format(int(part_num)) + '.ts')
 
                                 # compare hashes
-                                if Utils.get_hash(Path(vod_json['store_directory'], 'parts', part)) == \
-                                        Utils.get_hash(Path(vod_json['store_directory'], 'parts', part + '.corrupt')):
+                                if get_hash(Path(vod_json['store_directory'], 'parts', part)) == \
+                                        get_hash(Path(vod_json['store_directory'], 'parts', part + '.corrupt')):
                                     self.log.debug(f"Re-downloaded .ts segment {part_num} matches corrupt one, "
                                                    "assuming corruption is on Twitch's end and ignoring.")
                                     muted_segments.append([part_num, part_num])
 
-                            Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
-                            Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
+                            combine_vod_parts(vod_json, print_progress=not self.quiet)
+                            convert_vod(vod_json, muted_segments, print_progress=not self.quiet)
 
                         except CorruptPartError as e:
                             raise VodDownloadError(
                                 "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
                                 "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
-                                f"'parts' folder if issue persists.\n{', '.join(c.f_parts)}")
+                                f"'parts' folder if issue persists.\n{', '.join(c.f_parts)}") from e
 
-                except Exception as e:
-                    raise VodMergeError(e)
+                except BaseException as e:
+                    raise VodMergeError(e) from e
 
                 # verify vod length is equal to what is grabbed from twitch
-                if Utils.verify_vod_length(vod_json):
+                if verify_vod_length(vod_json):
                     raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
                                         "'vod/parts' directory if VOD still available.")
 
             if get_chat:
                 try:
-                    with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
+                    with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r',
+                              encoding='utf8') as chat_file:
                         chat_log = json.loads(chat_file.read())
 
                     # generate and export the readable chat log
                     if chat_log:
                         try:
                             self.log.debug('Generating readable chat log and saving to disk...')
-                            r_chat_log = Utils.generate_readable_chat_log(chat_log, datetime.strptime(
+                            r_chat_log = generate_readable_chat_log(chat_log, datetime.strptime(
                                 vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc))
-                            Utils.export_readable_chat_log(r_chat_log, vod_json['store_directory'])
+                            export_readable_chat_log(r_chat_log, vod_json['store_directory'])
 
-                        except Exception as e:
-                            raise ChatExportError(e)
+                        except BaseException as e:
+                            raise ChatExportError(e) from e
 
                     else:
                         self.log.info('No chat messages found.')
@@ -519,13 +528,12 @@ class Processing:
                     with open(Path(vod_json['store_directory'], 'thumbnail.jpg'), 'wb') as thumbnail_file:
                         thumbnail_file.write(thumbnail.content)
 
-                except Exception as e:
-                    self.log.error('Failed to grab thumbnail for VOD.', e)
-                    pass
+                except BaseException as e:
+                    self.log.error('Failed to grab thumbnail for VOD. Error: %s', str(e))
 
                 # delete temporary .ts parts and merged.ts file
                 self.log.debug('Cleaning up temporary files...')
-                Utils.cleanup_vod_parts(vod_json['store_directory'])
+                cleanup_vod_parts(vod_json['store_directory'])
 
         # catch user exiting and remove lock file
         except KeyboardInterrupt:
@@ -536,7 +544,7 @@ class Processing:
                     worker.join()
 
             if Path(self.config_dir, f'.lock.{vod_json["stream_id"]}').exists():
-                Utils.remove_lock(self.config_dir, vod_json['stream_id'])
+                remove_lock(self.config_dir, vod_json['stream_id'])
 
             sys.exit(0)
 
@@ -548,26 +556,26 @@ class Processing:
                     worker.terminate()
                     worker.join()
 
-            self.log.error(f'Error downloading VOD {vod_id}.', exc_info=True)
-            Utils.send_push(self.pushbullet_key, f'Error downloading VOD {vod_id} by {vod_json["user_name"]}', str(e))
+            self.log.error('Error downloading VOD %s.', vod_id, exc_info=True)
+            send_push(self.pushbullet_key, f'Error downloading VOD {vod_id} by {vod_json["user_name"]}', str(e))
             # remove lock file if archiving channel
             if Path(self.config_dir, f'.lock.{vod_json["stream_id"]}').exists():
-                Utils.remove_lock(self.config_dir, vod_json['stream_id'])
+                remove_lock(self.config_dir, vod_json['stream_id'])
 
             # set to None so that channel function knows download failed
             vod_json = None
 
         # catch unhandled exceptions
-        except Exception as e:
+        except BaseException as e:
             if vod_live:
                 self.log.debug('Exception encountered, terminating download workers...')
                 for worker in workers:
                     worker.terminate()
                     worker.join()
 
-            Utils.send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id} by '
+            send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id} by '
                                                  f'{vod_json["user_name"]}', str(e))
-            self.log.error(f'Exception encountered while downloading VOD {vod_id}.', exc_info=True)
+            self.log.error('Exception encountered while downloading VOD %s.', vod_id, exc_info=True)
             return
 
         # this is only used when archiving a channel
@@ -586,13 +594,13 @@ class Processing:
         Path(vod_json['store_directory']).mkdir(parents=True, exist_ok=True)
 
         # wait if vod recently created
-        if Utils.time_since_date(datetime.strptime(
+        if time_since_date(datetime.strptime(
                 vod_json['created_at'],'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) < 300:
             self.log.info('Waiting 5m to download initial VOD parts as it was created very recently. Live archiving '
                           'will still function.')
             sleep(300)
 
-        if Utils.time_since_date(datetime.strptime(
+        if time_since_date(datetime.strptime(
                 vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) \
                 < (vod_json['duration'] + 360):
             self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
@@ -601,7 +609,7 @@ class Processing:
 
         # import chat log if it has been partially downloaded
         try:
-            with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r') as chat_file:
+            with open(Path(vod_json['store_directory'], 'verbose_chat.json'), 'r', encoding='utf8') as chat_file:
                 chat_log = json.loads(chat_file.read())
 
             # ignore chat logs created with older incompatible schema - see v2.2.1 changes
@@ -614,33 +622,33 @@ class Processing:
         # fetch all streams for a particular vod
         if get_video:
             try:
-                vod_index = self.callTwitch.get_vod_index(vod_json, self.quality)
+                vod_index = self.call_twitch.get_vod_index(vod_json, self.quality)
 
                 # attempt to fetch playlist for requested stream
                 Api.get_request(vod_index).text
 
             except TwitchAPIErrorForbidden as e:
                 raise VodDownloadError('Error retrieving VOD index. VOD may have been deleted or supplied resolution '
-                                       f'was invalid. Error: {str(e)}')
+                                       f'was invalid. Error: {str(e)}') from e
 
         # loop for processing live vods
         while True:
             try:
-                _r = self.callTwitch.get_api(f'videos?id={vod_json["vod_id"]}')
+                _r = self.call_twitch.get_api(f'videos?id={vod_json["vod_id"]}')
 
                 vod_json = _r['data'][0]
                 vod_json['vod_id'] = vod_json.pop('id')
                 vod_json['muted_segments'] = str(vod_json['muted_segments']) if vod_json['muted_segments'] else None
                 vod_json['store_directory'] = \
-                    str(Path(self.vod_directory, f'{Utils.sanitize_date(vod_json["created_at"])} - '
-                                                 f'{Utils.sanitize_text(vod_json["title"])} - {vod_json["vod_id"]}'))
-                vod_json['duration'] = Utils.convert_to_seconds(vod_json['duration'])
+                    str(Path(self.vod_directory, f'{sanitize_date(vod_json["created_at"])} - '
+                                                 f'{sanitize_text(vod_json["title"])} - {vod_json["vod_id"]}'))
+                vod_json['duration'] = convert_to_seconds(vod_json['duration'])
 
-                Utils.export_json(vod_json)
+                export_json(vod_json)
 
             except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                 self.log.warning('Error retrieving VOD json - VOD was likely deleted.')
-                with open(Path(vod_json['store_directory'], '.ignorelength'), 'w') as _:
+                with open(Path(vod_json['store_directory'], '.ignorelength'), 'w', encoding='utf8') as _:
                     pass
 
                 vod_live = False
@@ -654,7 +662,7 @@ class Processing:
                     # update vod json with m3u8 duration - more accurate than twitch API
                     _m = re.findall(r'(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', vod_playlist)[0]
                     vod_json['duration'] = floor(float(_m))
-                    Utils.export_json(vod_json)
+                    export_json(vod_json)
 
                     # replace extra chars in base_url like /chunked/index[-muted-JU07DEVBNK.m3u8]
                     _m = re.findall(r'(?<=\/)(index.*)', vod_index)[0]
@@ -669,8 +677,8 @@ class Processing:
 
                     vod_live = False
 
-                except Exception as e:
-                    raise VodDownloadError(e)
+                except BaseException as e:
+                    raise VodDownloadError(e) from e
 
             if get_chat:
                 # download all available chat segments
@@ -687,17 +695,17 @@ class Processing:
                              self.download.get_chat(vod_json, floor(int(chat_log[-1]['contentOffsetSeconds'])))
                              if n['id'] not in [m['id'] for m in chat_log]])
 
-                    Utils.export_verbose_chat_log(chat_log, vod_json['store_directory'])
+                    export_verbose_chat_log(chat_log, vod_json['store_directory'])
 
                 except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                     self.log.debug('Error 403 or 404 returned when downloading chat log - VOD was likely deleted.')
-                    with open(Path(vod_json['store_directory'], '.ignorelength'), 'w') as _:
+                    with open(Path(vod_json['store_directory'], '.ignorelength'), 'w', encoding='utf8') as _:
                         pass
 
                     vod_live = False
 
                 except Exception as e:
-                    raise ChatDownloadError(e)
+                    raise ChatDownloadError(e) from e
 
             if vod_live:
                 # wait up to 10 minutes, checking every minute to verify if vod is still being updated or not
@@ -713,7 +721,7 @@ class Processing:
                             break
 
                         # exit loop if 10 minutes pass without new vod segments being added
-                        elif _ > 9:
+                        if _ > 9:
                             self.log.debug('10m has passed since VOD duration changed - assuming it is no longer live.')
                             vod_live = False
 

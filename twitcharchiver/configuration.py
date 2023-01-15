@@ -1,3 +1,7 @@
+"""
+Module for generating, saving and retrieving configuration values.
+"""
+
 import configparser
 import logging
 import os
@@ -57,19 +61,19 @@ class Configuration:
 
         :param conf_file: path to configuration file
         """
-        self.log.debug('Creating directories for log file.')
+        self.log.debug('Creating directories for configuration file.')
         os.makedirs(conf_file.parent, exist_ok=True)
 
         config = configparser.ConfigParser()
         config.add_section('settings')
-        self.log.debug(f'Current config: {self.get()}')
+        self.log.debug('Current config: %s', self.get())
 
         for setting in self.__conf:
             config.set('settings', setting, self.get(setting))
 
-        self.log.debug(f'Writing config to {conf_file}')
+        self.log.debug('Writing config to %s', conf_file)
 
-        with open(conf_file, 'w') as f:
+        with open(conf_file, 'w', encoding='utf8') as f:
             config.write(f)
 
     @staticmethod
@@ -133,7 +137,7 @@ class Configuration:
                 config.set('settings', setting, str(Configuration.get(setting)))
 
             # save to disk
-            with open(conf_file, 'w') as f:
+            with open(conf_file, 'w', encoding='utf8') as f:
                 config.write(f)
 
         # overwrite one var
@@ -141,5 +145,5 @@ class Configuration:
             config.set('settings', name, str(Configuration.get(name)))
 
             # save to disk
-            with open(conf_file, 'w') as f:
+            with open(conf_file, 'w', encoding='utf8') as f:
                 config.write(f)
