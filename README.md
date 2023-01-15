@@ -21,7 +21,6 @@ Primarily focused on data preservation, this script can be used to archive an en
     * [Installation](#installation)
     * [Usage](#usage)
     * [Arguments](#arguments)
-  * [Retrieving Tokens](#retrieving-tokens)
   * [Disclaimer](#disclaimer)
 
 ## Features
@@ -39,43 +38,60 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Requirements
 * **[Python](https://www.python.org/) >= 3.7**
-* Python **requests** and **m3u8** modules `python -m pip install requests m3u8` or `python -m pip install -r requirements.txt`
 * **[FFmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](#installation))
 
 ## Installation & Usage
 ### Installation
-1. Download the most recent release via the green "Code" button on the top right, or grab the latest stable [release](https://github.com/Brisppy/twitch-archiver/releases/latest).
+Twitch Archiver can be installed via pip, setup as a docker container or installed manually.
 
-2. Download [FFmpeg](https://ffmpeg.org/download.html) and add to your PATH. See [this](https://www.wikihow.com/Install-FFmpeg-on-Windows) article if you are unsure how to do this.
+#### Installing with PIP
 
-3. Unpack and open the twitch-archiver folder and install required Python modules `python -m pip install -r requirements.txt`.
+1. Ensure you meet the above [requirements](#requirements).
+2. Install [pip](https://pip.pypa.io/en/stable/installation/) if you do not already have it.
+3. Download and install TA with `python -m pip install twitch-archiver`.
 
-4. Run twitch-archiver once with `python ./twitch-vod-archiver.py -i CLIENT_ID -s CLIENT_SECRET -v 0`, supplying your client-id with `-i CLIENT_ID` and client-secret with `-s CLIENT_SECRET` to save your credentials to the configuration. You will only ever need to do this once. If you do not yet have these credentials, see [Retrieving Tokens](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#retrieving-tokens).
+#### Installing Manually
 
-5. You should now be ready to save channels and VODs with the script, use `python ./twitch-vod-archiver.py -h`, or read the below section to see available arguments and how to use them.
+1. Either download the repository via the green code button at the top of the page, or grab the latest release [here](https://github.com/Brisppy/twitch-archiver/releases/latest).
+2. Unpack the archive and enter the directory with `cd twitch-archiver`.
+2. Install [pip](https://pip.pypa.io/en/stable/installation/) if you do not already have it.
+3. Build the package with `python -m build`, then install with `python -m pip install ./dist/twitch-archiver-*.tar.gz`.
+
+#### Installing as a Docker Container
+1. Either download the repository via the green code button at the top of the page, or grab the latest release [here](https://github.com/Brisppy/twitch-archiver/releases/latest).
+2. Unpack the archive and enter the directory with `cd twitch-archiver`.
+3. Build the container with `docker build . -t twitch-archiver`.
+4. Run the container with the following command. *Configuration can also be provided via environment variables (see [wiki]((https://github.com/Brisppy/twitch-archiver/wiki/Wiki#environment-variables)))*.
+```bash
+docker run -it -v {output_dir}:/output -v {config_dir}:/config twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "/output" -I "/config"
+```
 
 ### Usage
-Run the script via your terminal of choice. Use ```python ./twitch-vod-archiver.py -h``` to view help text.
+Run via your terminal of choice. Use `twitch-archiver -h` to view help text.
 
-More advanced usage such as watch mode and setting up a service can be found in the [Wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki).
+**Before you start downloading VODs or streams** you will need generate and provide your Twitch app developer credentials to Twitch Archiver. If you do not yet have these credentials, see [Retrieving Tokens](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#retrieving-tokens). \
+Once you have these, run TA once with `twitch-archiver -i CLIENT_ID -s CLIENT_SECRET -v 0`, where *CLIENT_ID* and *CLIENT_SECRET* are your Twitch client ID and client secret.\
+Alternatively you can run TA with the above command without replacing the CLIENT_ID and CLIENT_SECRET, and instead add them manually to the configuration file located in `$HOME/.config/twitch-archiver/config.ini`.
 
-Envornment variables are also supported for configuration, see the Wiki section on [Envirionment Variables](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#environment-variables).
+More advanced usage such as watch mode and setting up as a service can be found in the [Wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki).
+
+Environment variables are also supported for configuration, see the Wiki section on [Environment Variables](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#environment-variables).
 
 #### Examples
-```# python ./twitch-archiver.py -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
+```# twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
 
 Would download **video** and **chat** of all VODs from the channel **Brisppy**, using the provided **client_id** and **client_secret**, to the directory **Z:\twitch-archive**.
 
-```# python ./twitch-archiver.py -v 1276315849,1275305106 -d "/mnt/twitch-archive" -V -t 10```
+```# twitch-archiver -v 1276315849,1275305106 -d "/mnt/twitch-archive" -V -t 10```
 
 Would download VODs **1276315849** and **1275305106** to the directory **/mnt/twitch-archive**, only saving the **video**  using **10 download threads**.
 
 #### Arguments
 Below is the output of the `--help` or `-h` command. This displays all the available arguments and a brief description of how to use them.
 ```
-usage: twitch-archiver.py [-h] (-c CHANNEL | -v VOD_ID) [-i CLIENT_ID] [-s CLIENT_SECRET] [-C] [-V]
-                          [-t THREADS] [-q QUALITY] [-d DIRECTORY] [-w] [-L LOG_FILE] [-I CONFIG_DIR]
-                          [-p PUSHBULLET_KEY] [-Q | -D] [--version] [--show-config]
+usage: twitch-archiver [-h] (-c CHANNEL | -v VOD_ID) [-i CLIENT_ID] [-s CLIENT_SECRET] [-C] [-V]
+                       [-t THREADS] [-q QUALITY] [-d DIRECTORY] [-w] [-L LOG_FILE] [-I CONFIG_DIR]
+                       [-p PUSHBULLET_KEY] [-Q | -D] [--version] [--show-config]
 
 requires one of:
     -c CHANNEL, --channel CHANNEL
@@ -128,16 +144,6 @@ optional arguments:
   --show-config         Show saved config and exit.
 ```
 
-#### Docker
-##### Build the container
-```bash
-docker build . -t twitch-archiver
-```
-##### Run the container
-*Configuration can also be provided via environment variables (see wiki)*
-```bash
-docker run -it -v {output_dir}:/output -v {config_dir}:/config twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "/output" -I "/config
-```
 ## Disclaimer
 This script is intended to be used with the express permission of any involved rights holders, and is not intended to be used to duplicate, download or steal copyrighted content or information. When downloading VODs ensure you have permission from ALL involved rights holders for the content which you are downloading, and if you have the intention to share such content, you should also have explicit permission to do so.
 
