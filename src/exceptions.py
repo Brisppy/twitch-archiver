@@ -19,6 +19,7 @@ class TwitchAPIError(Exception):
 
 class TwitchAPIErrorForbidden(Exception):
     def __init__(self, url, status, response):
+        self.response = response
         message = f'Twitch API returned status code {status}. URL: {url}, Response: {response}'
 
         super().__init__(message)
@@ -33,6 +34,7 @@ class TwitchAPIErrorBadRequest(Exception):
 
 class TwitchAPIErrorNotFound(Exception):
     def __init__(self, url, status, response):
+        self.response = response
         message = f'Twitch API returned status code {status}. URL: {url}, Response: {response}'
 
         super().__init__(message)

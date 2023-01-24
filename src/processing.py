@@ -633,12 +633,18 @@ class Processing:
 
                     self.download.get_m3u8_video(m3u8.loads(vod_playlist), vod_base_url, vod_json['store_directory'])
 
-                except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
-                    self.log.warning('Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')
-                    with open(Path(vod_json['store_directory'], '.ignorelength'), 'w') as _:
-                        pass
+                except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden) as e:
+                    # log subscriber-only vods
+                    if 'vod_manifest_restricted' in e.response:
+                        raise VodDownloadError('VOD is subscriber-only which is not currently supported.')
 
-                    vod_live = False
+                    else:
+                        self.log.debug(
+                            'Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')
+                        with open(Path(vod_json['store_directory'], '.ignorelength'), 'w') as _:
+                            pass
+
+                        vod_live = False
 
                 except Exception as e:
                     raise VodDownloadError(e)

@@ -4,6 +4,7 @@
   * Added grabbing of VOD thumbnail.
   * Added grabbing of VOD chapters and inclusion in VOD file.
   * Added dockerfile for container creation (https://github.com/Brisppy/twitch-archiver/pull/18 - Thanks HeliosLHC).
+  * Added logging for subscriber-only VODs.
 
 **Changes and Fixes:**
   * Fix overwriting of Twitch credentials provided as an argument (https://github.com/Brisppy/twitch-archiver/pull/13 - Thanks HeliosLHC).
