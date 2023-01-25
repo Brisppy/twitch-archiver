@@ -592,6 +592,18 @@ class Processing:
         except FileNotFoundError:
             chat_log = []
 
+        # fetch all streams for a particular vod
+        if get_video:
+            try:
+                vod_index = self.callTwitch.get_vod_index(vod_json, self.quality)
+
+                # attempt to fetch playlist for requested stream
+                Api.get_request(vod_index).text
+
+            except TwitchAPIErrorForbidden as e:
+                raise VodDownloadError('Error retrieving VOD index. VOD may have been deleted or supplied resolution '
+                                       f'was invalid. Error: {str(e)}')
+
         # loop for processing live vods
         while True:
             try:
@@ -618,8 +630,6 @@ class Processing:
                 # download all available vod parts
                 self.log.info('Grabbing video...')
                 try:
-                    vod_index = self.callTwitch.get_vod_index(vod_json['vod_id'], self.quality)
-
                     vod_playlist = Api.get_request(vod_index).text
 
                     # update vod json with m3u8 duration - more accurate than twitch API
@@ -633,18 +643,12 @@ class Processing:
 
                     self.download.get_m3u8_video(m3u8.loads(vod_playlist), vod_base_url, vod_json['store_directory'])
 
-                except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden) as e:
-                    # log subscriber-only vods
-                    if 'vod_manifest_restricted' in e.response.text:
-                        raise VodDownloadError('VOD is subscriber-only which is not currently supported.')
+                except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
+                    self.log.debug('Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')
+                    with open(Path(vod_json['store_directory'], '.ignorelength'), 'w') as _:
+                        pass
 
-                    else:
-                        self.log.debug(
-                            'Error 403 or 404 returned when downloading VOD parts - VOD was likely deleted.')
-                        with open(Path(vod_json['store_directory'], '.ignorelength'), 'w') as _:
-                            pass
-
-                        vod_live = False
+                    vod_live = False
 
                 except Exception as e:
                     raise VodDownloadError(e)

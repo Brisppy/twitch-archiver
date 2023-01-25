@@ -6,7 +6,7 @@ from random import randrange
 from time import sleep
 
 from src.api import Api
-from src.exceptions import TwitchAPIError
+from src.exceptions import TwitchAPIError, TwitchAPIErrorForbidden
 from src.utils import Utils
 
 
@@ -97,14 +97,14 @@ class Twitch:
 
         return _r.json()['data']['videoPlaybackAccessToken']
 
-    def get_vod_index(self, vod_id, quality='best'):
-        """Retrieves an index of m3u8 streams.
+    def get_vod_index(self, vod_json, quality='best'):
+        """Retrieves an index of m3u8 streams for a given VOD.
 
-        :param vod_id: id of vod to retrieve index of
+        :param vod_json: vod information retrieved from Twitch
         :param quality: desired quality in the format [resolution]p[framerate] or 'best', 'worst'
         :return: url of m3u8 playlist
         """
-        access_token = self.get_playback_access_token(vod_id)
+        access_token = self.get_playback_access_token(vod_json['vod_id'])
 
         _p = {
             'player': 'twitchweb',
@@ -114,15 +114,36 @@ class Twitch:
             'playlist_include_framerate': 'true',
             'p': randrange(1000000, 9999999)
         }
-        _r = Api.get_request(f'https://usher.ttvnw.net/vod/{vod_id}.m3u8', p=_p)
 
-        _index = m3u8.loads(_r.text)
+        try:
+            _r = Api.get_request(f'https://usher.ttvnw.net/vod/{vod_json["vod_id"]}.m3u8', p=_p)
 
-        # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
-        available_resolutions = [m[0].group_id.split('p') for m in [m.media for m in _index.playlists] if
-                                 m[0].group_id != 'chunked']
-        # insert 'chunked' stream separately as its named differently
-        available_resolutions.insert(0, _index.media[0].name.split('p'))
+            _index = m3u8.loads(_r.text)
+
+            # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
+            available_resolutions = [m[0].group_id.split('p') for m in [m.media for m in _index.playlists] if
+                                     m[0].group_id != 'chunked']
+            # insert 'chunked' stream separately as its named differently
+            available_resolutions.insert(0, _index.media[0].name.split('p'))
+
+        # catch for sub-only vods
+        except TwitchAPIErrorForbidden as e:
+            # retrieve cloudfront storage location from VOD thumbnail
+            cf_info = vod_json['thumbnail_url'].split('/')
+            cf_domain = cf_info[4]
+            vod_uid = cf_info[5]
+
+            # parse user-provided quality
+            if quality == 'best':
+                quality = 'chunked'
+            elif quality == 'worst':
+                quality = '160p30'
+            else:
+                quality = 'p'.join(quality)
+
+            # create index url
+            index_url = f'https://{cf_domain}.cloudfront.net/{vod_uid}/{quality}/index-dvr.m3u8'
+            return index_url
 
         return _index.playlists[Utils.get_quality_index(quality, available_resolutions)].uri
 
