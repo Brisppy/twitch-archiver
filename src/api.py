@@ -34,16 +34,16 @@ class Api:
             raise RequestError(url, e)
 
         if _r.status_code == 400:
-            raise TwitchAPIErrorBadRequest(url, _r.status_code, _r.text)
+            raise TwitchAPIErrorBadRequest(_r)
 
         if _r.status_code == 403:
-            raise TwitchAPIErrorForbidden(url, _r.status_code, _r.text)
+            raise TwitchAPIErrorForbidden(_r)
 
         if _r.status_code == 404:
-            raise TwitchAPIErrorNotFound(url, _r.status_code, _r.text)
+            raise TwitchAPIErrorNotFound(_r)
 
         if _r.status_code != 200:
-            raise TwitchAPIError(url, _r.status_code, _r.text)
+            raise TwitchAPIError(_r)
 
         return _r
 
@@ -62,16 +62,16 @@ class Api:
             raise RequestError(url, e)
 
         if _r.status_code == 400:
-            raise TwitchAPIErrorBadRequest(url, _r.status_code, _r.text)
+            raise TwitchAPIErrorBadRequest(_r)
 
         if _r.status_code == 403:
-            raise TwitchAPIErrorForbidden(url, _r.status_code, _r.text)
+            raise TwitchAPIErrorForbidden(_r)
 
         if _r.status_code == 404:
-            raise TwitchAPIErrorNotFound(url, _r.status_code, _r.text)
+            raise TwitchAPIErrorNotFound(_r)
 
         if _r.status_code != 200:
-            raise TwitchAPIError(url, _r.status_code, _r.text)
+            raise TwitchAPIError(_r)
 
         return _r
 
@@ -96,7 +96,7 @@ class Api:
             raise RequestError(url, e)
 
         if _r.status_code != 200:
-            raise TwitchAPIError(url, _r.status_code, _r.text)
+            raise TwitchAPIError(_r)
 
         return _r
 

@@ -11,31 +11,35 @@ class RequestError(Exception):
 
 
 class TwitchAPIError(Exception):
-    def __init__(self, url, status, response):
-        message = f'Twitch API returned status code {status}. URL: {url}, Response: {response}'
+    def __init__(self, response):
+        message = \
+            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
 
         super().__init__(message)
 
 
 class TwitchAPIErrorForbidden(Exception):
-    def __init__(self, url, status, response):
+    def __init__(self, response):
         self.response = response
-        message = f'Twitch API returned status code {status}. URL: {url}, Response: {response}'
+        message = \
+            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
 
         super().__init__(message)
 
 
 class TwitchAPIErrorBadRequest(Exception):
-    def __init__(self, url, status, response):
-        message = f'Twitch API returned status code {status}. URL: {url}, Response: {response}'
+    def __init__(self, response):
+        message = \
+            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
 
         super().__init__(message)
 
 
 class TwitchAPIErrorNotFound(Exception):
-    def __init__(self, url, status, response):
+    def __init__(self, response):
         self.response = response
-        message = f'Twitch API returned status code {status}. URL: {url}, Response: {response}'
+        message = \
+            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
 
         super().__init__(message)
 

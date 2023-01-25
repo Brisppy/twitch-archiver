@@ -635,7 +635,7 @@ class Processing:
 
                 except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden) as e:
                     # log subscriber-only vods
-                    if 'vod_manifest_restricted' in e.response:
+                    if 'vod_manifest_restricted' in e.response.text:
                         raise VodDownloadError('VOD is subscriber-only which is not currently supported.')
 
                     else:
