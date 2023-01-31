@@ -432,7 +432,7 @@ class Processing:
                                        f"\n{', '.join([str(p) for p in c.parts])}")
 
                         # check vod still available
-                        if not self.callTwitch.get_vod_index(vod_id):
+                        if not self.callTwitch.get_vod_index(vod_json, self.quality):
                             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                                    "unable to re-download the missing segments. Either re-download "
                                                    "the VOD if it is still available, or manually convert 'merged.ts' "
@@ -453,14 +453,14 @@ class Processing:
 
                             # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes
                             # so we can work out if a segment is corrupt on twitch's end or ours
-                            for part_num in c_parts.args[0]:
+                            for part_num in c.parts:
                                 part = str('{:05d}'.format(int(part_num)) + '.ts')
 
                                 # compare hashes
                                 if Utils.get_hash(Path(vod_json['store_directory'], 'parts', part)) == \
                                         Utils.get_hash(Path(vod_json['store_directory'], 'parts', part + '.corrupt')):
-                                    self.log.debug("Re-downloaded .ts segment matches corrupt one, assuming corruption "
-                                                   "is on Twitch's end and ignoring.")
+                                    self.log.debug("Re-downloaded .ts segment {part_num} matches corrupt one, assuming "
+                                                   "corruption is on Twitch's end and ignoring.")
                                     muted_segments.append([part_num, part_num])
 
                             Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
