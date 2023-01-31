@@ -24,14 +24,13 @@ Primarily focused on data preservation, this script can be used to archive an en
   * [Disclaimer](#disclaimer)
 
 ## Features
-* Allows any number of VODs or channels to be downloaded simultaneously.
+* Archives both video and chat logs.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle.[^1]
-* Allows the downloading of **live** VODs *before sections can be muted or deleted*.[^2]
-* Generates and saves a readable chat log with timestamps and user badges.
-* Allows for the archiving of both video and chat logs.
-* Supports archiving streams without an associated VOD.
-* Error notifications sent via pushbullet.
-* Requires minimal setup or external programs.
+* Allows the downloading of live VODs before sections are muted or deleted.[^2]
+* Generates a readable chat log with timestamps and user badges.
+* Supports downloading streams which aren't being archived by Twitch.
+* Error notifications supported with pushbullet.
+* Supports archiving of subscriber-only VODs.
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
 [^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
@@ -42,7 +41,8 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Installation & Usage
 ### Installation
-Twitch Archiver can be installed via pip, setup as a docker container or installed manually.
+Twitch Archiver can be installed via pip, setup as a docker container or installed manually.\
+Make sure to read the [usage](#usage) section after installation.
 
 #### Installing with PIP
 
@@ -70,12 +70,11 @@ docker run -it -v {output_dir}:/output -v {config_dir}:/config twitch-archiver -
 Run via your terminal of choice. Use `twitch-archiver -h` to view help text.
 
 **Before you start downloading VODs or streams** you will need generate and provide your Twitch app developer credentials to Twitch Archiver. If you do not yet have these credentials, see [Retrieving Tokens](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#retrieving-tokens). \
-Once you have these, run TA once with `twitch-archiver -i CLIENT_ID -s CLIENT_SECRET -v 0`, where *CLIENT_ID* and *CLIENT_SECRET* are your Twitch client ID and client secret.\
+Once you have these, run TA once with `twitch-archiver -i CLIENT_ID -s CLIENT_SECRET -v 0`, where *CLIENT_ID* and *CLIENT_SECRET* are your Twitch client ID and client secret.
+
 Alternatively you can run TA with the above command without replacing the CLIENT_ID and CLIENT_SECRET, and instead add them manually to the configuration file located in `$HOME/.config/twitch-archiver/config.ini`.
 
 More advanced usage such as watch mode and setting up as a service can be found in the [Wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki).
-
-Environment variables are also supported for configuration, see the Wiki section on [Environment Variables](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#environment-variables).
 
 #### Examples
 ```# twitch-archiver -c Brisppy -i {client_id} -s {client_secret} -d "Z:\\twitch-archive"```
