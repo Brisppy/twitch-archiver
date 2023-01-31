@@ -450,6 +450,19 @@ class Processing:
                         # download and combine vod again
                         try:
                             self.get_vod(vod_json, True, False, False)
+
+                            # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes
+                            # so we can work out if a segment is corrupt on twitch's end or ours
+                            for part_num in c_parts.args[0]:
+                                part = str('{:05d}'.format(int(part_num)) + '.ts')
+
+                                # compare hashes
+                                if Utils.get_hash(Path(vod_json['store_directory'], 'parts', part)) == \
+                                        Utils.get_hash(Path(vod_json['store_directory'], 'parts', part + '.corrupt')):
+                                    self.log.debug("Re-downloaded .ts segment matches corrupt one, assuming corruption "
+                                                   "is on Twitch's end and ignoring.")
+                                    muted_segments.append([part_num, part_num])
+
                             Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
                             Utils.convert_vod(vod_json, muted_segments, print_progress=False if self.quiet else True)
 
