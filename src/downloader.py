@@ -54,8 +54,14 @@ class Downloader:
 
         # process all ids in playlist
         for ts_id in [s.uri for s in m3u8_playlist.segments]:
+            if '-unmuted' in ts_id:
+                # rename segments as their url remains unchanged after being unmuted
+                ts_id = ts_id.replace('-unmuted', '-muted')
+
+            # store all muted segments
             if '-muted' in ts_id:
                 muted_segments.append(int(ts_id.replace('-muted.ts', '')))
+
             # append ts_id to to-download list if it isn't already downloaded
             if ts_id.replace('-muted', '') not in downloaded_ids:
                 # create a tuple with (TS_URL, TS_PATH)

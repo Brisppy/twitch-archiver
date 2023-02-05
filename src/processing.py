@@ -459,8 +459,8 @@ class Processing:
                                 # compare hashes
                                 if Utils.get_hash(Path(vod_json['store_directory'], 'parts', part)) == \
                                         Utils.get_hash(Path(vod_json['store_directory'], 'parts', part + '.corrupt')):
-                                    self.log.debug("Re-downloaded .ts segment {part_num} matches corrupt one, assuming "
-                                                   "corruption is on Twitch's end and ignoring.")
+                                    self.log.debug(f"Re-downloaded .ts segment {part_num} matches corrupt one, "
+                                                   "assuming corruption is on Twitch's end and ignoring.")
                                     muted_segments.append([part_num, part_num])
 
                             Utils.combine_vod_parts(vod_json, print_progress=False if self.quiet else True)
