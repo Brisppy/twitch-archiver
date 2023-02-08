@@ -1,3 +1,12 @@
+**(2023-02-08) Version 2.2.3**
+
+**Additions:**
+  * Added support for archiving subscriber-only VODs.
+
+**Changes and Fixes:**
+  * Increased verbosity of some Twitch-related exceptions.
+  * Implemented a system for verifying and ignoring part corruptions on Twitch's side.
+
 **(2023-01-14) Version 2.2.2**
 
 **Additions:**

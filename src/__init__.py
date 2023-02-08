@@ -15,7 +15,7 @@ from src.twitch import Twitch
 from src.utils import Utils
 
 __name__ = 'twitch-archiver'
-__version__ = '2.2.2'
+__version__ = '2.2.3'
 
 
 def main():
@@ -70,7 +70,7 @@ def main():
     parser.add_argument('-w', '--watch', action='store_true',
                         help='Continually check every 10 seconds for new streams/VODs from a specified channel.',
                         default=Utils.getenv('TWITCH_ARCHIVER_WATCH', False, True))
-    stream.add_argument('-S', '--stream-only', action='store_true', 
+    stream.add_argument('-S', '--stream-only', action='store_true',
                         default=Utils.getenv('TWITCH_ARCHIVER_STREAM_ONLY', False, True),
                         help='Only download streams which are currently live.')
     stream.add_argument('-N', '--no-stream', action='store_true',
