@@ -503,7 +503,8 @@ class Utils:
             d = {'type': 'note', 'title': f'[twitch-archiver] {title}', 'body': body}
 
             try:
-                _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d))
+                _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d),
+                                   timeout=10)
 
                 if _r.status_code != 200:
                     if _r.json()['error']['code'] == 'pushbullet_pro_required':
@@ -580,8 +581,8 @@ class Utils:
         :param is_bool: handle environment variable as a case-insensitive boolean string ('true' or 'false')
         :return: environment variable value
         """
-        val = os.getenv(name, default_val) 
-        
+        val = os.getenv(name, default_val)
+
         if is_bool and isinstance(val, str):
             if val.upper() == "TRUE":
                 return True
@@ -591,7 +592,7 @@ class Utils:
                 raise ValueError(f"Invalid boolean value (true or false) received for environment variable: {name}={val}")
         else:
             # return empty strings '' as None type
-            return val if val else None 
+            return val if val else None
 
     @staticmethod
     def format_vod_chapters(chapters):
