@@ -89,6 +89,16 @@ class Processing:
                         self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
                         db.update_database(3)
 
+            # fetch channel info and live status
+            channel_data = self.callTwitch.get_api(f'streams?user_id={user_id}')['data']
+            if channel_data and channel_data[0]['type'] == 'live':
+                channel_live = True
+                # ensure 10 seconds has passed since stream went live before grabbing list of vods
+                stream_length = Utils.time_since_date(datetime.strptime(
+                    channel_data[0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
+                if stream_length < 15:
+                    sleep(15 - stream_length)
+
             # retrieve available vods
             available_vods: dict[int: tuple[int]] = {}
             cursor = ''
@@ -138,12 +148,8 @@ class Processing:
                                                   not downloaded_vods[stream_id][1] and self.video,
                                                   not downloaded_vods[stream_id][2] and self.chat)})
 
-            # check if channel is online and stream type is live
-            channel_data = self.callTwitch.get_api(f'streams?user_id={user_id}')['data']
-            if channel_data and channel_data[0]['type'] == 'live':
-                channel_live = True
-                # check if most recent vods stream_id matches current live stream id
-                live_vod_exists = int(channel_data[0]['id']) in available_vods.keys()
+            # check if stream being archived to vod
+            live_vod_exists = (channel_data and int(channel_data[0]['id']) in available_vods.keys())
 
             # move on if channel offline and no vods are available
             if not self.stream_only and not channel_live and not available_vods:
