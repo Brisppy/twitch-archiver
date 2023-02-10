@@ -1,3 +1,15 @@
+**(2023-02-28) Version 2.2.3**
+
+**Additions:**
+  * Added support for archiving subscriber-only VODs (https://github.com/Brisppy/twitch-archiver/issues/19).
+
+**Changes and Fixes:**
+  * Increased verbosity of some Twitch-related exceptions.
+  * Implemented a system for verifying and ignoring part corruptions on Twitch's side (https://github.com/Brisppy/twitch-archiver/issues/20).
+  * Fixed an issue with muted stream segments which are later unmuted (https://github.com/Brisppy/twitch-archiver/issues/20).
+  * Fixed a halting issue on Internet disconnect when using pushbullet.
+  * Fixed streams being detected as not having a corresponding VOD if archived very soon after going live.
+
 **(2023-01-14) Version 2.2.2**
 
 **Additions:**
