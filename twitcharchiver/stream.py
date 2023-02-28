@@ -16,7 +16,7 @@ import m3u8
 import requests
 
 from twitcharchiver.api import Api
-from twitcharchiver.exceptions import TwitchAPIErrorNotFound
+from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamPartDuration
 from twitcharchiver.twitch import Twitch
 from twitcharchiver.utils import time_since_date, safe_move
 
@@ -109,9 +109,7 @@ class Stream:
 
                 # catch streams with dynamic part length - set to 2 as often the final 2 segments are < 2s
                 if len(bad_segments) > 2:
-                    self.log.error('Multiple parts with unsupported duration found which cannot be accurately '
-                                   'combined. Falling back to VOD archiver only.')
-                    return
+                    raise UnsupportedStreamPartDuration
 
                 if sync_vod_segments:
                     if segment['duration'] != 2.0 and segment not in bad_segments:
