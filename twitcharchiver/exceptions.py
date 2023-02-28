@@ -135,3 +135,10 @@ class UnlockingError(Exception):
                       f"downloaded correctly and remove '.lock.{stream_id}-stream-only' file from config directory."
 
         super().__init__(message)
+
+class UnsupportedStreamPartDuration(Exception):
+    def __init__(self):
+        message = 'Multiple parts with unsupported duration found which cannot be accurately combined. ' \
+                  'Falling back to VOD archiver only.'
+
+        super().__init__(message)
