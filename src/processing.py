@@ -96,8 +96,8 @@ class Processing:
                 # ensure 10 seconds has passed since stream went live before grabbing list of vods
                 stream_length = Utils.time_since_date(datetime.strptime(
                     channel_data[0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
-                if stream_length < 15:
-                    sleep(15 - stream_length)
+                if stream_length < 30:
+                    sleep(30 - stream_length)
 
             # retrieve available vods
             available_vods: dict[int: tuple[int]] = {}
