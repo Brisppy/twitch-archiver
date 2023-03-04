@@ -5,11 +5,14 @@ Primary processing loops for calling the various download functions using the su
 import json
 import logging
 import multiprocessing
+import os
 import re
 import shutil
 import sys
+import tempfile
 
 from datetime import datetime, timezone
+from glob import glob
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -19,14 +22,14 @@ import m3u8
 from twitcharchiver.api import Api
 from twitcharchiver.database import Database, CREATE_VOD, UPDATE_VOD, __db_version__
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError,\
+from twitcharchiver.exceptions import VodDownloadError, ChatDownloadError, ChatExportError, VodMergeError, \
     UnlockingError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, RequestError, CorruptPartError
 from twitcharchiver.stream import Stream
 from twitcharchiver.twitch import Twitch
 from twitcharchiver.utils import create_lock, remove_lock, sanitize_date, sanitize_text, combine_vod_parts, \
     convert_vod, cleanup_vod_parts, send_push, convert_to_seconds, import_json, format_vod_chapters, \
     verify_vod_length, generate_readable_chat_log, export_readable_chat_log, time_since_date, export_json, \
-    export_verbose_chat_log, get_hash
+    export_verbose_chat_log, get_hash, safe_move
 
 
 class Processing:
@@ -70,7 +73,8 @@ class Processing:
             user_name = user_data['display_name']
 
             channel_live = False
-            live_vod_exists = False
+            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+            tmp_buffer_dir = Path(tempfile.gettempdir(), os.urandom(24).hex())
 
             self.vod_directory = Path(self.directory, user_name)
 
@@ -101,11 +105,37 @@ class Processing:
             channel_data = self.call_twitch.get_api(f'streams?user_id={user_id}')['data']
             if channel_data and channel_data[0]['type'] == 'live':
                 channel_live = True
-                # ensure 10 seconds has passed since stream went live before grabbing list of vods
+                # ensure enough time has passed for vod api to update before archiving
                 stream_length = time_since_date(datetime.strptime(
                     channel_data[0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
-                if stream_length < 30:
-                    sleep(30 - stream_length)
+
+                # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
+                # meantime in case there is no vod and thus no way to retrieve them after the fact
+                if stream_length < 60:
+                    self.log.debug('Stream began less than 60s ago, delaying archival start until VOD API updated.')
+                    # create temp dir for buffer
+                    Path(tmp_buffer_dir).mkdir(parents=True, exist_ok=True)
+
+                    stream.unsynced_setup(tmp_buffer_dir)
+                    index_uri = self.call_twitch.get_channel_hls_index(channel, self.quality)
+
+                    # download new parts every 4s
+                    for i in range(int((60 - stream_length) / 4)):
+                        # grab required values
+                        start_timestamp = int(datetime.utcnow().timestamp())
+                        incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
+
+                        # create buffer and download segments to temp dir
+                        stream.build_unsynced_buffer(incoming_segments)
+                        stream.download_buffer(tmp_buffer_dir)
+
+                        # wait if less than 5s passed since grabbing more parts
+                        processing_time = int(datetime.utcnow().timestamp() - start_timestamp)
+                        if processing_time < 4:
+                            sleep(4 - processing_time)
+
+                    # wait any remaining time
+                    sleep((60 - stream_length) % 4)
 
             # retrieve available vods
             available_vods: dict[int: tuple[int]] = {}
@@ -132,7 +162,7 @@ class Processing:
                 # dict containing stream_id: (vod_id, video_downloaded, chat_downloaded)
                 downloaded_vods = dict([(i[0], (i[1], i[2], i[3])) for i in db.execute_query(
                     'SELECT stream_id, vod_id, video_archived, chat_archived FROM vods WHERE user_id IS ?',
-                    {'user_id' : user_id})])
+                    {'user_id': user_id})])
             self.log.info(f'Downloaded vods: {downloaded_vods}' if self.debug
                           else f'Downloaded vods: {len(downloaded_vods)}')
 
@@ -188,7 +218,22 @@ class Processing:
 
                     else:
                         try:
-                            stream_json = self.get_unsynced_stream(channel_data[0])
+                            # move parts from temp stream buffer to output dir
+                            # gather parts from temp dir
+                            buffered_parts = [Path(p) for p in sorted(glob(str(Path(tmp_buffer_dir, '*.ts'))))]
+                            # create output dir
+                            output_dir = \
+                                str(Path(self.vod_directory,
+                                         f"{sanitize_date(channel_data[0]['started_at'])} - "
+                                         f"{sanitize_text(channel_data[0]['title'])} - STREAM_ONLY", 'parts'))
+                            Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+                            # move parts individually to destination dir
+                            for part in buffered_parts:
+                                dst_part = str(Path(part).name)
+                                safe_move(part, Path(output_dir, dst_part))
+
+                            stream_json = self.get_unsynced_stream(channel_data[0], stream)
 
                             if stream_json:
                                 # add to database
@@ -210,6 +255,10 @@ class Processing:
                             self.log.debug('Removing lock file.')
                             if remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
                                 raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
+
+            # wipe stream buffer as stream has paired vod
+            if Path(tmp_buffer_dir).exists():
+                shutil.rmtree(tmp_buffer_dir)
 
             # exit if vod queue empty
             if not vod_queue:
@@ -244,7 +293,7 @@ class Processing:
                         {'stream_id': stream_id})
 
                 # check if vod_id exists in database in the requested format(s)
-                if downloaded_vod and vod_queue[stream_id][1] and downloaded_vod[0][1]\
+                if downloaded_vod and vod_queue[stream_id][1] and downloaded_vod[0][1] \
                         and vod_queue[stream_id][2] and downloaded_vod[0][2]:
                     self.log.info('VOD has been downloaded in requested format since download queue was created.')
                     continue
@@ -289,12 +338,16 @@ class Processing:
                     self.log.debug('No VOD information returned to channel function, downloader exited with error.')
                     continue
 
-    def get_unsynced_stream(self, channel_data):
+    def get_unsynced_stream(self, channel_data, stream=None):
         """Archives a live stream without a paired VOD.
 
         :param channel_data: json retrieved from channel endpoint
+        :param stream: optionally provided stream method if existing buffer needs to be kept
         :return: sanitized / formatted stream json
         """
+        if not stream:
+            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+
         try:
             # generate stream dict
             stream_json_keys = \
@@ -313,8 +366,6 @@ class Processing:
             stream_json['store_directory'] = \
                 str(Path(self.vod_directory, f'{sanitize_date(stream_json["created_at"])} - '
                                              f'{sanitize_text(stream_json["title"])} - STREAM_ONLY'))
-
-            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
 
             stream.get_stream(
                 stream_json['user_name'], Path(stream_json['store_directory'], 'parts'), self.quality, False)
@@ -346,13 +397,13 @@ class Processing:
         except (RequestError, VodMergeError) as e:
             self.log.debug('Exception downloading or merging stream.\n{e}', exc_info=True)
             send_push(self.pushbullet_key, 'Exception encountered while downloading or merging downloaded stream '
-                                                 f'by {channel_data["user_name"]}', str(e))
+                                           f'by {channel_data["user_name"]}', str(e))
 
         except BaseException as e:
             self.log.error('Unexpected exception encountered while downloading live-only stream.\n%s', str(e),
                            exc_info=True)
             send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream '
-                                                 f'by {channel_data["user_name"]}', str(e))
+                                           f'by {channel_data["user_name"]}', str(e))
 
         return False
 
@@ -574,7 +625,7 @@ class Processing:
                     worker.join()
 
             send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id} by '
-                                                 f'{vod_json["user_name"]}', str(e))
+                                           f'{vod_json["user_name"]}', str(e))
             self.log.error('Exception encountered while downloading VOD %s.', vod_id, exc_info=True)
             return
 
@@ -595,7 +646,7 @@ class Processing:
 
         # wait if vod recently created
         if time_since_date(datetime.strptime(
-                vod_json['created_at'],'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) < 300:
+                vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) < 300:
             self.log.info('Waiting 5m to download initial VOD parts as it was created very recently. Live archiving '
                           'will still function.')
             sleep(300)
@@ -714,7 +765,7 @@ class Processing:
                     sleep(60)
                     try:
                         # restart while loop if new video segments found
-                        if len(m3u8.loads(vod_playlist).segments)\
+                        if len(m3u8.loads(vod_playlist).segments) \
                                 < len(m3u8.loads(Api.get_request(vod_index).text).segments):
                             self.log.debug('New VOD parts found.')
                             vod_live = True
