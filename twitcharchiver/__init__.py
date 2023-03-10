@@ -41,7 +41,7 @@ from twitcharchiver.exceptions import TwitchAPIError
 from twitcharchiver.logger import Logger
 from twitcharchiver.processing import Processing
 from twitcharchiver.twitch import Twitch
-from twitcharchiver.utils import getenv, send_push, get_latest_version, version_tuple
+from twitcharchiver.utils import getenv, send_push, get_latest_version, version_tuple, check_update_available
 
 __version__ = '2.2.3'
 
@@ -122,7 +122,7 @@ def main():
                         default=getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", False))
     loglevel.add_argument('-Q', '--quiet', action='store_const', help='Disable all log output.', const=50, default=0)
     loglevel.add_argument('-D', '--debug', action='store_const', help='Enable debug logs.', const=10, default=0)
-    parser.add_argument('--version', action='version', version=f'{__name__} v{__version__}',
+    parser.add_argument('--version', action='version', version=f'Twitch Archiver v{__version__}',
                         help='Show version number and exit.')
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
 
@@ -144,7 +144,7 @@ def main():
 
     # compare with current git version
     latest_version, release_notes = get_latest_version()
-    if version_tuple(__version__) < version_tuple(latest_version):
+    if check_update_available(__version__, latest_version):
         log.warning('New version of Twitch-Archiver available - Version %s:\n'
                     'https://github.com/Brisppy/twitch-archiver/releases/latest\nRelease notes:\n\n%s\n',
                     latest_version, release_notes)
