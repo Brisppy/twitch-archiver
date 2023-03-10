@@ -462,6 +462,30 @@ def version_tuple(v):
     return tuple(map(int, (v.split("."))))
 
 
+def check_update_available(local_version, remote_version):
+    """Compares two software versions.
+
+    :param local_version: local version in use
+    :param remote_version: remote version to compare against
+    :return: True if remote version has a higher version number, otherwise False
+    """
+    # check if local version is 'special', as in a development build or release candidate
+    local_version_parts = local_version.split('.')
+    if len(local_version_parts) > 3:
+        log.warning(
+            'Currently using a development or release candidate build. These may be unfinished or contain serious '
+            'bugs. Report any issues you encounter to https://github.com/Brisppy/twitch-archiver/issues.')
+        # update is available if we are using a dev or release candidate build equal to or prior to
+        # the latest stable release
+        if version_tuple('.'.join(local_version_parts[:-1])) <= version_tuple(remote_version):
+            return True
+
+    elif version_tuple(local_version) < version_tuple(remote_version):
+        return True
+
+    return False
+
+
 def get_quality_index(desired_quality, available_qualities):
     """Finds the index of a user defined quality from a list of available stream qualities.
 
