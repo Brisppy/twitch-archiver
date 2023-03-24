@@ -154,8 +154,7 @@ class Processing:
                 self.log.error('Error retrieving VODs from Twitch. Error: %s', str(e))
                 continue
 
-            self.log.info(f'Online VODs: {available_vods}' if self.debug
-                          else f'Online VODs: {len(available_vods)}')
+            self.log.debug(f'Online VODs: {available_vods}')
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
@@ -163,8 +162,7 @@ class Processing:
                 downloaded_vods = dict([(i[0], (i[1], i[2], i[3])) for i in db.execute_query(
                     'SELECT stream_id, vod_id, video_archived, chat_archived FROM vods WHERE user_id IS ?',
                     {'user_id': user_id})])
-            self.log.info(f'Downloaded vods: {downloaded_vods}' if self.debug
-                          else f'Downloaded vods: {len(downloaded_vods)}')
+            self.log.debug(f'Downloaded vods: {downloaded_vods}')
 
             # generate vod queue using downloaded and available vods
             vod_queue = {}
@@ -195,6 +193,7 @@ class Processing:
                 continue
 
             if not channel_live and self.stream_only:
+                self.log.info('Running in stream-only mode and no stream available.', user_name)
                 continue
 
             # archive stream in non-segmented mode if no paired vod exists
@@ -214,7 +213,7 @@ class Processing:
 
                     # Check if stream id in database
                     if channel_data[0]['id'] in downloaded_streams:
-                        self.log.info('Stream has already been downloaded.')
+                        self.log.info('Ignoring steam as it has already been downloaded.')
 
                     else:
                         try:
