@@ -116,7 +116,7 @@ def main():
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
                         help='Directory to store configuration, VOD database and lock files.\n(default: %(default)s)',
                         default=getenv('TWITCH_ARCHIVER_CONFIG_DIR',
-                                             Path(os.path.expanduser("~"), '.config', 'twitch-archiver')))
+                                       Path(os.path.expanduser("~"), '.config', 'twitch-archiver')))
     parser.add_argument('-p', '--pushbullet-key', action='store',
                         help='Pushbullet key for sending pushes on error. Enabled by supplying key.',
                         default=getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", False))
@@ -177,7 +177,7 @@ def main():
             # store returned token
             config.save(Path(args.get('config_dir'), 'config.ini'))
         except TwitchAPIError as err:
-            log.error('OAuth token generation failed. Error: $s', str(err))
+            log.error('OAuth token generation failed. Error: %s', str(err))
             send_push(config.get('pushbullet_key'), 'OAuth token generation failed.', str(err))
             sys.exit(1)
 
