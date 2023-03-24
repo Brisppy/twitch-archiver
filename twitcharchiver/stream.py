@@ -82,14 +82,25 @@ class Stream:
         while True:
             start_timestamp = int(datetime.utcnow().timestamp())
 
-            try:
-                self.log.debug('Fetching incoming stream segments.')
-                incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
+            # attempt to grab new segments from Twitch
+            for attempt in range(6):
+                if attempt > 4:
+                    return
 
-            # stream has ended if exception encountered
-            except TwitchAPIErrorNotFound:
-                self.get_final_segment(self.buffer, output_dir, self.segment_ids)
-                return
+                try:
+                    self.log.debug('Fetching incoming stream segments.')
+                    incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
+                    break
+
+                # stream has ended if exception encountered
+                except TwitchAPIErrorNotFound:
+                    self.get_final_segment(self.buffer, output_dir, self.segment_ids)
+                    return
+
+                except requests.exceptions.ConnectTimeout:
+                    self.log.debug('Timed out attempting to fetch new stream segments, retrying. (Attempt %s)',
+                                   attempt + 1)
+                    continue
 
             # set latest segment and timestamp if new segment found
             if incoming_segments['segments'][-1]['uri'] != latest_segment:
