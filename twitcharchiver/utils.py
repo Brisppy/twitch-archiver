@@ -41,7 +41,7 @@ def generate_readable_chat_log(chat_log, stream_start):
             created_time = \
                 datetime.strptime(comment['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
 
-        comment_time = '{:.3f}'.format(get_time_difference(stream_start, created_time))
+        comment_time = f'{get_time_difference(stream_start, created_time):.3f}'
 
         # catch comments without commenter informations
         if comment['commenter']:
@@ -107,7 +107,7 @@ def export_json(vod_json):
 
     :param vod_json: dict of vod parameters retrieved from twitch
     """
-    with open(Path(vod_json['store_directory'], 'vod.json'), 'w') as json_out_file:
+    with open(Path(vod_json['store_directory'], 'vod.json'), 'w', encoding='utf8') as json_out_file:
         json_out_file.write(json.dumps(vod_json))
 
 
@@ -117,10 +117,10 @@ def import_json(vod_json):
     :param vod_json: dict of vod parameters retrieved from twitch
     """
     if Path(vod_json['store_directory'], 'vod.json').exists():
-        with open(Path(vod_json['store_directory'], 'vod.json'), 'r') as json_in_file:
+        with open(Path(vod_json['store_directory'], 'vod.json'), 'r', encoding='utf8') as json_in_file:
             return json.loads(json_in_file.read())
 
-    return
+    return []
 
 
 def combine_vod_parts(vod_json, print_progress=True):
@@ -158,10 +158,10 @@ def combine_vod_parts(vod_json, print_progress=True):
         # merge all .ts files with ffmpeg concat demuxer as missing segments can cause corruption with
         # other method
 
-        log.debug(f'Discontinuity found, merging with ffmpeg.\n Discontinuity: {dicontinuity}')
+        log.debug('Discontinuity found, merging with ffmpeg.\n Discontinuity: %s', dicontinuity)
 
         # create file with list of parts for ffmpeg
-        with open(Path(vod_json['store_directory'], 'parts', 'segments.txt'), mode='w') as segment_file:
+        with open(Path(vod_json['store_directory'], 'parts', 'segments.txt'), 'w', encoding='utf8') as segment_file:
             for part in vod_parts:
                 segment_file.write(f"file '{part}'\n")
 
@@ -181,7 +181,7 @@ def combine_vod_parts(vod_json, print_progress=True):
                         progress.print_progress(int(current_time), vod_json['duration'])
 
             if p.returncode:
-                log.error(f'VOD merger exited with error. Command: {p.args}.')
+                log.error('VOD merger exited with error. Command: %s.', p.args)
                 raise VodConvertError(f'VOD merger exited with error. Command: {p.args}.')
 
 
@@ -204,9 +204,9 @@ def convert_vod(vod_json, ignore_corruptions=None, print_progress=True):
         [corrupt_part_whitelist.update(r) for r in [range(t[0] - 2, t[1] + 3) for t in ignore_corruptions]]
 
     # get dts offset of first part
-    with subprocess.Popen(
-            f'ffprobe -v quiet -print_format json -show_format -show_streams "{Path(vod_json["store_directory"], "parts", "00000.ts")}"', shell=True,
-            stdout=subprocess.PIPE, universal_newlines=True) as p:
+    with subprocess.Popen(f'ffprobe -v quiet -print_format json -show_format -show_streams '
+                          f'"{Path(vod_json["store_directory"], "parts", "00000.ts")}"', shell=True,
+                          stdout=subprocess.PIPE, universal_newlines=True) as p:
         ts_file_data = ''
         for line in p.stdout:
             ts_file_data += line
@@ -240,27 +240,26 @@ def convert_vod(vod_json, ignore_corruptions=None, print_progress=True):
                     dts_timestamp = int(re.search(r'(?<=dts = ).*(?=\).)', line).group(0))
 
                 # Catch corrupt parts without timestamp, shows up as 'NOPTS'
-                except ValueError:
+                except ValueError as e:
                     raise VodConvertError("Corrupt packet encountered at unknown timestamp while converting VOD. "
-                                          "Delete 'parts' folder and re-download VOD.")
+                                          "Delete 'parts' folder and re-download VOD.") from e
 
                 corrupt_part = floor((dts_timestamp - dts_offset) / 90000 / 10)
 
                 # ignore if corrupt packet within ignore_corruptions range
                 if corrupt_part in corrupt_part_whitelist:
-                    log.debug(f'Ignoring corrupt packet as part in whitelist. Part: {corrupt_part}')
-                    pass
+                    log.debug('Ignoring corrupt packet as part in whitelist. Part: %s', corrupt_part)
 
                 else:
                     corrupt_parts.add(int(corrupt_part))
-                    log.error(f'Corrupt packet encountered. Part: {corrupt_part}')
+                    log.error('Corrupt packet encountered. Part: %s', corrupt_part)
 
     if p.returncode:
         log.debug('FFmpeg exited with error code, output dumped to VOD directory.')
-        with open(Path(vod_json["store_directory"], 'parts', 'ffmpeg.log'), 'w') as ffout:
+        with open(Path(vod_json["store_directory"], 'parts', 'ffmpeg.log'), 'w', encoding='utf8') as ffout:
             ffout.write(ffmpeg_log)
 
-        raise VodConvertError(f"VOD converter exited with error. Delete 'parts' directory and re-download VOD.")
+        raise VodConvertError("VOD converter exited with error. Delete 'parts' directory and re-download VOD.")
 
     if corrupt_parts:
         corrupted_ranges = to_ranges(corrupt_parts)
@@ -277,6 +276,11 @@ def convert_vod(vod_json, ignore_corruptions=None, print_progress=True):
 
 # https://stackoverflow.com/a/43091576
 def to_ranges(iterable):
+    """Converts a list of integers to iterable sets of (low, high) (e.g [0, 1, 2, 5, 7, 8] -> (0, 2), (5, 5), (7, 8))
+
+    :param iterable: list of integers
+    :return: iterable generator of separate integer ranges
+    """
     iterable = sorted(set(iterable))
     for key, group in groupby(enumerate(iterable), lambda t: t[1] - t[0]):
         group = list(group)
@@ -302,25 +306,24 @@ def verify_vod_length(vod_json):
                        shell=True, capture_output=True)
 
     if p.returncode:
-        log.error(f'VOD length verification exited with error. Command: {p.args}.')
+        log.error('VOD length verification exited with error. Command: %s.', p.args)
         raise VodConvertError(f'VOD length verification exited with error. Command: {p.args}.')
 
     try:
         downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
 
     except Exception as e:
-        log.error(f'Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. {e}')
-        raise VodConvertError(str(e))
+        log.error('Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. %s', str(e))
+        raise VodConvertError(str(e)) from e
 
-    log.debug(f'Downloaded VOD length is {downloaded_length}. Expected length is {vod_json["duration"]}.')
+    log.debug('Downloaded VOD length is %s. Expected length is %s.', downloaded_length, vod_json["duration"])
 
     # pass verification if downloaded file is within 2s of expected length
     if 2 >= downloaded_length - vod_json['duration'] >= -2:
         log.debug('VOD passed length verification.')
         return False
 
-    else:
-        return True
+    return True
 
 
 def cleanup_vod_parts(vod_directory):
@@ -364,10 +367,10 @@ def convert_to_seconds(duration):
     if len(duration) == 1:
         return int(duration[0])
 
-    elif len(duration) == 2:
+    if len(duration) == 2:
         return (int(duration[0]) * 60) + int(duration[1])
 
-    elif len(duration) == 3:
+    if len(duration) == 3:
         return (int(duration[0]) * 3600) + (int(duration[1]) * 60) + int(duration[2])
 
 
@@ -380,7 +383,7 @@ def convert_to_hms(seconds):
     minutes = seconds // 60
     hours = minutes // 60
 
-    return "%02dh%02dm%02ds" % (hours, minutes % 60, seconds % 60)
+    return f"{hours:02d}h{minutes % 60:02d}m{seconds % 60:02d}s"
 
 
 def create_lock(ini_path, vod_id):
@@ -391,8 +394,9 @@ def create_lock(ini_path, vod_id):
     :return: true if lock file creation fails
     """
     try:
-        with open(Path(ini_path, f'.lock.{vod_id}'), 'x') as _:
+        with open(Path(ini_path, f'.lock.{vod_id}'), 'x', encoding='utf8') as _:
             pass
+        return
 
     except FileExistsError:
         return True
@@ -407,6 +411,7 @@ def remove_lock(config_dir, vod_id):
     """
     try:
         Path(config_dir, f'.lock.{vod_id}').unlink()
+        return
 
     except Exception as e:
         return e
@@ -459,6 +464,11 @@ def get_latest_version():
 # reference:
 #   https://stackoverflow.com/a/11887825
 def version_tuple(v):
+    """Convert
+
+    :param v:
+    :return:
+    """
     return tuple(map(int, (v.split("."))))
 
 
@@ -533,13 +543,13 @@ def send_push(pushbullet_key, title, body=''):
             if _r.status_code != 200:
                 if _r.json()['error']['code'] == 'pushbullet_pro_required':
                     log.error('Error sending push. Likely rate limited (500/month). '
-                              f'Error {_r.status_code}: {_r.text}')
+                              'Error %s: %s', _r.status_code, _r.text)
 
                 else:
-                    log.error(f'Error sending push. Error {_r.status_code}: {_r.text}')
+                    log.error('Error sending push. Error %s: %s', _r.status_code, _r.text)
 
         except Exception as e:
-            log.error(f'Error sending push. Error: {e}')
+            log.error('Error sending push. Error: %s', e)
 
 
 # reference:
@@ -610,13 +620,14 @@ def getenv(name, default_val=None, is_bool=False):
     if is_bool and isinstance(val, str):
         if val.upper() == "TRUE":
             return True
-        elif val.upper() == "FALSE":
+
+        if val.upper() == "FALSE":
             return False
-        else:
-            raise ValueError(f"Invalid boolean value (true or false) received for environment variable: {name}={val}")
-    else:
-        # return empty strings '' as None type
-        return val if val else None
+
+        raise ValueError(f"Invalid boolean value (true or false) received for environment variable: {name}={val}")
+
+    # return empty strings '' as None type
+    return val if val else None
 
 
 def format_vod_chapters(chapters):
@@ -635,7 +646,7 @@ def format_vod_chapters(chapters):
     
     """)
 
-    if type(chapters) == tuple:
+    if isinstance(chapters, tuple):
         formatted_chapters += chapter_base.format(
             start=chapters[1],
             end=chapters[2],
@@ -676,7 +687,7 @@ class Progress:
         """
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
-        return '{:0>2}:{:0>2}:{:0>2}'.format(h, m, s)
+        return f'{h:0>2}:{m:0>2}:{s:0>2}'
 
     def print_progress(self, cur, total, last_frame=False):
         """Prints and updates a nice progress bar.
