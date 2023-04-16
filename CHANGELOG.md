@@ -1,3 +1,24 @@
+**(2023-xx-xx) Version 3.0.0**
+
+**Important:**
+  * The real-time stream archiver is no longer used by default. See the [WIKI](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver) for more info.
+  * The `-S | --stream-only` argument has been changed to `-l | --live-only`, and paired environment variable has changed from `TWITCH_ARCHIVER_STREAM_ONLY` to `TWITCH_ARCHIVER_LIVE_ONLY`.
+  * The `-N | --no-stream` argument has been changed to `-a | --archive-only`, and paired environment variable has changed from `TWITCH_ARCHIVER_NO_STREAM` to `TWITCH_ARCHIVER_ARCHIVE_ONLY`.
+  * Twitch-Archiver is now available as a Python package, see [here](https://github.com/Brisppy/twitch-archiver#installation--usage) for new installation and usage instructions.
+
+**Additions:**
+  * Added argument and environment variable to enable real-time stream archiving. Read [this](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver) before using.
+  * Added exception for unsupported stream part duration.
+  * Added buffer for freshly live streams to grab stream start if not being archived to a VOD.
+  * Added logging for offline channels.
+
+**Changes and Fixes:**
+  * Restructured and cleaned up project for transition to Python package.
+  * Removed `Utils` class.
+  * Improved update checker to support development and release candidate builds.
+  * Fixed an issue if the connection timed out while fetching new stream segments.
+  * Reduced non-debug logging verbosity. 
+
 **(2023-02-28) Version 2.2.3**
 
 **Additions:**
