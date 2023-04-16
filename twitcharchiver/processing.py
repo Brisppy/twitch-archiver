@@ -45,8 +45,8 @@ class Processing:
         self.video = args['video']
         self.chat = args['chat']
         self.quality = args['quality']
-        self.stream_only = args['stream_only']
-        self.no_stream = args['no_stream']
+        self.live_only = args['live_only']
+        self.archive_only = args['archive_only']
         self.config_dir = args['config_dir']
         self.quiet = args['quiet']
         self.debug = args['debug']
@@ -188,16 +188,18 @@ class Processing:
             live_vod_exists = (channel_data and int(channel_data[0]['id']) in available_vods.keys())
 
             # move on if channel offline and no vods are available
-            if not self.stream_only and not channel_live and not available_vods:
+            if not self.live_only and not channel_live and not available_vods:
                 self.log.info('No VODs were found for %s.', user_name)
                 continue
 
-            if not channel_live and self.stream_only:
-                self.log.info('Running in stream-only mode and no stream available.', user_name)
+            # move on if channel offline and we are only looking for live vods
+            if not channel_live and self.live_only:
+                self.log.info('Running in stream-only mode and no stream available for %s.', user_name)
                 continue
 
-            # archive stream in non-segmented mode if no paired vod exists
-            if not self.no_stream and channel_live and not live_vod_exists and self.video:
+            # archive stream in non-segmented mode if no paired vod exists, unless we are in no_stream mode or not
+            # archiving video.
+            if not self.archive_only and channel_live and not live_vod_exists and self.video:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
@@ -270,11 +272,13 @@ class Processing:
             # begin processing each available vod
             for stream_id in vod_queue:
                 vod_id = vod_queue[stream_id][0]
-                # skip if we are only after the current stream
-                if channel_data and self.stream_only and stream_id != int(channel_data[0]['id']):
+
+                # skip if we are only after currently live streams, and stream_id is not live
+                if channel_data and self.live_only and stream_id != int(channel_data[0]['id']):
                     continue
 
-                if channel_data and self.no_stream and stream_id == int(channel_data[0]['id']):
+                # skip if we aren't after currently lives streams, and stream_id is live
+                if channel_data and self.archive_only and stream_id == int(channel_data[0]['id']):
                     self.log.info('Skipping VOD as it is live and no-stream argument provided.')
                     continue
 
