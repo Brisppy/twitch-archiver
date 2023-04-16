@@ -113,8 +113,13 @@ optional arguments:
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
                         (default: $CURRENT_DIRECTORY)
   -w, --watch           Continually check every 10 seconds for new streams from the specified channel.
-  -S, --stream-only     Only download streams which are currently live.
-  -N, --no-stream       Don't download streams which are currently live.
+  -l, --live-only       Only download streams which are currently live.
+  -a, --archive-only    Don't download streams which are currently live.
+  -R, --real-time-archiver 
+                        Enable real-time stream archiver.
+                        Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.
+
+
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
