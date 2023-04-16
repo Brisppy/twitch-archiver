@@ -26,7 +26,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 ## Features
 * Archives both video and chat logs.
 * VODs can be downloaded as fast as your Internet connection (and storage) can handle.[^1]
-* Allows the downloading of live VODs before sections are muted or deleted.[^2]
+* Allows real-time archiving of Twitch streams.[^2]
 * Generates a readable chat log with timestamps and user badges.
 * Supports downloading streams which aren't being archived by Twitch.
 * Error notifications supported with pushbullet.
@@ -54,8 +54,9 @@ Make sure to read the [usage](#usage) section after installation.
 
 1. Either download the repository via the green code button at the top of the page, or grab the latest release [here](https://github.com/Brisppy/twitch-archiver/releases/latest).
 2. Unpack the archive and enter the directory with `cd twitch-archiver`.
-2. Install [pip](https://pip.pypa.io/en/stable/installation/) if you do not already have it.
-3. Build the package with `python -m build`, then install with `python -m pip install ./dist/twitch-archiver-*.tar.gz`.
+3. Install [pip](https://pip.pypa.io/en/stable/installation/) if you do not already have it.
+4. Install Python "Build" package with `python -m pip install --upgrade build`.
+5. Build the package with `python -m build`, then install with `python -m pip install ./dist/twitch-archiver-*.tar.gz`.
 
 #### Installing as a Docker Container
 1. Either download the repository via the green code button at the top of the page, or grab the latest release [here](https://github.com/Brisppy/twitch-archiver/releases/latest).
@@ -88,9 +89,9 @@ Would download VODs **1276315849** and **1275305106** to the directory **/mnt/tw
 #### Arguments
 Below is the output of the `--help` or `-h` command. This displays all the available arguments and a brief description of how to use them.
 ```
-usage: twitch-archiver [-h] (-c CHANNEL | -v VOD_ID) [-i CLIENT_ID] [-s CLIENT_SECRET] [-C] [-V]
-                       [-t THREADS] [-q QUALITY] [-d DIRECTORY] [-w] [-L LOG_FILE] [-I CONFIG_DIR]
-                       [-p PUSHBULLET_KEY] [-Q | -D] [--version] [--show-config]
+usage: twitch-archiver [-h] (-c CHANNEL | -v VOD_ID) [-i CLIENT_ID] [-s CLIENT_SECRET] [-C] [-V] 
+                       [-t THREADS] [-q QUALITY] [-d DIRECTORY] [-w] [-l | -a | -R] [-L LOG_FILE] 
+                       [-I CONFIG_DIR] [-p PUSHBULLET_KEY] [-Q | -D] [--version] [--show-config]
 
 requires one of:
     -c CHANNEL, --channel CHANNEL
@@ -127,9 +128,12 @@ optional arguments:
   -d DIRECTORY, --directory DIRECTORY
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
                         (default: $CURRENT_DIRECTORY)
-  -w, --watch           Continually check every 10 seconds for new streams from the specified channel.
-  -S, --stream-only     Only download streams which are currently live.
-  -N, --no-stream       Don't download streams which are currently live.
+  -w, --watch           Continually check every 10 seconds for new streams/VODs from a specified channel.
+  -l, --live-only       Only download streams / VODs which are currently live.
+  -a, --archive-only    Don't download streams / VODs which are currently live.
+  -R, --real-time-archiver
+                        Enable real-time stream archiver.
+                        Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
