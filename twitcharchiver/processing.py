@@ -47,6 +47,7 @@ class Processing:
         self.quality = args['quality']
         self.live_only = args['live_only']
         self.archive_only = args['archive_only']
+        self.real_time_archiver = args['real_time_archiver']
         self.config_dir = args['config_dir']
         self.quiet = args['quiet']
         self.debug = args['debug']
@@ -435,7 +436,8 @@ class Processing:
         _r = None
 
         try:
-            if vod_live:
+            # begin real-time archiver if VOD still live and real-time archiver enabled
+            if self.real_time_archiver and vod_live:
                 stream = Stream(self.client_id, self.client_secret, self.oauth_token)
                 # concurrently grab live pieces and vod chunks
 
