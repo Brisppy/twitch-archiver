@@ -105,12 +105,12 @@ def main():
     parser.add_argument('-w', '--watch', action='store_true',
                         help='Continually check every 10 seconds for new streams/VODs from a specified channel.',
                         default=getenv('TWITCH_ARCHIVER_WATCH', False, True))
-    stream.add_argument('-S', '--stream-only', action='store_true',
-                        default=getenv('TWITCH_ARCHIVER_STREAM_ONLY', False, True),
-                        help='Only download streams which are currently live.')
-    stream.add_argument('-N', '--no-stream', action='store_true',
-                        help="Don't download streams which are currently live.",
-                        default=getenv("TWITCH_ARCHIVER_NO_STREAM", False, True))
+    stream.add_argument('-l', '--live-only', action='store_true',
+                        default=getenv('TWITCH_ARCHIVER_LIVE_ONLY', False, True),
+                        help='Only download streams / VODs which are currently live.')
+    stream.add_argument('-a', '--archive-only', action='store_true',
+                        help="Don't download streams / VODs which are currently live.",
+                        default=getenv("TWITCH_ARCHIVER_ARCHIVE_ONLY", False, True))
     parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
                         default=getenv("TWITCH_ARCHIVER_LOG_FILE", False))
     parser.add_argument('-I', '--config-dir', action='store', type=Path,

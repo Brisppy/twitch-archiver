@@ -33,7 +33,7 @@ class Arguments:
 
         # validate mutual exclusivity of arguments passed via CLI and environment variables
         # required as values set via environment variables bypass argparse mutex handling
-        for mutex_args in (("vod_id", "channel"), ("stream_only", "no_stream")):
+        for mutex_args in (("vod_id", "channel"), ("live_only", "archive_only")):
             mutex_arg_0, mutex_arg_1 = Arguments.get(mutex_args[0]), Arguments.get(mutex_args[1])
             # check if both mutex args have a value (including empty string)
             if mutex_arg_0 is not None and mutex_arg_1 is not None:
