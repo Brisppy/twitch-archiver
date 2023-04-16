@@ -111,6 +111,10 @@ def main():
     stream.add_argument('-a', '--archive-only', action='store_true',
                         help="Don't download streams / VODs which are currently live.",
                         default=getenv("TWITCH_ARCHIVER_ARCHIVE_ONLY", False, True))
+    stream.add_argument('-R', '--real-time-archiver', action='store_true',
+                        help="Enable real-time stream archiver.\n"
+                             "Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.",
+                        default=getenv('TWITCH_ARCHIVER_REAL_TIME_ARCHIVER', False, True))
     parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
                         default=getenv("TWITCH_ARCHIVER_LOG_FILE", False))
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
