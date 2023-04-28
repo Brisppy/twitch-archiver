@@ -102,6 +102,45 @@ class Twitch:
 
         return _r.json()['data']['videoPlaybackAccessToken']
 
+    @staticmethod
+    def get_latest_channel_broadcast(channel):
+        """Retrieves most recent archived broadcast. More reliable than helix API for VODs created within the last
+        few seconds.
+
+        :param channel: Name of Twitch channel/user
+        :return: set of most recent values of (stream_id, vod_id)
+        """
+        # Uses default client header
+        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _q = [{
+            "extensions": {
+                "persistedQuery": {
+                    "sha256Hash": "8afefb1ed16c4d8e20fa55024a7ed1727f63b6eca47d8d33a28500770bad8479",
+                    "version": 1
+                }
+            },
+            "operationName": "ChannelVideoShelvesQuery",
+            "variables": {
+                "channelLogin": f"{channel.lower()}",
+                "first": 5,
+            }
+        }]
+
+        _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+        _d = _r.json()[0]['data']['user']['videoShelves']['edges']
+
+        # extract vod and stream ids from thumbnail url (stream id isnt provided with this call) and add to id list.
+        # _d will be empty if no archives available.
+        if _d:
+            # iter over edges as the order may change, or LATEST_BROADCASTS not provided if none found
+            for edge in _d:
+                if edge['node']['type'] == 'LATEST_BROADCASTS':
+                    _thumbnail_url = edge['node']['items'][0]['animatedPreviewURL'].split('/')
+                    _id = (_thumbnail_url[3].split('_')[2], _thumbnail_url[5].split('-')[0])
+                    return _id
+
+        return
+
     def get_vod_index(self, vod_json, quality='best'):
         """Retrieves an index of m3u8 streams for a given VOD.
 
