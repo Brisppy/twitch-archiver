@@ -11,13 +11,15 @@
   * Added exception for unsupported stream part duration.
   * Added buffer for freshly live streams to grab stream start if not being archived to a VOD.
   * Added logging for offline channels.
+  * Added reliable method for grabbing archives of streams created within the last few seconds.
 
 **Changes and Fixes:**
   * Restructured and cleaned up project for transition to Python package.
   * Removed `Utils` class.
   * Improved update checker to support development and release candidate builds.
   * Fixed an issue if the connection timed out while fetching new stream segments.
-  * Reduced non-debug logging verbosity. 
+  * Reduced non-debug logging verbosity.
+  * Reduced archive delay for streams started within the last few seconds.
 
 **(2023-02-28) Version 2.2.3**
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "twitch-archiver"
-version = "3.0.0.dev5"
+version = "3.0.0.dev9"
 authors = [
   { name="Brisppy", email="brisppy@protonmail.com" },
 ]

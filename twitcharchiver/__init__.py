@@ -43,7 +43,7 @@ from twitcharchiver.processing import Processing
 from twitcharchiver.twitch import Twitch
 from twitcharchiver.utils import getenv, send_push, get_latest_version, version_tuple, check_update_available
 
-__version__ = '3.0.0.dev5'
+__version__ = '3.0.0.dev9'
 
 
 def main():
