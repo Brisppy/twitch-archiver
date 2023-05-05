@@ -168,70 +168,82 @@ class Downloader:
         """Downloads the chat for a specified VOD, returning comments beginning from offset (if provided).
 
         :param vod_json: dict of vod information
-        :param offset: offset in seconds to begin chat retrieval from - none to begin at start
+        :param offset: offset in seconds to begin chat retrieval from
         """
         chat_log = []
+        message_ids = set()
+        prev_page = None
 
         _s = requests.session()
         _s.headers.update({'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'})
 
         # grab initial chat segment containing cursor
-        initial_segment, cursor = self.get_chat_segment(_s, vod_json['vod_id'], offset=offset)
+        initial_segment, next_page = self.get_chat_segment(_s, vod_json['vod_id'], offset)
         chat_log.extend(initial_segment)
+        message_ids.update([m['id'] for m in chat_log])
+        offset = chat_log[-1]['contentOffsetSeconds']
 
         progress = Progress()
 
-        while True:
-            if not cursor:
-                break
+        # we use the contentOffset of the last comment grabbed as a rudimentary cursor as Twitch severely restricted
+        # access to the GQL API by implementing 'kasadas' which is far more work to try and bypass than I feel is worth
+        while offset <= vod_json['duration'] and next_page:
+            # break infinite loops
+            if offset == prev_page:
+                offset += 1
+                continue
+
+            prev_page = offset
 
             try:
-                # grab next chat segment along with cursor for next segment
-                segment, cursor = self.get_chat_segment(_s, vod_json['vod_id'], cursor=cursor)
-                chat_log.extend(segment)
+                # grab next chat segment based on offset
+                segment, next_page = self.get_chat_segment(_s, vod_json['vod_id'], offset)
+                chat_log.extend([m for m in segment if m['id'] not in message_ids])
+                message_ids.update([m['id'] for m in chat_log])
+
                 # vod duration in seconds is used as the total for progress bar
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
                 if not self.quiet:
                     progress.print_progress(int(segment[-1]['contentOffsetSeconds']),
-                                            vod_json['duration'], not cursor)
+                                            vod_json['duration'], not offset)
+
+                # move cursor to offset of most recent message, or increment
+                if chat_log[-1]['contentOffsetSeconds'] > offset:
+                    offset = chat_log[-1]['contentOffsetSeconds']
+
+                else:
+                    offset += 1
 
             except TwitchAPIErrorNotFound:
                 break
 
-            finally:
-                _s.close()
+        _s.close()
 
         self.log.info('Found %s messages.', len(chat_log))
 
         return chat_log
 
-    def get_chat_segment(self, session, vod_id, offset=None, cursor=None):
+    def get_chat_segment(self, session, vod_id, offset):
         """Retrieves a single chat segment.
 
         :param session: requests session to link request to
         :param vod_id: id of vod to retrieve segment from
         :param offset: offset in seconds to begin retrieval from
-        :param cursor: cursor returned by a previous call of this function
         :return: list of comments and cursor if one is returned from twitch
+        :return: True if more pages available
         """
         # build payload
-        if offset is not None:
-            _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
-                   "variables": {"videoID": vod_id, "contentOffsetSeconds": offset}}]
+        _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
+               "variables": {"videoID": vod_id, "contentOffsetSeconds": offset}}]
 
-        else:
-            _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
-                   "variables": {"videoID": vod_id, "cursor": cursor}}]
-
-        _p[0]['extensions'] =\
+        _p[0]['extensions'] = \
             {'persistedQuery': {'version': 1,
                                 'sha256Hash': "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a"}}
 
         for attempt in range(6):
             if attempt > 4:
-                self.log.error('Maximum attempts reached while downloading chat segment at cursor or offset: %s, %s.',
-                               cursor, offset)
+                self.log.error('Maximum attempts reached while downloading chat segment at offset: %s.', offset)
                 raise ChatDownloadError
 
             try:
@@ -244,8 +256,4 @@ class Downloader:
 
         comments = _r[0]['data']['video']['comments']
 
-        # check if next page exists
-        if comments['pageInfo']['hasNextPage']:
-            return [c['node'] for c in comments['edges']], comments['edges'][-1]['cursor']
-
-        return [c['node'] for c in comments['edges']], None
+        return [c['node'] for c in comments['edges']], comments['pageInfo']['hasNextPage']
