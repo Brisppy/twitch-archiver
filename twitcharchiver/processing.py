@@ -104,11 +104,14 @@ class Processing:
 
             # fetch channel info and live status
             channel_data = self.call_twitch.get_api(f'streams?user_id={user_id}')['data']
+            self.log.debug('Channel info: %s', channel_data)
             if channel_data and channel_data[0]['type'] == 'live':
                 channel_live = True
                 # ensure enough time has passed for vod api to update before archiving
                 stream_length = time_since_date(datetime.strptime(
                     channel_data[0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
+
+                self.log.debug('Current stream length: %s', stream_length)
 
                 # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
                 # meantime in case there is no vod and thus no way to retrieve them after the fact
