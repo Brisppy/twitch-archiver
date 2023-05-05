@@ -1,4 +1,4 @@
-**(2023-xx-xx) Version 3.0.0**
+**(2023-05-05) Version 3.0.1**
 
 **Important:**
   * The real-time stream archiver is no longer used by default. See the [WIKI](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver) for more info.
@@ -20,6 +20,7 @@
   * Fixed an issue if the connection timed out while fetching new stream segments.
   * Reduced non-debug logging verbosity.
   * Reduced archive delay for streams started within the last few seconds.
+  * Changed method of downloading chat logs to get around new authentication requirements.
 
 **(2023-02-28) Version 2.2.3**
 
