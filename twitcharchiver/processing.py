@@ -396,8 +396,8 @@ class Processing:
 
         except KeyboardInterrupt:
             self.log.debug('User requested stop, halting stream downloader.')
-            if Path(self.config_dir, f'.lock.{channel_data["user_name"]}').exists():
-                remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only')
+            if remove_lock(self.config_dir, stream_json['stream_id'] + '-stream-only'):
+                raise UnlockingError(stream_json['user_name'], stream_json['stream_id'])
 
             sys.exit(0)
 
