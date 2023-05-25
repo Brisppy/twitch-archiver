@@ -210,56 +210,56 @@ class Processing:
                 if create_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
                     self.log.info('Lock file present for stream by %s (.lock.%s-stream-only), skipping.',
                                   user_name, channel_data[0]["id"])
+                    continue
+
+                # check if stream in database
+                with Database(Path(self.config_dir, 'vods.db')) as db:
+                    downloaded_streams = [str(i[0]) for i in db.execute_query(
+                        'SELECT stream_id FROM vods WHERE user_id IS ?', {'user_id': user_id})]
+
+                # Check if stream id in database
+                if channel_data[0]['id'] in downloaded_streams:
+                    self.log.info('Ignoring steam as it has already been downloaded.')
 
                 else:
-                    # check if stream in database
-                    with Database(Path(self.config_dir, 'vods.db')) as db:
-                        downloaded_streams = [str(i[0]) for i in db.execute_query(
-                            'SELECT stream_id FROM vods WHERE user_id IS ?', {'user_id': user_id})]
+                    try:
+                        # move parts from temp stream buffer to output dir
+                        # gather parts from temp dir
+                        buffered_parts = [Path(p) for p in sorted(glob(str(Path(tmp_buffer_dir, '*.ts'))))]
+                        # create output dir
+                        output_dir = \
+                            str(Path(self.vod_directory,
+                                     f"{sanitize_date(channel_data[0]['started_at'])} - "
+                                     f"{sanitize_text(channel_data[0]['title'])} - STREAM_ONLY", 'parts'))
+                        Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-                    # Check if stream id in database
-                    if channel_data[0]['id'] in downloaded_streams:
-                        self.log.info('Ignoring steam as it has already been downloaded.')
+                        # move parts individually to destination dir
+                        for part in buffered_parts:
+                            dst_part = str(Path(part).name)
+                            safe_move(part, Path(output_dir, dst_part))
 
-                    else:
-                        try:
-                            # move parts from temp stream buffer to output dir
-                            # gather parts from temp dir
-                            buffered_parts = [Path(p) for p in sorted(glob(str(Path(tmp_buffer_dir, '*.ts'))))]
-                            # create output dir
-                            output_dir = \
-                                str(Path(self.vod_directory,
-                                         f"{sanitize_date(channel_data[0]['started_at'])} - "
-                                         f"{sanitize_text(channel_data[0]['title'])} - STREAM_ONLY", 'parts'))
-                            Path(output_dir).mkdir(parents=True, exist_ok=True)
+                        stream_json = self.get_unsynced_stream(channel_data[0], stream)
 
-                            # move parts individually to destination dir
-                            for part in buffered_parts:
-                                dst_part = str(Path(part).name)
-                                safe_move(part, Path(output_dir, dst_part))
+                        if stream_json:
+                            # add to database
+                            self.log.debug('Adding stream info to database.')
+                            with Database(Path(self.config_dir, 'vods.db')) as db:
+                                db.execute_query(CREATE_VOD, stream_json)
 
-                            stream_json = self.get_unsynced_stream(channel_data[0], stream)
+                        else:
+                            self.log.debug('No stream information returned to channel function, stream downloader'
+                                           ' exited with error.')
 
-                            if stream_json:
-                                # add to database
-                                self.log.debug('Adding stream info to database.')
-                                with Database(Path(self.config_dir, 'vods.db')) as db:
-                                    db.execute_query(CREATE_VOD, stream_json)
+                    except BaseException as e:
+                        self.log.error('Exception encountered while archiving live-only stream by %s. Error: %s',
+                                       {user_name}, str(e))
+                        return
 
-                            else:
-                                self.log.debug('No stream information returned to channel function, stream downloader'
-                                               ' exited with error.')
-
-                        except BaseException as e:
-                            self.log.error('Exception encountered while archiving live-only stream by %s. Error: %s',
-                                           {user_name}, str(e))
-                            return
-
-                        finally:
-                            # remove lock
-                            self.log.debug('Removing lock file.')
-                            if remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
-                                raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
+                    finally:
+                        # remove lock
+                        self.log.debug('Removing lock file.')
+                        if remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                            raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
 
             # wipe stream buffer as stream has paired vod
             if Path(tmp_buffer_dir).exists():
@@ -602,8 +602,8 @@ class Processing:
                     worker.terminate()
                     worker.join()
 
-            if Path(self.config_dir, f'.lock.{vod_json["stream_id"]}').exists():
-                remove_lock(self.config_dir, vod_json['stream_id'])
+            if remove_lock(self.config_dir, vod_json['stream_id']):
+                raise UnlockingError(vod_json['user_name'], vod_json['stream_id'], vod_id)
 
             sys.exit(0)
 
@@ -617,9 +617,6 @@ class Processing:
 
             self.log.error('Error downloading VOD %s.', vod_id, exc_info=True)
             send_push(self.pushbullet_key, f'Error downloading VOD {vod_id} by {vod_json["user_name"]}', str(e))
-            # remove lock file if archiving channel
-            if Path(self.config_dir, f'.lock.{vod_json["stream_id"]}').exists():
-                remove_lock(self.config_dir, vod_json['stream_id'])
 
             # set to None so that channel function knows download failed
             vod_json = None
@@ -635,7 +632,9 @@ class Processing:
             send_push(self.pushbullet_key, f'Exception encountered while downloading VOD {vod_id} by '
                                            f'{vod_json["user_name"]}', str(e))
             self.log.error('Exception encountered while downloading VOD %s.', vod_id, exc_info=True)
-            return
+
+            # set to None so that channel function knows download failed
+            vod_json = None
 
         # this is only used when archiving a channel
         return vod_json
