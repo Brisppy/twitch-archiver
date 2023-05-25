@@ -7,6 +7,7 @@ import logging
 import multiprocessing
 import os
 import re
+import signal
 import shutil
 import sys
 import tempfile
@@ -60,6 +61,9 @@ class Processing:
 
         self.call_twitch = Twitch(self.client_id, self.client_secret, self.oauth_token)
         self.download = Downloader(self.client_id, self.oauth_token, args['threads'], args['quiet'])
+
+        # create signal handler for graceful removal of lock files
+        signal.signal(signal.SIGTERM, signal.default_int_handler)
 
     def get_channel(self, channels):
         """
@@ -395,7 +399,7 @@ class Processing:
             return stream_json
 
         except KeyboardInterrupt:
-            self.log.debug('User requested stop, halting stream downloader.')
+            self.log.debug('Termination signal received, halting stream downloader.')
             if remove_lock(self.config_dir, stream_json['stream_id'] + '-stream-only'):
                 raise UnlockingError(stream_json['user_name'], stream_json['stream_id'])
 
@@ -597,7 +601,7 @@ class Processing:
         # catch user exiting and remove lock file
         except KeyboardInterrupt:
             if vod_live:
-                self.log.debug('User requested stop, terminating download workers...')
+                self.log.debug('Termination signal received, terminating download workers...')
                 for worker in workers:
                     worker.terminate()
                     worker.join()
