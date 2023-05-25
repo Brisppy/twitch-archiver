@@ -1,3 +1,16 @@
+**(2023-07-10 Version 3.0.5**
+
+**Changes and Fixes:**
+ * Fixed an issue with lock files not clearing.
+ * Cleaned up lock file creation and deletion.
+ * Changed authentication to bypass new API requirements.
+ * Reverted changes to chat logger (https://github.com/Brisppy/twitch-archiver/commit/ea78f2c12c7698a5f201013e5d940d9a601e7f06).
+ * Reduced delay on archival start for recent streams.
+ * Fixed an issue where a stream would be considered 'STREAM-ONLY' if it had just started.
+ * Moved temporary buffer and .lock files to `$TMP/twitch-archiver`.
+ * Fixed an issue with workers failing to exit.
+ * Clarified some logging for live VODs.
+
 **(2023-05-08) Version 3.0.4**
 
 **Important:**
