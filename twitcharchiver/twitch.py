@@ -82,7 +82,7 @@ class Twitch:
         :return: playback access token
         """
         # only accepts the default client ID for non-authenticated clients
-        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
         _q = """
         {{
             videoPlaybackAccessToken(
@@ -111,7 +111,7 @@ class Twitch:
         :return: set of most recent values of (stream_id, vod_id)
         """
         # Uses default client header
-        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
         _q = [{
             "extensions": {
                 "persistedQuery": {
@@ -234,7 +234,7 @@ class Twitch:
         :return: playback access token
         """
         # only accepts the default client ID for non-authenticated clients
-        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
         _q = """
         {{
             streamPlaybackAccessToken(
@@ -261,7 +261,7 @@ class Twitch:
         :param vod_id: id of twitch vod to retrieve information for
         :return: name of category / game
         """
-        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
         _q = [{
             "extensions": {
                 "persistedQuery": {
@@ -319,7 +319,7 @@ class Twitch:
         :param vod_id: id of twitch vod to retrieve chapters for
         :return: list of vod chapters
         """
-        _h = {'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'}
+        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
         _q = [{
             "extensions": {
                 "persistedQuery": {

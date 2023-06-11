@@ -175,7 +175,7 @@ class Downloader:
         prev_page = None
 
         _s = requests.session()
-        _s.headers.update({'Client-Id': 'kimne78kx3ncx6brgo4mv6wki5h1ko'})
+        _s.headers.update({'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'})
 
         # grab initial chat segment containing cursor
         initial_segment, next_page = self.get_chat_segment(_s, vod_json['vod_id'], offset)
