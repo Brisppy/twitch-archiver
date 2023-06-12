@@ -445,6 +445,8 @@ class Processing:
                                          f'{sanitize_text(vod_json["title"])} - {vod_id}'))
         vod_json['duration'] = convert_to_seconds(vod_json['duration'])
 
+        workers = []
+
         # get vod status
         vod_live = self.call_twitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
 
@@ -457,8 +459,6 @@ class Processing:
             if self.real_time_archiver and vod_live:
                 stream = Stream(self.client_id, self.client_secret, self.oauth_token)
                 # concurrently grab live pieces and vod chunks
-
-                workers = []
 
                 # the stream module itself has no checks for what to download so this is done here
                 if get_video:
