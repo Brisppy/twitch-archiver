@@ -76,6 +76,7 @@ class Processing:
             user_data = self.call_twitch.get_api(f'users?login={channel}')['data'][0]
             user_id = user_data['id']
             user_name = user_data['display_name']
+            available_vods = {}
 
             channel_live = False
             stream = Stream(self.client_id, self.client_secret, self.oauth_token)
@@ -117,10 +118,16 @@ class Processing:
 
                 self.log.debug('Current stream length: %s', stream_length)
 
+                # fetch latest broadcast
+                latest_broadcast = self.call_twitch.get_latest_channel_broadcast(channel)
+
+                if latest_broadcast[0] == channel_data[0]['id']:
+                    available_vods.update({int(latest_broadcast[0]): latest_broadcast[1]})
+
                 # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
                 # meantime in case there is no vod and thus no way to retrieve them after the fact
-                if stream_length < 300:
-                    self.log.debug('Stream began less than 5m ago, delaying archival start until VOD API updated.')
+                elif stream_length < 60:
+                    self.log.debug('Stream began less than 60s ago, delaying archival start until VOD API updated.')
                     # create temp dir for buffer
                     Path(tmp_buffer_dir).mkdir(parents=True, exist_ok=True)
 
@@ -128,7 +135,7 @@ class Processing:
                     index_uri = self.call_twitch.get_channel_hls_index(channel, self.quality)
 
                     # download new parts every 4s
-                    for i in range(int((300 - stream_length) / 4)):
+                    for i in range(int((60 - stream_length) / 4)):
                         # grab required values
                         start_timestamp = int(datetime.utcnow().timestamp())
                         incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
@@ -143,10 +150,13 @@ class Processing:
                             sleep(4 - processing_time)
 
                     # wait any remaining time
-                    sleep((300 - stream_length) % 4)
+                    sleep((60 - stream_length) % 4)
+
+                    # grab latest vod
+                    latest_broadcast = self.call_twitch.get_latest_channel_broadcast(channel)
+                    available_vods.update({latest_broadcast[0]: latest_broadcast[1]})
 
             # retrieve available vods
-            available_vods: dict[int: tuple[int]] = {}
             cursor = ''
             try:
                 while True:
