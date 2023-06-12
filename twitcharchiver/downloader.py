@@ -123,7 +123,7 @@ class Downloader:
         #   files from storage avoiding any downtime downloading
 
         # create temporary file for downloading to
-        with open(Path(tempfile.gettempdir(), os.urandom(24).hex()), 'wb') as tmp_ts_file:
+        with open(Path(tempfile.gettempdir(), 'twitch-archiver', os.urandom(24).hex()), 'wb') as tmp_ts_file:
             for _ in range(6):
                 if _ > 4:
                     self.log.debug('Maximum retries for segment %s reached.', Path(ts_path).stem)

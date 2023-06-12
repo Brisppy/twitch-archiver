@@ -30,6 +30,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import argparse
 import os
 import sys
+import tempfile
 import textwrap
 
 from pathlib import Path
@@ -163,6 +164,9 @@ def main():
     # overwrite different or missing configuration variables
     config.generate_config(args.get())
     log.debug('Settings after loading config: %s', config.get_sanitized())
+
+    # create temp dir for downloads and lock files
+    Path(tempfile.gettempdir(), 'twitch-archiver').mkdir(exist_ok=True)
 
     # prompt if client id or secret empty
     if config.get('client_id') == '' or config.get('client_secret') == '':

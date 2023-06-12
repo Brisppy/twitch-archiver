@@ -80,7 +80,7 @@ class Processing:
 
             channel_live = False
             stream = Stream(self.client_id, self.client_secret, self.oauth_token)
-            tmp_buffer_dir = Path(tempfile.gettempdir(), os.urandom(24).hex())
+            tmp_buffer_dir = Path(tempfile.gettempdir(), 'twitch-archiver', os.urandom(24).hex())
 
             self.vod_directory = Path(self.directory, user_name)
 
@@ -221,7 +221,7 @@ class Processing:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
-                if create_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), channel_data[0]['id'] + '-stream-only'):
                     self.log.info('Lock file present for stream by %s (.lock.%s-stream-only), skipping.',
                                   user_name, channel_data[0]["id"])
                     continue
@@ -272,7 +272,7 @@ class Processing:
                     finally:
                         # remove lock
                         self.log.debug('Removing lock file.')
-                        if remove_lock(self.config_dir, channel_data[0]['id'] + '-stream-only'):
+                        if remove_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), channel_data[0]['id'] + '-stream-only'):
                             raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
 
             # wipe stream buffer as stream has paired vod
@@ -303,7 +303,7 @@ class Processing:
                 self.log.debug('Processing VOD %s by %s', vod_id, user_name)
                 self.log.debug('Creating lock file for VOD.')
 
-                if create_lock(self.config_dir, stream_id):
+                if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), stream_id):
                     self.log.info('Lock file present for VOD %s (.lock.%s), skipping.', vod_id, stream_id)
                     continue
 
@@ -352,7 +352,7 @@ class Processing:
                     finally:
                         # remove lock
                         self.log.debug('Removing lock file.')
-                        if remove_lock(self.config_dir, vod_json['stream_id']):
+                        if remove_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), vod_json['stream_id']):
                             raise UnlockingError(vod_json['user_name'], vod_json['stream_id'], vod_id)
 
                 else:
@@ -410,7 +410,7 @@ class Processing:
 
         except KeyboardInterrupt:
             self.log.debug('Termination signal received, halting stream downloader.')
-            if remove_lock(self.config_dir, stream_json['stream_id'] + '-stream-only'):
+            if remove_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), stream_json['stream_id'] + '-stream-only'):
                 raise UnlockingError(stream_json['user_name'], stream_json['stream_id'])
 
             sys.exit(0)
@@ -616,7 +616,7 @@ class Processing:
                     worker.terminate()
                     worker.join()
 
-            if remove_lock(self.config_dir, vod_json['stream_id']):
+            if remove_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), vod_json['stream_id']):
                 raise UnlockingError(vod_json['user_name'], vod_json['stream_id'], vod_id)
 
             sys.exit(0)

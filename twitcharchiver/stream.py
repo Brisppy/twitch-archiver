@@ -250,7 +250,7 @@ class Stream:
         :param segment_parts: list of parts which make up the segment
         :return: True on error
         """
-        with open(Path(tempfile.gettempdir(), tmp_file), 'wb') as tmp_ts_file:
+        with open(Path(tempfile.gettempdir(), 'twitch-archiver', tmp_file), 'wb') as tmp_ts_file:
             for segment in segment_parts:
                 try:
                     _r = requests.get(segment[0], stream=True, timeout=5)
@@ -269,7 +269,7 @@ class Stream:
 
         # move finished ts file to destination storage
         try:
-            safe_move(Path(tempfile.gettempdir(), tmp_file), Path(output_dir, str(f'{segment_id:05d}' + '.ts')))
+            safe_move(Path(tempfile.gettempdir(), 'twitch-archiver', tmp_file), Path(output_dir, str(f'{segment_id:05d}' + '.ts')))
             self.log.debug('Live segment: %s completed.', segment_id)
 
         except BaseException as e:
