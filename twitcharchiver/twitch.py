@@ -102,44 +102,34 @@ class Twitch:
 
         return _r.json()['data']['videoPlaybackAccessToken']
 
-    @staticmethod
-    def get_latest_channel_broadcast(channel):
-        """Retrieves most recent archived broadcast. More reliable than helix API for VODs created within the last
-        few seconds.
+    def get_live_broadcast_vod_id(self, channel):
+        """Fetches the paired VOD ID for the currently live broadcast.
 
-        :param channel: Name of Twitch channel/user
-        :return: set of most recent values of (stream_id, vod_id)
+        :param channel: name of channel
+        :return: vod id (if any returned)
         """
         # Uses default client header
         _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
         _q = [{
-            "extensions": {
-                "persistedQuery": {
-                    "sha256Hash": "8afefb1ed16c4d8e20fa55024a7ed1727f63b6eca47d8d33a28500770bad8479",
-                    "version": 1
+                "extensions": {
+                    "persistedQuery": {
+                        "sha256Hash": "ac644fafd686f2cb0e3864075af7cf3bb33f4e0525bf84921b10eabaa4e048b5",
+                        "version": 1
+                    }
+                },
+                "operationName": "ChannelVideoLength",
+                "variables": {
+                    "channelLogin": f"{channel.lower()}",
                 }
-            },
-            "operationName": "ChannelVideoShelvesQuery",
-            "variables": {
-                "channelLogin": f"{channel.lower()}",
-                "first": 5,
-            }
-        }]
+            }]
 
         _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
-        _d = _r.json()[0]['data']['user']['videoShelves']['edges']
+        channel_video_length = _r.json()[0]['data']['user']['videos']['edges']
 
-        # extract vod and stream ids from thumbnail url (stream id isnt provided with this call) and add to id list.
-        # _d will be empty if no archives available.
-        if _d:
-            # iter over edges as the order may change, or LATEST_BROADCASTS not provided if none found
-            for edge in _d:
-                if edge['node']['type'] == 'LATEST_BROADCASTS':
-                    _thumbnail_url = edge['node']['items'][0]['animatedPreviewURL'].split('/')
-                    _id = (_thumbnail_url[3].split('_')[2], _thumbnail_url[5].split('-')[0])
-                    return _id
+        if channel_video_length:
+            return channel_video_length[0]['node']['id']
 
-        return
+        self.log.debug('No data returned by ChannelVideoLength API.')
 
     def get_vod_index(self, vod_json, quality='best'):
         """Retrieves an index of m3u8 streams for a given VOD.

@@ -118,11 +118,10 @@ class Processing:
 
                 self.log.debug('Current stream length: %s', stream_length)
 
-                # fetch latest broadcast
-                latest_broadcast = self.call_twitch.get_latest_channel_broadcast(channel)
-
-                if latest_broadcast[0] == channel_data[0]['id']:
-                    available_vods.update({int(latest_broadcast[0]): latest_broadcast[1]})
+                # fetch broadcast vod id
+                latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
+                if latest_vod_id:
+                    available_vods.update({int(channel_data[0]['id']): latest_vod_id})
 
                 # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
                 # meantime in case there is no vod and thus no way to retrieve them after the fact
@@ -152,9 +151,10 @@ class Processing:
                     # wait any remaining time
                     sleep((60 - stream_length) % 4)
 
-                    # grab latest vod
-                    latest_broadcast = self.call_twitch.get_latest_channel_broadcast(channel)
-                    available_vods.update({latest_broadcast[0]: latest_broadcast[1]})
+                    # fetch broadcast vod id again
+                    latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
+                    if latest_vod_id:
+                        available_vods.update({int(channel_data[0]['id']): latest_vod_id})
 
             # retrieve available vods
             cursor = ''
