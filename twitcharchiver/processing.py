@@ -675,8 +675,7 @@ class Processing:
         if time_since_date(datetime.strptime(
                 vod_json['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()) \
                 < (vod_json['duration'] + 360):
-            self.log.debug('Time since VOD was created + its duration is a point in time < 10 minutes ago. '
-                           'Running in live mode in case not all parts are available yet.')
+            self.log.debug('Running in live mode as VOD has been updated in the last 10 minutes.')
             vod_live = True
 
         # import chat log if it has been partially downloaded
