@@ -107,6 +107,22 @@ class Processing:
                         self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
                         db.update_database(3)
 
+            # retrieve available vods
+            cursor = ''
+            try:
+                while True:
+                    _r = self.call_twitch.get_api(f'videos?user_id={user_id}&first=100&type=archive&after={cursor}')
+                    if not _r['pagination']:
+                        break
+
+                    # dict containing stream_id: (vod_id)
+                    available_vods.update(dict([(int(vod['stream_id']), (vod['id'])) for vod in _r['data']]))
+                    cursor = _r['pagination']['cursor']
+
+            except BaseException as e:
+                self.log.error('Error retrieving VODs from Twitch. Error: %s', str(e))
+                continue
+
             # fetch channel info and live status
             channel_data = self.call_twitch.get_api(f'streams?user_id={user_id}')['data']
             self.log.debug('Channel info: %s', channel_data)
@@ -120,7 +136,9 @@ class Processing:
 
                 # fetch broadcast vod id
                 latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
-                if latest_vod_id:
+
+                # ensure vod_id is not paired with a previous stream
+                if latest_vod_id not in available_vods.values():
                     available_vods.update({int(channel_data[0]['id']): latest_vod_id})
 
                 # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
@@ -153,26 +171,12 @@ class Processing:
 
                     # fetch broadcast vod id again
                     latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
-                    if latest_vod_id:
+
+                    # check if vod_id is paired with the current stream or previous one
+                    if latest_vod_id not in available_vods.values():
                         available_vods.update({int(channel_data[0]['id']): latest_vod_id})
 
-            # retrieve available vods
-            cursor = ''
-            try:
-                while True:
-                    _r = self.call_twitch.get_api(f'videos?user_id={user_id}&first=100&type=archive&after={cursor}')
-                    if not _r['pagination']:
-                        break
-
-                    # dict containing stream_id: (vod_id)
-                    available_vods.update(dict([(int(vod['stream_id']), (vod['id'])) for vod in _r['data']]))
-                    cursor = _r['pagination']['cursor']
-
-            except BaseException as e:
-                self.log.error('Error retrieving VODs from Twitch. Error: %s', str(e))
-                continue
-
-            self.log.debug(f'Online VODs: {available_vods}')
+            self.log.debug(f'Online VODs: %s', available_vods)
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
@@ -180,7 +184,7 @@ class Processing:
                 downloaded_vods = dict([(i[0], (i[1], i[2], i[3])) for i in db.execute_query(
                     'SELECT stream_id, vod_id, video_archived, chat_archived FROM vods WHERE user_id IS ?',
                     {'user_id': user_id})])
-            self.log.debug(f'Downloaded vods: {downloaded_vods}')
+            self.log.debug(f'Downloaded vods: %s', downloaded_vods)
 
             # generate vod queue using downloaded and available vods
             vod_queue = {}
