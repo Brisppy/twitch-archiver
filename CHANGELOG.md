@@ -1,4 +1,14 @@
-**(2023-07-10 Version 3.0.5**
+**(2023-08-13) Version 3.0.6**
+
+**IMPORTANT**
+This patch is to fix a critical bug which may have caused some VODs to not be downloaded. No data should be lost, but there may be invalid entries in the vod database (downloaded_vods.db), and some VODs may have failed to download.
+
+My recommendation is to look over the past month comparing downloaded VODs to those on the channel, and to download any missing VODs manually to the channel directory.
+
+**Changes and Fixes:**
+ * Fixed an issue where new streams would be given old vod ids causing them to be re-downloaded.
+
+**(2023-07-10) Version 3.0.5**
 
 **Changes and Fixes:**
  * Fixed an issue with lock files not clearing.
@@ -8,7 +18,7 @@
  * Reduced delay on archival start for recent streams.
  * Fixed an issue where a stream would be considered 'STREAM-ONLY' if it had just started.
  * Moved temporary buffer and .lock files to `$TMP/twitch-archiver`.
- * Fixed an issue with workers failing to exit.
+ * Fixed an issue with VOD download workers failing to exit.
  * Clarified some logging for live VODs.
 
 **(2023-05-08) Version 3.0.4**
