@@ -137,14 +137,16 @@ class Processing:
                 # fetch broadcast vod id
                 latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
 
+                self.log.debug('Latest VOD ID: %', latest_vod_id)
+
                 # ensure vod_id is not paired with a previous stream
                 if latest_vod_id not in available_vods.values():
                     available_vods.update({int(channel_data[0]['id']): latest_vod_id})
 
                 # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
                 # meantime in case there is no vod and thus no way to retrieve them after the fact
-                elif stream_length < 60:
-                    self.log.debug('Stream began less than 60s ago, delaying archival start until VOD API updated.')
+                elif stream_length < 120:
+                    self.log.debug('Stream began less than 120s ago, delaying archival start until VOD API updated.')
                     # create temp dir for buffer
                     Path(tmp_buffer_dir).mkdir(parents=True, exist_ok=True)
 
@@ -152,7 +154,7 @@ class Processing:
                     index_uri = self.call_twitch.get_channel_hls_index(channel, self.quality)
 
                     # download new parts every 4s
-                    for i in range(int((60 - stream_length) / 4)):
+                    for i in range(int((120 - stream_length) / 4)):
                         # grab required values
                         start_timestamp = int(datetime.utcnow().timestamp())
                         incoming_segments = m3u8.loads(Api.get_request(index_uri).text).data
@@ -167,7 +169,7 @@ class Processing:
                             sleep(4 - processing_time)
 
                     # wait any remaining time
-                    sleep((60 - stream_length) % 4)
+                    sleep((120 - stream_length) % 4)
 
                     # fetch broadcast vod id again
                     latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
