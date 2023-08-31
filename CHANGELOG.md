@@ -1,12 +1,16 @@
+**(2023-08-31) Version 3.0.7**
+**Changes and Fixes:**
+ * Increased the start delay for newly live channels.
+
 **(2023-08-13) Version 3.0.6**
 
 **IMPORTANT**
-This patch is to fix a critical bug which may have caused some VODs to not be downloaded. No data should be lost, but there may be invalid entries in the vod database (downloaded_vods.db), and some VODs may have failed to download.
+This patch is to fix a critical bug which may have caused some VODs to not be downloaded. No data should be lost, but there may be invalid entries in the vod database (~/.config/twitch-archiver/vods.db), and some VODs may have failed to download.
 
 My recommendation is to look over the past month comparing downloaded VODs to those on the channel, and to download any missing VODs manually to the channel directory.
 
 **Changes and Fixes:**
- * Fixed an issue where new streams would be given old vod ids causing them to be re-downloaded.
+ * Fixed an issue where new streams would be given old VOD ids causing them to be re-downloaded.
 
 **(2023-07-10) Version 3.0.5**
 
