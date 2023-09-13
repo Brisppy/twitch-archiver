@@ -136,6 +136,7 @@ class UnlockingError(Exception):
 
         super().__init__(message)
 
+
 class UnsupportedStreamPartDuration(Exception):
     def __init__(self):
         message = 'Multiple parts with unsupported duration found which cannot be accurately combined. ' \
