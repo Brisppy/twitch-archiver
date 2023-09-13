@@ -94,8 +94,8 @@ class Twitch:
         :param channel: channel to retrieve information for
         :return: dict of stream info
         """
-        query_vars = {"channel": channel, "clipSlug": "", "isClip": "false", "isLive": "true",
-                      "isVodOrCollection": "false", "vodID": ""}
+        query_vars = {"channel": channel, "clipSlug": "", "isClip": False, "isLive": True,
+                      "isVodOrCollection": False, "vodID": ""}
 
         _r = Api.gql_request('ComscoreStreamingQuery',
                              'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
@@ -380,19 +380,69 @@ class Twitch:
             self.log.debug('No chapters found for VOD %s', vod_id)
             return []
 
-    def get_latest_video(self, channel):
-        """Retrieves the latest video for a given channel.
+    def get_video_muted_segments(self, vod_id):
+        """Retrieves muted segments for a given VOD.
 
-        :param channel: channel to query
-        :return: dict of VOD info
+        :param vod_id: ID of VOD to retrieve muted segments of
+        :return: list
         """
-        query_vars = {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{channel.lower()}", "limit": 30,
-                      "videoSort": "TIME"}
-        _r = Api.gql_request('FilterableVideoTower_Videos',
-                             'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
-                             query_vars)
+        _r = Api.gql_request('VideoPlayer_MutedSegmentsAlertOverlay',
+                             'c36e7400657815f4704e6063d265dff766ed8fc1590361c6d71e4368805e0b49',
+                             {'includePrivate': False, 'vodID': vod_id})
 
-        channel_videos = [v['node'] for v in _r.json()[0]['data']['user']['videos']['edges']]
-        self.log.debug('Latest VOD for %: %', channel, channel_videos[0])
+        muted_segments = _r.json()[0]['data']['video']['muteInfo']['mutedSegmentConnection']['nodes']
+        self.log.debug('Muted segments for VOD %s: %s', vod_id, muted_segments)
 
-        return channel_videos[0]
+        return muted_segments
+
+    def get_video_metadata(self, vod_id, channel=None):
+        """Retrieves metadata for a given VOD. Formatting is used to ensure backwards compatibility.
+
+        :param vod_id: VOD ID to retrieve metadata of
+        :param channel: channel VOD belongs to
+        :return: dict of data values
+        """
+        if not channel:
+            channel = self.get_vod_owner(vod_id)
+
+        _r = Api.gql_request('VideoMetadata', 'c25707c1e5176320ceac6b447d052480887e23bc794ca1d02becd0bcc91844fe',
+                             {'channelLogin': channel, 'videoID': vod_id})
+
+        vod_json = _r.json()[0]['video']
+        self.log.debug('Retrieved metadata for VOD %s: %s', vod_id, vod_json)
+
+        # reformat to match old layout
+        vod_json['vod_id'] = vod_json.pop('id')
+        vod_json['stream_id'] = vod_json.pop('id')
+        vod_json['user_id'] = channel['id']
+        vod_json['user_login'] = channel['name'].lower()
+        vod_json['user_name'] = channel['name']
+        vod_json['created_at'] = vod_json.pop('createdAt')
+        vod_json['published_at'] = vod_json.pop('publishedAt')
+        vod_json['url'] = 'https://twitch.tv/' + vod_json['user_login'] + '/' + vod_json['vod_id']
+        vod_json['thumbnail_url'] = vod_json.pop('previewThumbnailURL')
+        vod_json['viewable'] = True
+        vod_json['view_count'] = vod_json.pop('viewCount')
+        vod_json['language'] = None
+        vod_json['type'] = vod_json.pop('broadcastType')
+        vod_json['duration'] = vod_json.pop('lengthSeconds')
+        vod_json['muted_segments'] = self.get_video_muted_segments(vod_json['vod_id'])
+        self.log.debug('Filled metadata for VOD %s: %s', vod_id, vod_json)
+
+        return vod_json
+
+    def get_vod_owner(self, vod_id):
+        """Retrieves the channel which a given VOD belongs to
+
+        :param vod_id: VOD ID of which to find related channel
+        :return: dict of {id: vod_owner_id, name: vod_owner_name}
+        """
+        _r = Api.gql_request('ComscoreStreamingQuery',
+                             'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
+                             {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
+                              "isVodOrCollection": True, "vodID": str(vod_id)})
+
+        owner = _r.json()[0]['data']['video']['owner']
+        self.log.debug('Owner of VOD %s is %s.', vod_id, owner)
+
+        return {'id': owner['id'], 'name': owner['displayName']}
