@@ -30,7 +30,7 @@ from twitcharchiver.twitch import Twitch
 from twitcharchiver.utils import create_lock, remove_lock, sanitize_date, sanitize_text, combine_vod_parts, \
     convert_vod, cleanup_vod_parts, send_push, import_json, format_vod_chapters, \
     verify_vod_length, generate_readable_chat_log, export_readable_chat_log, time_since_date, export_json, \
-    export_verbose_chat_log, get_hash, safe_move
+    export_verbose_chat_log, get_hash, safe_move, get_stream_id_from_preview_url
 
 
 class Processing:
@@ -53,14 +53,10 @@ class Processing:
         self.quiet = args['quiet']
         self.debug = args['debug']
 
-        self.client_id = config['client_id']
-        self.client_secret = config['client_secret']
-        self.oauth_token = config['oauth_token']
-
         self.pushbullet_key = config['pushbullet_key']
 
-        self.call_twitch = Twitch(self.client_id, self.client_secret, self.oauth_token)
-        self.download = Downloader(self.client_id, self.oauth_token, args['threads'], args['quiet'])
+        self.twitch = Twitch()
+        self.download = Downloader(args['threads'], args['quiet'])
 
         # create signal handler for graceful removal of lock files
         signal.signal(signal.SIGTERM, signal.default_int_handler)
@@ -73,16 +69,15 @@ class Processing:
             self.log.info("Now archiving channel '%s'.", channel)
             self.log.debug('Fetching user data from Twitch.')
 
-            user_data = self.call_twitch.get_api(f'users?login={channel}')['data'][0]
-            user_id = user_data['id']
-            user_name = user_data['display_name']
+            user_data = self.twitch.get_user_data(channel)
+            self.log.debug('Channel info: %s', user_data)
             available_vods = {}
 
             channel_live = False
             stream = Stream()
             tmp_buffer_dir = Path(tempfile.gettempdir(), 'twitch-archiver', os.urandom(24).hex())
 
-            self.vod_directory = Path(self.directory, user_name)
+            self.vod_directory = Path(self.directory, user_data['displayName'])
 
             # setup database
             with Database(Path(self.config_dir, 'vods.db')) as db:
@@ -107,41 +102,29 @@ class Processing:
                         self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
                         db.update_database(3)
 
-            # retrieve available vods
-            cursor = ''
-            try:
-                while True:
-                    _r = self.call_twitch.get_api(f'videos?user_id={user_id}&first=100&type=archive&after={cursor}')
-                    if not _r['pagination']:
-                        break
+            # retrieve available vods and extract required info
+            channel_videos = self.twitch.get_channel_videos(channel)
 
-                    # dict containing stream_id: (vod_id)
-                    available_vods.update(dict([(int(vod['stream_id']), (vod['id'])) for vod in _r['data']]))
-                    cursor = _r['pagination']['cursor']
+            available_vods = [{int(get_stream_id_from_preview_url(v['animatedPreviewURL'])): v['id']}
+                              for v in channel_videos]
 
-            except BaseException as e:
-                self.log.error('Error retrieving VODs from Twitch. Error: %s', str(e))
-                continue
-
-            # fetch channel info and live status
-            channel_data = self.call_twitch.get_api(f'streams?user_id={user_id}')['data']
-            self.log.debug('Channel info: %s', channel_data)
-            if channel_data and channel_data[0]['type'] == 'live':
+            # check if channel live
+            if user_data['stream']:
                 channel_live = True
+
+                stream_info = self.twitch.get_stream_info(channel)
                 # ensure enough time has passed for vod api to update before archiving
                 stream_length = time_since_date(datetime.strptime(
-                    channel_data[0]['started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
-
+                    stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
                 self.log.debug('Current stream length: %s', stream_length)
 
                 # fetch broadcast vod id
-                latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
-
-                self.log.debug('Latest VOD ID: %', latest_vod_id)
+                latest_vod_id = self.twitch.get_live_broadcast_vod_id(channel)
+                self.log.debug('Latest VOD ID: %s', latest_vod_id)
 
                 # ensure vod_id is not paired with a previous stream
                 if latest_vod_id not in available_vods.values():
-                    available_vods.update({int(channel_data[0]['id']): latest_vod_id})
+                    available_vods.update({int(stream_info['stream']['id']): latest_vod_id})
 
                 # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
                 # meantime in case there is no vod and thus no way to retrieve them after the fact
@@ -151,7 +134,7 @@ class Processing:
                     Path(tmp_buffer_dir).mkdir(parents=True, exist_ok=True)
 
                     stream.unsynced_setup(tmp_buffer_dir)
-                    index_uri = self.call_twitch.get_channel_hls_index(channel, self.quality)
+                    index_uri = self.twitch.get_channel_hls_index(channel, self.quality)
 
                     # download new parts every 4s
                     for i in range(int((120 - stream_length) / 4)):
@@ -172,21 +155,21 @@ class Processing:
                     sleep((120 - stream_length) % 4)
 
                     # fetch broadcast vod id again
-                    latest_vod_id = self.call_twitch.get_live_broadcast_vod_id(channel)
+                    latest_vod_id = self.twitch.get_live_broadcast_vod_id(channel)
 
                     # check if vod_id is paired with the current stream or previous one
                     if latest_vod_id not in available_vods.values():
-                        available_vods.update({int(channel_data[0]['id']): latest_vod_id})
+                        available_vods.update({int(stream_info['stream']['id']): latest_vod_id})
 
-            self.log.debug(f'Online VODs: %s', available_vods)
+            self.log.debug('Online VODs: %s', available_vods)
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
                 # dict containing stream_id: (vod_id, video_downloaded, chat_downloaded)
                 downloaded_vods = dict([(i[0], (i[1], i[2], i[3])) for i in db.execute_query(
                     'SELECT stream_id, vod_id, video_archived, chat_archived FROM vods WHERE user_id IS ?',
-                    {'user_id': user_id})])
-            self.log.debug(f'Downloaded vods: %s', downloaded_vods)
+                    {'user_id': user_data['id']})])
+            self.log.debug('Downloaded vods: %s', downloaded_vods)
 
             # generate vod queue using downloaded and available vods
             vod_queue = {}
@@ -209,16 +192,16 @@ class Processing:
                                                   not downloaded_vods[stream_id][2] and self.chat)})
 
             # check if stream being archived to vod
-            live_vod_exists = (channel_data and int(channel_data[0]['id']) in available_vods.keys())
+            live_vod_exists = (stream_info and int(stream_info['stream']['id']) in available_vods.keys())
 
             # move on if channel offline and no vods are available
             if not self.live_only and not channel_live and not available_vods:
-                self.log.info('No VODs were found for %s.', user_name)
+                self.log.info('No VODs were found for %s.', user_data['displayName'])
                 continue
 
             # move on if channel offline and we are only looking for live vods
             if not channel_live and self.live_only:
-                self.log.info('Running in stream-only mode and no stream available for %s.', user_name)
+                self.log.info('Running in stream-only mode and no stream available for %s.', user_data['displayName'])
                 continue
 
             # archive stream in non-segmented mode if no paired vod exists, unless we are in no_stream mode or not
@@ -227,18 +210,18 @@ class Processing:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
-                if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), channel_data[0]['id'] + '-stream-only'):
+                if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), stream_info['stream']['id'] + '-stream-only'):
                     self.log.info('Lock file present for stream by %s (.lock.%s-stream-only), skipping.',
-                                  user_name, channel_data[0]["id"])
+                                  user_data['displayName'], stream_info['stream']['id'])
                     continue
 
                 # check if stream in database
                 with Database(Path(self.config_dir, 'vods.db')) as db:
                     downloaded_streams = [str(i[0]) for i in db.execute_query(
-                        'SELECT stream_id FROM vods WHERE user_id IS ?', {'user_id': user_id})]
+                        'SELECT stream_id FROM vods WHERE user_id IS ?', {'user_id': user_data['id']})]
 
                 # Check if stream id in database
-                if channel_data[0]['id'] in downloaded_streams:
+                if stream_info['stream']['id'] in downloaded_streams:
                     self.log.info('Ignoring steam as it has already been downloaded.')
 
                 else:
@@ -249,8 +232,9 @@ class Processing:
                         # create output dir
                         output_dir = \
                             str(Path(self.vod_directory,
-                                     f"{sanitize_date(channel_data[0]['started_at'])} - "
-                                     f"{sanitize_text(channel_data[0]['title'])} - STREAM_ONLY", 'parts'))
+                                     f"{sanitize_date(stream_info['stream']['createdAt'])} - "
+                                     f"{sanitize_text(stream_info['broadcastSettings']['title'])} - STREAM_ONLY",
+                                     'parts'))
                         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
                         # move parts individually to destination dir
@@ -258,7 +242,7 @@ class Processing:
                             dst_part = str(Path(part).name)
                             safe_move(part, Path(output_dir, dst_part))
 
-                        stream_json = self.get_unsynced_stream(channel_data[0], stream)
+                        stream_json = self.get_unsynced_stream(stream_info, stream)
 
                         if stream_json:
                             # add to database
@@ -272,14 +256,15 @@ class Processing:
 
                     except BaseException as e:
                         self.log.error('Exception encountered while archiving live-only stream by %s. Error: %s',
-                                       {user_name}, str(e))
+                                       {user_data['displayName']}, str(e))
                         return
 
                     finally:
                         # remove lock
                         self.log.debug('Removing lock file.')
-                        if remove_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), channel_data[0]['id'] + '-stream-only'):
-                            raise UnlockingError(user_name, stream_id=channel_data[0]['id'])
+                        if remove_lock(Path(tempfile.gettempdir(), 'twitch-archiver'),
+                                       user_data['id'] + '-stream-only'):
+                            raise UnlockingError(user_data['displayName'], stream_id=user_data['id'])
 
             # wipe stream buffer as stream has paired vod
             if Path(tmp_buffer_dir).exists():
@@ -287,7 +272,7 @@ class Processing:
 
             # exit if vod queue empty
             if not vod_queue:
-                self.log.info('No new VODs were found for %s.', user_name)
+                self.log.info('No new VODs were found for %s.', user_data['displayName'])
                 continue
 
             self.log.info('%s VOD(s) in download queue.', len(vod_queue))
@@ -298,15 +283,15 @@ class Processing:
                 vod_id = vod_queue[stream_id][0]
 
                 # skip if we are only after currently live streams, and stream_id is not live
-                if channel_data and self.live_only and stream_id != int(channel_data[0]['id']):
+                if stream_info['stream'] and self.live_only and stream_id != int(user_data['id']):
                     continue
 
                 # skip if we aren't after currently lives streams, and stream_id is live
-                if channel_data and self.archive_only and stream_id == int(channel_data[0]['id']):
+                if stream_info['stream'] and self.archive_only and stream_id == int(user_data['id']):
                     self.log.info('Skipping VOD as it is live and no-stream argument provided.')
                     continue
 
-                self.log.debug('Processing VOD %s by %s', vod_id, user_name)
+                self.log.debug('Processing VOD %s by %s', vod_id, user_data['displayName'])
                 self.log.debug('Creating lock file for VOD.')
 
                 if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), stream_id):
@@ -365,30 +350,30 @@ class Processing:
                     self.log.debug('No VOD information returned to channel function, downloader exited with error.')
                     continue
 
-    def get_unsynced_stream(self, channel_data, stream=None):
+    def get_unsynced_stream(self, stream_info, stream=None):
         """Archives a live stream without a paired VOD.
 
-        :param channel_data: json retrieved from channel endpoint
+        :param stream_info: json retrieved from stream endpoint
         :param stream: optionally provided stream method if existing buffer needs to be kept
         :return: sanitized / formatted stream json
         """
         if not stream:
             stream = Stream()
 
-        try:
-            # generate stream dict
-            stream_json_keys = \
-                ['vod_id', 'stream_id', 'user_id', 'user_login', 'user_name', 'title', 'description', 'created_at',
-                 'published_at', 'url', 'thumbnail_url', 'viewable', 'view_count', 'language', 'type', 'duration',
-                 'muted_segments', 'store_directory', 'video_archived', 'chat_archived']
-            stream_json = {k: None for k in stream_json_keys}
+        # generate stream dict
+        stream_json_keys = \
+            ['vod_id', 'stream_id', 'user_id', 'user_login', 'user_name', 'title', 'description', 'created_at',
+             'published_at', 'url', 'thumbnail_url', 'viewable', 'view_count', 'language', 'type', 'duration',
+             'muted_segments', 'store_directory', 'video_archived', 'chat_archived']
+        stream_json = {k: None for k in stream_json_keys}
 
+        try:
             stream_json.update(
-                {'stream_id': channel_data['id'], 'user_id': channel_data['user_id'],
-                 'user_login': channel_data['user_login'], 'user_name': channel_data['user_name'],
-                 'title': channel_data['title'], 'created_at': channel_data['started_at'],
-                 'published_at': channel_data['started_at'], 'language': channel_data['language'],
-                 'type': channel_data['type'], 'video_archived': 1, 'chat_archived': 0})
+                {'stream_id': stream_info['stream']['id'], 'user_id': stream_info['id'],
+                 'user_login': stream_info['displayName'].lower(), 'user_name': stream_info['displayName'],
+                 'title': stream_info['broadcastSettings']['title'], 'created_at': stream_info['stream']['createdAt'],
+                 'published_at': stream_info['stream']['createdAt'], 'type': 'live',
+                 'video_archived': 1, 'chat_archived': 0})
 
             stream_json['store_directory'] = \
                 str(Path(self.vod_directory, f'{sanitize_date(stream_json["created_at"])} - '
@@ -424,13 +409,13 @@ class Processing:
         except (RequestError, VodMergeError) as e:
             self.log.debug('Exception downloading or merging stream.\n{e}', exc_info=True)
             send_push(self.pushbullet_key, 'Exception encountered while downloading or merging downloaded stream '
-                                           f'by {channel_data["user_name"]}', str(e))
+                                           f'by {stream_json["user_name"]}', str(e))
 
         except BaseException as e:
             self.log.error('Unexpected exception encountered while downloading live-only stream.\n%s', str(e),
                            exc_info=True)
             send_push(self.pushbullet_key, 'Unexpected exception encountered while downloading live-only stream '
-                                           f'by {channel_data["user_name"]}', str(e))
+                                           f'by {stream_json["user_name"]}', str(e))
 
         return False
 
