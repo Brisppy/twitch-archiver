@@ -120,3 +120,27 @@ class Api:
             raise RequestError(url, err) from err
 
         return _r
+
+    @staticmethod
+    def gql_request(operation, query_hash, variables):
+        """Post a gql query.
+
+        :param operation: name of operation
+        :param query_hash: hash of operation
+        :param variables: dict of variable to post with request
+        :return: request response
+        """
+        # Uses default client header
+        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
+        _q = [{
+            "extensions": {
+                "persistedQuery": {
+                    "sha256Hash": query_hash,
+                    "version": 1
+                }
+            },
+            "operationName": operation,
+            "variables": variables
+        }]
+
+        return Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
