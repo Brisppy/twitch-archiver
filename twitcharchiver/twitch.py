@@ -312,3 +312,20 @@ class Twitch:
         except TypeError:
             self.log.debug('No chapters found for VOD %s', vod_id)
             return []
+
+    def get_latest_video(self, channel):
+        """Retrieves the latest video for a given channel.
+
+        :param channel: channel to query
+        :return: dict of VOD info
+        """
+        query_vars = {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{channel.lower()}", "limit": 30,
+                      "videoSort": "TIME"}
+        _r = Api.gql_request('FilterableVideoTower_Videos',
+                             'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
+                             query_vars)
+
+        channel_videos = [v['node'] for v in _r.json()[0]['data']['user']['videos']['edges']]
+        self.log.debug('Latest VOD for %: %', channel, channel_videos[0])
+
+        return channel_videos[0]
