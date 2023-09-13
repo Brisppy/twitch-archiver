@@ -25,11 +25,10 @@ class Stream:
     """
     Functions pertaining to grabbing and downloading stream segments.
     """
-    def __init__(self, client_id, client_secret, oauth_token):
-
+    def __init__(self):
         self.log = logging.getLogger()
 
-        self.call_twitch = Twitch(client_id, client_secret, oauth_token)
+        self.twitch = Twitch()
 
         self.buffer = {}
         self.segment_ids = {}
@@ -68,10 +67,8 @@ class Stream:
 
         try:
             self.log.debug('Fetching required stream information.')
-            index_uri = self.call_twitch.get_channel_hls_index(channel, quality)
-            stream_json = self.call_twitch.get_api(f'users?login={channel}')['data'][0]
-            user_id = stream_json['id']
-            latest_vod_created_time = self.call_twitch.get_api(f'videos?user_id={user_id}')['data'][0]['created_at']
+            index_uri = self.twitch.get_channel_hls_index(channel, quality)
+            latest_vod_created_time = self.twitch.get_latest_video(channel)['created_at']
             latest_vod_created_time = datetime.strptime(latest_vod_created_time, '%Y-%m-%dT%H:%M:%SZ')
 
         # raised when channel goes offline

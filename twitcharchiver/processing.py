@@ -79,7 +79,7 @@ class Processing:
             available_vods = {}
 
             channel_live = False
-            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+            stream = Stream()
             tmp_buffer_dir = Path(tempfile.gettempdir(), 'twitch-archiver', os.urandom(24).hex())
 
             self.vod_directory = Path(self.directory, user_name)
@@ -373,7 +373,7 @@ class Processing:
         :return: sanitized / formatted stream json
         """
         if not stream:
-            stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+            stream = Stream()
 
         try:
             # generate stream dict
@@ -463,7 +463,7 @@ class Processing:
         try:
             # begin real-time archiver if VOD still live and real-time archiver enabled
             if self.real_time_archiver and vod_live:
-                stream = Stream(self.client_id, self.client_secret, self.oauth_token)
+                stream = Stream()
                 # concurrently grab live pieces and vod chunks
 
                 # the stream module itself has no checks for what to download so this is done here
