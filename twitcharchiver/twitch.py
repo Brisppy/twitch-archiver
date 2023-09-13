@@ -108,22 +108,8 @@ class Twitch:
         :param channel: name of channel
         :return: vod id (if any returned)
         """
-        # Uses default client header
-        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
-        _q = [{
-                "extensions": {
-                    "persistedQuery": {
-                        "sha256Hash": "ac644fafd686f2cb0e3864075af7cf3bb33f4e0525bf84921b10eabaa4e048b5",
-                        "version": 1
-                    }
-                },
-                "operationName": "ChannelVideoLength",
-                "variables": {
-                    "channelLogin": f"{channel.lower()}",
-                }
-            }]
-
-        _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+        _r = Api.gql_request('ChannelVideoLength', 'ac644fafd686f2cb0e3864075af7cf3bb33f4e0525bf84921b10eabaa4e048b5',
+                             {"channelLogin": f"{channel.lower()}"})
         channel_video_length = _r.json()[0]['data']['user']['videos']['edges']
 
         if channel_video_length:
@@ -251,26 +237,10 @@ class Twitch:
         :param vod_id: id of twitch vod to retrieve information for
         :return: name of category / game
         """
-        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
-        _q = [{
-            "extensions": {
-                "persistedQuery": {
-                    "sha256Hash": "e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01",
-                    "version": 1
-                }
-            },
-            "operationName": "ComscoreStreamingQuery",
-            "variables": {
-                "channel": "",
-                "clipSlug": "",
-                "isClip": False,
-                "isLive": False,
-                "isVodOrCollection": True,
-                "vodID": str(vod_id)
-            }
-        }]
-
-        _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+        _r = Api.gql_request('ComscoreStreamingQuery',
+                             'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
+                             {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
+                              "isVodOrCollection": True, "vodID": str(vod_id)})
 
         return _r.json()[0]['data']['video']['game']['name']
 
@@ -309,22 +279,9 @@ class Twitch:
         :param vod_id: id of twitch vod to retrieve chapters for
         :return: list of vod chapters
         """
-        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
-        _q = [{
-            "extensions": {
-                "persistedQuery": {
-                    "sha256Hash": "8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41",
-                    "version": 1
-                }
-            },
-            "operationName": "VideoPlayer_ChapterSelectButtonVideo",
-            "variables": {
-                "includePrivate": False,
-                "videoID": str(vod_id)
-            }
-        }]
-
-        _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+        _r = Api.gql_request('VideoPlayer_ChapterSelectButtonVideo',
+                             '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
+                             {"includePrivate": False, "videoID": str(vod_id)})
 
         # extract and return list of moments from returned json
         try:
