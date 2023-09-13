@@ -28,7 +28,7 @@ from twitcharchiver.exceptions import VodDownloadError, ChatDownloadError, ChatE
 from twitcharchiver.stream import Stream
 from twitcharchiver.twitch import Twitch
 from twitcharchiver.utils import create_lock, remove_lock, sanitize_date, sanitize_text, combine_vod_parts, \
-    convert_vod, cleanup_vod_parts, send_push, convert_to_seconds, import_json, format_vod_chapters, \
+    convert_vod, cleanup_vod_parts, send_push, import_json, format_vod_chapters, \
     verify_vod_length, generate_readable_chat_log, export_readable_chat_log, time_since_date, export_json, \
     export_verbose_chat_log, get_hash, safe_move
 
@@ -443,18 +443,15 @@ class Processing:
         :return: dict containing current vod information returned by get_vod
         """
         self.log.info('Now processing VOD: %s', vod_id)
-        vod_json = self.call_twitch.get_api(f'videos?id={vod_id}')['data'][0]
-        vod_json['vod_id'] = vod_json.pop('id')
-        vod_json['muted_segments'] = str(vod_json['muted_segments'])
+        vod_json = self.twitch.get_video_metadata(vod_id)
         vod_json['store_directory'] = \
             str(Path(self.vod_directory, f'{sanitize_date(vod_json["created_at"])} - '
                                          f'{sanitize_text(vod_json["title"])} - {vod_id}'))
-        vod_json['duration'] = convert_to_seconds(vod_json['duration'])
 
         workers = []
 
         # get vod status
-        vod_live = self.call_twitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
+        vod_live = self.twitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
 
         self.log.info("VOD %s", 'currently or recently live. Running in LIVE mode.' if vod_live else 'offline.')
 
@@ -525,7 +522,7 @@ class Processing:
                                        "\n%s", ', '.join([str(p) for p in c.parts]))
 
                         # check vod still available
-                        if not self.call_twitch.get_vod_index(vod_json, self.quality):
+                        if not self.twitch.get_vod_index(vod_json, self.quality):
                             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                                    "unable to re-download the missing segments. Either re-download "
                                                    "the VOD if it is still available, or manually convert 'merged.ts' "
@@ -699,7 +696,7 @@ class Processing:
         # fetch all streams for a particular vod
         if get_video:
             try:
-                vod_index = self.call_twitch.get_vod_index(vod_json, self.quality)
+                vod_index = self.twitch.get_vod_index(vod_json, self.quality)
 
                 # attempt to fetch playlist for requested stream
                 Api.get_request(vod_index).text
@@ -711,15 +708,10 @@ class Processing:
         # loop for processing live vods
         while True:
             try:
-                _r = self.call_twitch.get_api(f'videos?id={vod_json["vod_id"]}')
-
-                vod_json = _r['data'][0]
-                vod_json['vod_id'] = vod_json.pop('id')
-                vod_json['muted_segments'] = str(vod_json['muted_segments']) if vod_json['muted_segments'] else None
+                vod_json = self.twitch.get_video_metadata(vod_json['user_login'], vod_json['vod_id'])
                 vod_json['store_directory'] = \
                     str(Path(self.vod_directory, f'{sanitize_date(vod_json["created_at"])} - '
                                                  f'{sanitize_text(vod_json["title"])} - {vod_json["vod_id"]}'))
-                vod_json['duration'] = convert_to_seconds(vod_json['duration'])
 
                 export_json(vod_json)
 
