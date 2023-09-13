@@ -11,7 +11,7 @@ from time import sleep
 import m3u8
 
 from twitcharchiver.api import Api
-from twitcharchiver.exceptions import TwitchAPIError, TwitchAPIErrorForbidden
+from twitcharchiver.exceptions import TwitchAPIError, TwitchAPIErrorForbidden, TwitchAPIErrorNotFound
 from twitcharchiver.utils import get_quality_index, time_since_date
 
 
@@ -42,6 +42,73 @@ class Twitch:
         _r = Api.get_request(f'https://api.twitch.tv/helix/{api_path}', h=_h)
 
         return _r.json()
+
+    def get_user_data(self, user):
+        """Retrieve basic user login information.
+
+        :param user: user to fetch
+        :return: dictionary of user information
+        """
+        _r = Api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
+                             {"login": f"{user.lower()}"})
+        user_data = _r.json()[0]['data']['userOrError']
+
+        # failure return contains "userDoesNotExist" key
+        if "userDoesNotExist" not in user_data.keys():
+            return user_data
+
+        else:
+            raise TwitchAPIErrorNotFound(_r)
+
+    def get_channel_videos(self, channel):
+        """Retrieves all available VODs for a given channel.
+
+        :param channel: channel to retrieve VODs of
+        :return: list of VOD dicts
+        """
+        channel_videos = []
+        query_vars = {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{channel.lower()}", "limit": 30,
+                      "videoSort": "TIME"}
+
+        while True:
+            _r = Api.gql_request('FilterableVideoTower_Videos',
+                                 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
+                                 query_vars)
+
+            # retrieve list of videos from response
+            _videos = [v['node'] for v in _r.json()[0]['data']['user']['videos']['edges']]
+            channel_videos.extend(_videos)
+
+            if _r.json()[0]['data']['user']['videos']['pageInfo']['hasNextPage'] is not False:
+                # set cursor
+                query_vars['cursor'] = _r.json()[0]['data']['user']['videos']['edges'][-1]['cursor']
+
+            else:
+                break
+
+        return channel_videos
+
+    def get_stream_info(self, channel):
+        """Retrieves information relating to a channel if it is currently live.
+
+        :param channel: channel to retrieve information for
+        :return: dict of stream info
+        """
+        query_vars = {"channel": channel, "clipSlug": "", "isClip": "false", "isLive": "true",
+                      "isVodOrCollection": "false", "vodID": ""}
+
+        _r = Api.gql_request('ComscoreStreamingQuery',
+                             'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
+                             query_vars)
+
+        stream_info = _r.json()[0]['data']['user']
+        self.log.debug('Stream info for %s: %s', channel, stream_info)
+
+        if stream_info['stream']:
+            return stream_info
+
+        else:
+            self.log.debug('No broadcast info found for %s', channel)
 
     def generate_oauth_token(self):
         """Generates an OAuth token from the provided client ID and secret.
