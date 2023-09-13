@@ -11,7 +11,7 @@ from time import sleep
 import m3u8
 
 from twitcharchiver.api import Api
-from twitcharchiver.exceptions import TwitchAPIError, TwitchAPIErrorForbidden, TwitchAPIErrorNotFound
+from twitcharchiver.exceptions import TwitchAPIErrorForbidden, TwitchAPIErrorNotFound
 from twitcharchiver.utils import get_quality_index, time_since_date
 
 
@@ -19,29 +19,10 @@ class Twitch:
     """
     Functions and processes for interacting with the Twitch API.
     """
-    def __init__(self, client_id=None, client_secret=None, oauth_token=None):
+    def __init__(self):
         """Class constructor.
-
-        :param client_id: twitch client_id
-        :param client_secret: twitch client_secret
-        :param oauth_token: twitch oauth_token
         """
         self.log = logging.getLogger()
-
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.oauth_token = oauth_token
-
-    def get_api(self, api_path):
-        """Retrieves information from the Twitch API.
-
-        :param api_path: twitch api endpoint to send request to
-        :return: requests response json
-        """
-        _h = {'Authorization': f'Bearer {self.oauth_token}', 'Client-Id': self.client_id}
-        _r = Api.get_request(f'https://api.twitch.tv/helix/{api_path}', h=_h)
-
-        return _r.json()
 
     def get_user_data(self, user):
         """Retrieve basic user login information.
@@ -109,37 +90,6 @@ class Twitch:
 
         else:
             self.log.debug('No broadcast info found for %s', channel)
-
-    def generate_oauth_token(self):
-        """Generates an OAuth token from the provided client ID and secret.
-
-        :return: oauth token
-        """
-        _d = {'client_id': self.client_id, 'client_secret': self.client_secret,
-              'grant_type': 'client_credentials'}
-        _t = Api.post_request('https://id.twitch.tv/oauth2/token', d=_d).json()['access_token']
-
-        return _t
-
-    def validate_oauth_token(self):
-        """Validates a specified OAuth token with Twitch.
-
-        :return: token expiration date
-        """
-        self.log.debug('Verifying OAuth token.')
-        _h = {'Authorization': f'Bearer {self.oauth_token}'}
-
-        try:
-            _r = Api.get_request('https://id.twitch.tv/oauth2/validate', h=_h)
-
-            self.log.info('OAuth token verified successfully. Expiring in %s', _r.json()["expires_in"])
-            return _r.json()['expires_in']
-
-        except TwitchAPIError as e:
-            self.log.debug('OAuth token validation failed. Error: %s', str(e))
-
-        # error on expired or invalid credentials
-        return 1
 
     def get_playback_access_token(self, vod_id):
         """Gets a playback access token for a specified vod.

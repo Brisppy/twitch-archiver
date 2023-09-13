@@ -174,21 +174,6 @@ def main():
         config.set('client_id', input('Your client ID: '))
         config.set('client_secret', input('Your client secret: '))
 
-    log.debug('Performing Twitch authentication.')
-    call_twitch = Twitch(config.get('client_id'), config.get('client_secret'), config.get('oauth_token'))
-    # generate oauth token if it is missing, is invalid, or expiring soon
-    if config.get('oauth_token') == '' or call_twitch.validate_oauth_token() < 604800:
-        log.debug('No OAuth token found, or token is invalid or expiring soon - generating a new one.')
-        try:
-            config.set('oauth_token', call_twitch.generate_oauth_token())
-            log.debug('New OAuth token is: %s', config.get_sanitized("oauth_token"))
-            # store returned token
-            config.save(Path(args.get('config_dir'), 'config.ini'))
-        except TwitchAPIError as err:
-            log.error('OAuth token generation failed. Error: %s', str(err))
-            send_push(config.get('pushbullet_key'), 'OAuth token generation failed.', str(err))
-            sys.exit(1)
-
     process = Processing(config.get(), args.get())
 
     while True:
