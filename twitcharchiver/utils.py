@@ -663,6 +663,15 @@ def format_vod_chapters(chapters):
     return formatted_chapters
 
 
+def get_stream_id_from_preview_url(preview_url):
+    """Retrieves the stream ID from a vod thumbnail URL
+
+    :param preview_url: vod animatedPreviewURL to retrieve ID from
+    :return: stream id
+    """
+    return preview_url.split('/')[3].split('_')[-2]
+
+
 class Progress:
     """
     Functions for displaying progress.
