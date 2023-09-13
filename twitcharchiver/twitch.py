@@ -74,8 +74,7 @@ class Twitch:
         # error on expired or invalid credentials
         return 1
 
-    @staticmethod
-    def get_playback_access_token(vod_id):
+    def get_playback_access_token(self, vod_id):
         """Gets a playback access token for a specified vod.
 
         :param vod_id: id of vod to retrieve token for
@@ -100,7 +99,10 @@ class Twitch:
         """.format(vod_id=vod_id)
         _r = Api.post_request('https://gql.twitch.tv/gql', j={'query': _q}, h=_h)
 
-        return _r.json()['data']['videoPlaybackAccessToken']
+        token = _r.json()['data']['videoPlaybackAccessToken']
+        self.log.debug('Playback access token retrieved: %s', token)
+
+        return token
 
     def get_live_broadcast_vod_id(self, channel):
         """Fetches the paired VOD ID for the currently live broadcast.
@@ -113,7 +115,9 @@ class Twitch:
         channel_video_length = _r.json()[0]['data']['user']['videos']['edges']
 
         if channel_video_length:
-            return channel_video_length[0]['node']['id']
+            broadcast_info = channel_video_length[0]['node']['id']
+            self.log.debug('Live broadcast info: %s', broadcast_info)
+            return broadcast_info
 
         self.log.debug('No data returned by ChannelVideoLength API.')
 
@@ -148,6 +152,7 @@ class Twitch:
 
         # catch for sub-only vods
         except TwitchAPIErrorForbidden as e:
+            self.log.debug('VOD %s is subscriber-only. Generating index URL.', vod_json['id'])
             # retrieve cloudfront storage location from VOD thumbnail
             cf_info = vod_json['thumbnail_url'].split('/')
             cf_domain = cf_info[4]
@@ -163,12 +168,16 @@ class Twitch:
 
             # create index url
             index_url = f'https://{cf_domain}.cloudfront.net/{vod_uid}/{quality}/index-dvr.m3u8'
+            self.log.debug('Index URL for %s: %s', vod_json['user_name'])
+
             return index_url
 
-        return _index.playlists[get_quality_index(quality, available_resolutions)].uri
+        index = _index.playlists[get_quality_index(quality, available_resolutions)].uri
+        self.log.debug('Index for VOD %s: %s', vod_json['id'], index)
 
-    @staticmethod
-    def get_channel_hls_index(channel, quality='best'):
+        return index
+
+    def get_channel_hls_index(self, channel, quality='best'):
         """Retrieves an index of a live m3u8 stream.
 
         :param channel: name of channel to retrieve index of
@@ -199,11 +208,11 @@ class Twitch:
                                  m[0].group_id != 'chunked']
         # insert 'chunked' stream separately as its named differently and strip ' (source)' from name
         available_resolutions.insert(0, _index.media[0].name.strip(' (source)').split('p'))
+        self.log.debug('Available resolutions for %s are: %s', channel, available_resolutions)
 
         return _index.playlists[get_quality_index(quality, available_resolutions)].uri
 
-    @staticmethod
-    def get_stream_playback_access_token(channel):
+    def get_stream_playback_access_token(self, channel):
         """Gets a stream access token for a specified channel.
 
         :param channel: channel name to retrieve token for
@@ -228,10 +237,12 @@ class Twitch:
         """.format(channel=channel.lower())
         _r = Api.post_request('https://gql.twitch.tv/gql', j={'query': _q}, h=_h)
 
-        return _r.json()['data']['streamPlaybackAccessToken']
+        access_token = _r.json()['data']['streamPlaybackAccessToken']
+        self.log.debug('Access token retrieved for %s. %s', channel, access_token)
 
-    @staticmethod
-    def get_vod_category(vod_id):
+        return access_token
+
+    def get_vod_category(self, vod_id):
         """Retrieves category for a specified VOD.
 
         :param vod_id: id of twitch vod to retrieve information for
@@ -242,7 +253,10 @@ class Twitch:
                              {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
                               "isVodOrCollection": True, "vodID": str(vod_id)})
 
-        return _r.json()[0]['data']['video']['game']['name']
+        vod_category = _r.json()[0]['data']['video']['game']['name']
+        self.log.debug('Category for VOD %s is %s', vod_id, vod_category)
+
+        return vod_category
 
     def get_vod_status(self, user_id, vod_created_time):
         """Determines whether a live stream is paired with a given vod.
@@ -254,8 +268,11 @@ class Twitch:
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
         time_since_created = time_since_date(
             datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
+
         if time_since_created < 60:
+            self.log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.', user_id)
             sleep(60 - time_since_created)
+
         try:
             # if stream live and vod start time matches
             stream_created_time = \
@@ -264,16 +281,17 @@ class Twitch:
             vod_created_time = datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').timestamp()
             # if vod created within 10s of stream created time
             if 10 >= vod_created_time - stream_created_time >= -10:
-                self.log.debug('VOD creation time is within 10s of stream created time, running in live mode.')
+                self.log.debug('VOD creation time (%s) is within 10s of stream created time (%s), running in live mode.',
+                               vod_created_time, stream_created_time)
                 return True
 
         except IndexError:
             pass
 
+        self.log.debug('Stream status could not be retrieved for user with id %s.', user_id)
         return False
 
-    @staticmethod
-    def get_vod_chapters(vod_id):
+    def get_vod_chapters(self, vod_id):
         """Retrieves the chapters for a given Twitch VOD.
 
         :param vod_id: id of twitch vod to retrieve chapters for
@@ -284,8 +302,13 @@ class Twitch:
                              {"includePrivate": False, "videoID": str(vod_id)})
 
         # extract and return list of moments from returned json
+        chapters = [node['node'] for node in _r.json()[0]['data']['video']['moments']['edges']]
+
+        self.log.debug('Chapters for VOD %s: %s', vod_id, chapters)
+
         try:
-            return [node['node'] for node in _r.json()[0]['data']['video']['moments']['edges']]
+            return chapters
 
         except TypeError:
+            self.log.debug('No chapters found for VOD %s', vod_id)
             return []
