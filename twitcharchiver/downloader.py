@@ -22,19 +22,14 @@ class Downloader:
     """
     Functions used for the downloading of video and chat from Twitch VODs.
     """
-    def __init__(self, client_id, oauth_token, threads=20, quiet=False):
-        """
+    def __init__(self, threads=20, quiet=False):
+        """Class constructor.
 
-        :param client_id: twitch client id
-        :param oauth_token: oauth token retrieved with client id and secret
         :param threads: number of download threads
         :param quiet: hide progress bars
         """
 
         self.log = logging.getLogger()
-
-        self.client_id = client_id
-        self.oauth_token = oauth_token
 
         self.threads = threads
         self.quiet = quiet
