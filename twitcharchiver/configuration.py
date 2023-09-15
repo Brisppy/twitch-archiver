@@ -14,9 +14,6 @@ class Configuration:
     # reference:
     #   https://stackoverflow.com/questions/6198372/most-pythonic-way-to-provide-global-configuration-variables-in-config-py/
     __conf = {
-        'client_id': '',
-        'client_secret': '',
-        'oauth_token': '',
         'pushbullet_key': '',
     }
 
@@ -109,7 +106,7 @@ class Configuration:
         :return: requested value(s)
         """
         configuration = Configuration.__conf.copy()
-        for key in ['client_id', 'client_secret', 'oauth_token', 'pushbullet_key']:
+        for key in ['pushbullet_key']:
             if configuration[key] != '':
                 configuration.update({key: 24 * '*' + configuration[key][24:]})
 
