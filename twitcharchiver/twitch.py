@@ -33,6 +33,7 @@ class Twitch:
         _r = Api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
                              {"login": f"{user.lower()}"})
         user_data = _r.json()[0]['data']['userOrError']
+        self.log.debug('User data for %s: %s')
 
         # failure return contains "userDoesNotExist" key
         if "userDoesNotExist" not in user_data.keys():
@@ -58,6 +59,7 @@ class Twitch:
 
             # retrieve list of videos from response
             _videos = [v['node'] for v in _r.json()[0]['data']['user']['videos']['edges']]
+            self.log.debug('Retrieved videos for %s: %s', channel, _videos)
             channel_videos.extend(_videos)
 
             if _r.json()[0]['data']['user']['videos']['pageInfo']['hasNextPage'] is not False:
@@ -67,6 +69,7 @@ class Twitch:
             else:
                 break
 
+        self.log.debug('Full list of channels for %s: %s', channel, channel_videos)
         return channel_videos
 
     def get_stream_info(self, channel):
