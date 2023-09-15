@@ -61,12 +61,6 @@ def main():
                 Channel(s) to download, comma separated if multiple provided.
         -v VOD_ID, --vod-id VOD_ID
                 VOD ID(s) to download, comma separated if multiple provided.
-
-    credentials are grabbed from stored config, OR provided with:
-        -i CLIENT_ID, --client-id CLIENT_ID
-                Client ID retrieved from dev.twitch.tv
-        -s CLIENT_SECRET, --client-secret CLIENT_SECRET
-                Client secret retrieved from dev.twitch.tv
                 
     Both the video and chat logs are grabbed if neither are specified.
     """), formatter_class=argparse.RawTextHelpFormatter)
@@ -84,10 +78,6 @@ def main():
     mode.add_argument('-v', '--vod-id', type=str, action='store',
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
                       default=getenv("TWITCH_ARCHIVER_VOD_ID"))
-    parser.add_argument('-i', '--client-id', action='store', help='Client ID retrieved from dev.twitch.tv',
-                        default=getenv("TWITCH_ARCHIVER_CLIENT_ID"))
-    parser.add_argument('-s', '--client-secret', action='store', help='Client secret retrieved from dev.twitch.tv',
-                        default=getenv("TWITCH_ARCHIVER_CLIENT_SECRET"))
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.',
                         default=getenv("TWITCH_ARCHIVER_CHAT", False, True))
     parser.add_argument('-V', '--video', action='store_true', help='Only save video.',
@@ -141,7 +131,7 @@ def main():
 
     # debug only: output sanitized version of arguments
     args_sanitized = args.get().copy()
-    for key in ['client_id', 'client_secret', 'pushbullet_key']:
+    for key in ['pushbullet_key']:
         if args_sanitized[key]:
             args_sanitized.update({key: 24 * '*' + args_sanitized[key][24:]})
 
@@ -167,12 +157,6 @@ def main():
 
     # create temp dir for downloads and lock files
     Path(tempfile.gettempdir(), 'twitch-archiver').mkdir(exist_ok=True)
-
-    # prompt if client id or secret empty
-    if config.get('client_id') == '' or config.get('client_secret') == '':
-        log.info('No client_id or client_secret passed as argument or found in config file.')
-        config.set('client_id', input('Your client ID: '))
-        config.set('client_secret', input('Your client secret: '))
 
     process = Processing(config.get(), args.get())
 
