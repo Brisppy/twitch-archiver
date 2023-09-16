@@ -33,7 +33,7 @@ class Twitch:
         _r = Api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
                              {"login": f"{user.lower()}"})
         user_data = _r.json()[0]['data']['userOrError']
-        self.log.debug('User data for %s: %s')
+        self.log.debug('User data for %s: %s', user, user_data)
 
         # failure return contains "userDoesNotExist" key
         if "userDoesNotExist" not in user_data.keys():
@@ -172,7 +172,7 @@ class Twitch:
 
         # catch for sub-only vods
         except TwitchAPIErrorForbidden as e:
-            self.log.debug('VOD %s is subscriber-only. Generating index URL.', vod_json['id'])
+            self.log.debug('VOD %s is subscriber-only. Generating index URL.', vod_json['vod_id'])
             # retrieve cloudfront storage location from VOD thumbnail
             cf_info = vod_json['thumbnail_url'].split('/')
             cf_domain = cf_info[4]
@@ -193,7 +193,7 @@ class Twitch:
             return index_url
 
         index = _index.playlists[get_quality_index(quality, available_resolutions)].uri
-        self.log.debug('Index for VOD %s: %s', vod_json['id'], index)
+        self.log.debug('Index for VOD %s: %s', vod_json['vod_id'], index)
 
         return index
 

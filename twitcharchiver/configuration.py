@@ -84,7 +84,7 @@ class Configuration:
             Configuration.__conf[name] = value
 
         else:
-            raise NameError("Configuration variable not found.")
+            logging.debug("Configuration variable %s from file could not be matched to a runtime variable.", name)
 
     @staticmethod
     def get(name=None):
