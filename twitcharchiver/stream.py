@@ -68,7 +68,7 @@ class Stream:
         try:
             self.log.debug('Fetching required stream information.')
             index_uri = self.twitch.get_channel_hls_index(channel, quality)
-            latest_vod_created_time = self.twitch.get_latest_video(channel)['created_at']
+            latest_vod_created_time = self.twitch.get_latest_video(channel)['publishedAt']
             latest_vod_created_time = datetime.strptime(latest_vod_created_time, '%Y-%m-%dT%H:%M:%SZ')
 
         # raised when channel goes offline
