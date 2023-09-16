@@ -9,7 +9,7 @@ from sqlite3 import Error
 
 from twitcharchiver.exceptions import DatabaseError, DatabaseQueryError
 
-__db_version__ = 4
+__db_version__ = 5
 
 
 class Database:
@@ -59,6 +59,10 @@ class Database:
             with Database(self.database_path) as db:
                 [db.execute_query(query) for query in version_3_to_4_upgrade]
 
+        if version == 4:
+            with Database(self.database_path) as db:
+                [db.execute_query(query) for query in version_4_to_5_upgrade]
+
     # reference:
     #   https://codereview.stackexchange.com/questions/182700/python-class-to-manage-a-table-in-sqlite
     def __enter__(self):
@@ -104,16 +108,15 @@ create_vods_table = [
         "user_id"           INTEGER,
         "user_login"        TEXT,
         "user_name"         TEXT,
+        "game_id"           INTEGER,
+        "game_name"         TEXT,
         "title"             TEXT,
         "description"       TEXT,
         "created_at"        DATETIME,
         "published_at"      DATETIME,
         "url"               TEXT,
         "thumbnail_url"     TEXT,
-        "viewable"          TEXT,
         "view_count"        TEXT,
-        "language"          TEXT,
-        "type"              TEXT,
         "duration"          INTEGER,
         "muted_segments"    TEXT,
         "store_directory"   TEXT,
@@ -125,18 +128,17 @@ create_vods_table = [
 
 CREATE_VOD = """
 INSERT INTO
-vods (stream_id, user_id, user_login, user_name, title, description, created_at, published_at, url, thumbnail_url,
-      viewable, view_count, language, type, duration, muted_segments, vod_id, store_directory, video_archived,
-      chat_archived)
+vods (stream_id, user_id, user_login, user_name, game_id, game_name, title, description, created_at, published_at, 
+      url, thumbnail_url, view_count, duration, muted_segments, vod_id, store_directory, video_archived, chat_archived)
 VALUES
-(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 UPDATE_VOD = """
 UPDATE vods
-SET stream_id=?, user_id=?, user_login=?, user_name=?, title=?, description=?, created_at=?,
-    published_at=?, url=?, thumbnail_url=?, viewable=?, view_count=?, language=?, type=?,
-    duration=?, muted_segments=?, vod_id=?, store_directory=?, video_archived=?, chat_archived=?
+SET stream_id=?, user_id=?, user_login=?, user_name=?, game_id=?, game_name=?, title=?, description=?, created_at=?,
+    published_at=?, url=?, thumbnail_url=?, view_count=?, duration=?, muted_segments=?, vod_id=?, store_directory=?,
+    video_archived=?, chat_archived=?
 WHERE stream_id IS ?;
 """
 
@@ -209,3 +211,35 @@ version_3_to_4_upgrade = [
     "store_directory, 1, 1 FROM vods_bak;",
     "DROP TABLE vods_bak;",
     "PRAGMA user_version = 4;"]
+
+# add game_name and game_id columns
+# remove viewable, language, type columns
+version_4_to_5_upgrade = [
+    "ALTER TABLE vods RENAME TO vods_bak;",
+    """CREATE TABLE "vods" (
+        "vod_id"            INTEGER,
+        "stream_id"         INTEGER,
+        "user_id"           INTEGER,
+        "user_login"        TEXT,
+        "user_name"         TEXT,
+        "game_id"           INTEGER,
+        "game_name"         TEXT,
+        "title"             TEXT,
+        "description"       TEXT,
+        "created_at"        DATETIME,
+        "published_at"      DATETIME,
+        "url"               TEXT,
+        "thumbnail_url"     TEXT,
+        "view_count"        TEXT,
+        "duration"          INTEGER,
+        "muted_segments"    TEXT,
+        "store_directory"   TEXT,
+        "video_archived"    BIT,
+        "chat_archived"     BIT,
+        PRIMARY KEY("vod_id","stream_id")
+    );""",
+    "INSERT INTO vods SELECT vod_id, stream_id, user_id, user_login, user_name, NULL, NULL, title, description, "
+    "created_at, published_at, url, thumbnail_url, view_count, duration, muted_segments, store_directory, "
+    "video_archived, chat_archived FROM vods_bak;",
+    "DROP TABLE vods_bak;",
+    "PRAGMA user_version = 5;"]

@@ -664,9 +664,9 @@ def format_vod_chapters(chapters):
 
 
 def get_stream_id_from_preview_url(preview_url):
-    """Retrieves the stream ID from a vod thumbnail URL
+    """Retrieves the stream ID from a vod preview or vod seek URL
 
-    :param preview_url: vod animatedPreviewURL to retrieve ID from
+    :param preview_url: vod animatedPreviewURL / seekPreviewsURL to retrieve ID from
     :return: stream id
     """
     return preview_url.split('/')[3].split('_')[-2]

@@ -12,7 +12,7 @@ import m3u8
 
 from twitcharchiver.api import Api
 from twitcharchiver.exceptions import TwitchAPIErrorForbidden, TwitchAPIErrorNotFound
-from twitcharchiver.utils import get_quality_index, time_since_date
+from twitcharchiver.utils import get_quality_index, time_since_date, get_stream_id_from_preview_url
 
 
 class Twitch:
@@ -348,38 +348,38 @@ class Twitch:
 
         return muted_segments
 
-    def get_video_metadata(self, vod_id, channel=None):
+    def get_video_metadata(self, vod_id):
         """Retrieves metadata for a given VOD. Formatting is used to ensure backwards compatibility.
 
         :param vod_id: VOD ID to retrieve metadata of
-        :param channel: channel VOD belongs to
         :return: dict of data values
         """
-        if not channel:
-            channel = self.get_vod_owner(vod_id)
+        channel_data = self.get_vod_owner(vod_id)
 
         _r = Api.gql_request('VideoMetadata', 'c25707c1e5176320ceac6b447d052480887e23bc794ca1d02becd0bcc91844fe',
-                             {'channelLogin': channel, 'videoID': vod_id})
+                             {'channelLogin': channel_data['name'], 'videoID': vod_id})
 
-        vod_json = _r.json()[0]['video']
+        vod_json = _r.json()[0]['data']['video']
         self.log.debug('Retrieved metadata for VOD %s: %s', vod_id, vod_json)
 
-        # reformat to match old layout
+        # reformat to database schema
         vod_json['vod_id'] = vod_json.pop('id')
-        vod_json['stream_id'] = vod_json.pop('id')
-        vod_json['user_id'] = channel['id']
-        vod_json['user_login'] = channel['name'].lower()
-        vod_json['user_name'] = channel['name']
+        vod_json['stream_id'] = self.get_stream_id_for_vod(vod_json['vod_id'])
+        vod_json['user_id'] = channel_data['id']
+        vod_json['user_login'] = channel_data['name'].lower()
+        vod_json['user_name'] = channel_data['name']
+        vod_json['game_name'] = vod_json['game']['displayName']
+        vod_json['game_id'] = vod_json.pop('game')['id']
         vod_json['created_at'] = vod_json.pop('createdAt')
         vod_json['published_at'] = vod_json.pop('publishedAt')
         vod_json['url'] = 'https://twitch.tv/' + vod_json['user_login'] + '/' + vod_json['vod_id']
         vod_json['thumbnail_url'] = vod_json.pop('previewThumbnailURL')
-        vod_json['viewable'] = True
         vod_json['view_count'] = vod_json.pop('viewCount')
-        vod_json['language'] = None
-        vod_json['type'] = vod_json.pop('broadcastType')
         vod_json['duration'] = vod_json.pop('lengthSeconds')
         vod_json['muted_segments'] = self.get_video_muted_segments(vod_json['vod_id'])
+        for key in ['owner', '__typename']:
+            vod_json.pop(key)
+
         self.log.debug('Filled metadata for VOD %s: %s', vod_id, vod_json)
 
         return vod_json
@@ -399,3 +399,15 @@ class Twitch:
         self.log.debug('Owner of VOD %s is %s.', vod_id, owner)
 
         return {'id': owner['id'], 'name': owner['displayName']}
+
+    def get_stream_id_for_vod(self, vod_id):
+        """Retrieves the stream ID for a given VOD
+
+        :param vod_id: id of VOD to retrieve stream ID
+        :return: stream id
+        """
+        _r = Api.gql_request('VideoPlayer_VODSeekbarPreviewVideo',
+                             '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
+                             {'includePrivate': False, 'videoID': vod_id})
+
+        return get_stream_id_from_preview_url(_r.json()[0]['data']['video']['seekPreviewsURL'])
