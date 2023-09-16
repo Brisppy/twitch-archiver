@@ -420,3 +420,20 @@ class Twitch:
                              {'includePrivate': False, 'videoID': vod_id})
 
         return get_stream_id_from_preview_url(_r.json()[0]['data']['video']['seekPreviewsURL'])
+
+    def get_latest_video(self, channel):
+        """Retrieves the latest VOD for a given channel.
+
+        :param channel: channel to fetch latest VOD of
+        :return: dict of values pertaining to most recent VOD
+        """
+
+        _r = Api.gql_request('FilterableVideoTower_Videos',
+                             'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
+                             {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{channel.lower()}", "limit": 30,
+                              "videoSort": "TIME"})
+
+        _recent_videos = [v['node'] for v in _r.json()[0]['data']['user']['videos']['edges']]
+
+        self.log.debug('Most recent videos for %s: %s', channel, _recent_videos)
+        return _recent_videos[0]
