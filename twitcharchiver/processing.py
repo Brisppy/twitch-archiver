@@ -110,8 +110,8 @@ class Processing:
             # retrieve available vods and extract required info
             channel_videos = self.twitch.get_channel_videos(channel)
 
-            available_vods = [{int(get_stream_id_from_preview_url(v['animatedPreviewURL'])): v['id']}
-                              for v in channel_videos]
+            available_vods = {int(get_stream_id_from_preview_url(v['animatedPreviewURL'])): v['id']
+                              for v in channel_videos}
 
             # check if channel live
             if user_data['stream']:
