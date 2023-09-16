@@ -288,25 +288,32 @@ class Twitch:
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
         time_since_created = time_since_date(
             datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
-
         if time_since_created < 60:
             self.log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.', channel)
             sleep(60 - time_since_created)
 
-        try:
-            # if stream live and vod start time matches
-            stream_created_time = datetime.strptime(self.get_stream_info(channel)['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
-            vod_created_time = datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').timestamp()
-            # if vod created within 10s of stream created time
-            if 10 >= vod_created_time - stream_created_time >= -10:
-                self.log.debug('VOD creation time (%s) is within 10s of stream created time (%s), running in live mode.',
-                               vod_created_time, stream_created_time)
-                return True
+        # check if channel is offline
+        stream_info = self.get_stream_info(channel)
 
-        except IndexError:
-            pass
+        if stream_info:
+            try:
+                # if stream live and vod start time matches
+                stream_created_time = \
+                    datetime.strptime(stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
+                vod_created_time = datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').timestamp()
+                # if vod created within 10s of stream created time
+                if 10 >= vod_created_time - stream_created_time >= -10:
+                    self.log.debug('VOD creation time (%s) is within 10s of stream created time (%s), running in live mode.',
+                                   vod_created_time, stream_created_time)
+                    return True
 
-        self.log.debug('Stream status could not be retrieved for user with id %s.', channel)
+            except IndexError:
+                pass
+
+            self.log.debug('Stream status could not be retrieved for %s.', channel)
+            return False
+
+        self.log.debug('%s is offline and so VOD status must be offline.', channel)
         return False
 
     def get_vod_chapters(self, vod_id):
