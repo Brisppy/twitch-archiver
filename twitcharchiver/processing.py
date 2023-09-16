@@ -215,7 +215,8 @@ class Processing:
                 self.log.info('Channel live but not being archived to a VOD, running stream archiver.')
                 self.log.debug('Creating lock file for stream.')
 
-                if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'), stream_info['stream']['id'] + '-stream-only'):
+                if create_lock(Path(tempfile.gettempdir(), 'twitch-archiver'),
+                               stream_info['stream']['id'] + '-stream-only'):
                     self.log.info('Lock file present for stream by %s (.lock.%s-stream-only), skipping.',
                                   user_data['displayName'], stream_info['stream']['id'])
                     continue
