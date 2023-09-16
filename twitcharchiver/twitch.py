@@ -278,10 +278,10 @@ class Twitch:
 
         return vod_category
 
-    def get_vod_status(self, user_id, vod_created_time):
+    def get_vod_status(self, channel, vod_created_time):
         """Determines whether a live stream is paired with a given vod.
 
-        :param user_id: twitch channel name
+        :param channel: twitch channel name
         :param vod_created_time: time and date a vod was created
         :return: True if vod and stream creation dates match
         """
@@ -290,14 +290,12 @@ class Twitch:
             datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
 
         if time_since_created < 60:
-            self.log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.', user_id)
+            self.log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.', channel)
             sleep(60 - time_since_created)
 
         try:
             # if stream live and vod start time matches
-            stream_created_time = \
-                datetime.strptime(self.get_api(f'streams?user_id={user_id}')['data'][0]['started_at'],
-                                  '%Y-%m-%dT%H:%M:%SZ').timestamp()
+            stream_created_time = datetime.strptime(self.get_stream_info(channel)['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
             vod_created_time = datetime.strptime(vod_created_time, '%Y-%m-%dT%H:%M:%SZ').timestamp()
             # if vod created within 10s of stream created time
             if 10 >= vod_created_time - stream_created_time >= -10:
@@ -308,7 +306,7 @@ class Twitch:
         except IndexError:
             pass
 
-        self.log.debug('Stream status could not be retrieved for user with id %s.', user_id)
+        self.log.debug('Stream status could not be retrieved for user with id %s.', channel)
         return False
 
     def get_vod_chapters(self, vod_id):

@@ -442,7 +442,7 @@ class Processing:
         workers = []
 
         # get vod status
-        vod_live = self.twitch.get_vod_status(vod_json['user_id'], vod_json['created_at'])
+        vod_live = self.twitch.get_vod_status(vod_json['user_name'], vod_json['created_at'])
 
         self.log.info("VOD %s", 'currently or recently live. Running in LIVE mode.' if vod_live else 'offline.')
 
