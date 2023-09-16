@@ -101,6 +101,11 @@ class Processing:
                     if version == 3:
                         self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
                         db.update_database(3)
+                        version = 4
+
+                    if version == 4:
+                        self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
+                        db.update_database(4)
 
             # retrieve available vods and extract required info
             channel_videos = self.twitch.get_channel_videos(channel)
@@ -693,7 +698,7 @@ class Processing:
         # loop for processing live vods
         while True:
             try:
-                vod_json = self.twitch.get_video_metadata(vod_json['user_login'], vod_json['vod_id'])
+                vod_json = self.twitch.get_video_metadata(vod_json['vod_id'])
                 vod_json['store_directory'] = \
                     str(Path(self.vod_directory, f'{sanitize_date(vod_json["created_at"])} - '
                                                  f'{sanitize_text(vod_json["title"])} - {vod_json["vod_id"]}'))
