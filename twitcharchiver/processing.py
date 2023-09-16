@@ -71,9 +71,9 @@ class Processing:
 
             user_data = self.twitch.get_user_data(channel)
             self.log.debug('Channel info: %s', user_data)
-            available_vods = {}
 
             channel_live = False
+            stream_info = None
             stream = Stream()
             tmp_buffer_dir = Path(tempfile.gettempdir(), 'twitch-archiver', os.urandom(24).hex())
 
@@ -287,14 +287,15 @@ class Processing:
             for stream_id in vod_queue:
                 vod_id = vod_queue[stream_id][0]
 
-                # skip if we are only after currently live streams, and stream_id is not live
-                if stream_info['stream'] and self.live_only and stream_id != int(user_data['id']):
-                    continue
+                if channel_live:
+                    # skip if we are only after currently live streams, and stream_id is not live
+                    if stream_info['stream'] and self.live_only and stream_id != int(user_data['id']):
+                        continue
 
-                # skip if we aren't after currently lives streams, and stream_id is live
-                if stream_info['stream'] and self.archive_only and stream_id == int(user_data['id']):
-                    self.log.info('Skipping VOD as it is live and no-stream argument provided.')
-                    continue
+                    # skip if we aren't after currently live streams, and stream_id is live
+                    if stream_info['stream'] and self.archive_only and stream_id == int(user_data['id']):
+                        self.log.info('Skipping VOD as it is live and no-stream argument provided.')
+                        continue
 
                 self.log.debug('Processing VOD %s by %s', vod_id, user_data['displayName'])
                 self.log.debug('Creating lock file for VOD.')
