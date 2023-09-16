@@ -482,7 +482,7 @@ class Processing:
                 try:
                     # retrieve vod chapters
                     try:
-                        vod_chapters = Twitch.get_vod_chapters(vod_id)
+                        vod_chapters = self.twitch.get_vod_chapters(vod_id)
                         if vod_chapters:
                             # write chapters to file
                             with open(Path(vod_json['store_directory'], 'chapters.json'), 'w',
@@ -491,7 +491,7 @@ class Processing:
 
                         else:
                             # get category if no separate chapters found
-                            vod_chapters = (Twitch.get_vod_category(vod_id), 0, vod_json['duration'] * 1000)
+                            vod_chapters = (self.twitch.get_vod_category(vod_id), 0, vod_json['duration'] * 1000)
 
                         # format and write vod chapters to parts dir
                         with open(Path(vod_json['store_directory'], 'parts', 'chapters.txt'),
