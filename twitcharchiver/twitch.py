@@ -341,10 +341,14 @@ class Twitch:
                              'c36e7400657815f4704e6063d265dff766ed8fc1590361c6d71e4368805e0b49',
                              {'includePrivate': False, 'vodID': vod_id})
 
-        muted_segments = _r.json()[0]['data']['video']['muteInfo']['mutedSegmentConnection']['nodes']
-        self.log.debug('Muted segments for VOD %s: %s', vod_id, muted_segments)
+        muted_segments = _r.json()[0]['data']['video']['muteInfo']['mutedSegmentConnection']
 
-        return muted_segments
+        if muted_segments:
+            self.log.debug('Muted segments for VOD %s: %s', vod_id, muted_segments)
+            return muted_segments['nodes']
+
+        else:
+            self.log.debug('No muted segments found for VOD %s.', vod_id)
 
     def get_video_metadata(self, vod_id):
         """Retrieves metadata for a given VOD. Formatting is used to ensure backwards compatibility.
