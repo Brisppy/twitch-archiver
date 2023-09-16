@@ -386,7 +386,7 @@ class Twitch:
         vod_json['view_count'] = vod_json.pop('viewCount')
         vod_json['duration'] = vod_json.pop('lengthSeconds')
         vod_json['muted_segments'] = self.get_video_muted_segments(vod_json['vod_id'])
-        for key in ['owner', '__typename']:
+        for key in ['owner', '__typename', 'broadcastType']:
             vod_json.pop(key)
 
         self.log.debug('Filled metadata for VOD %s: %s', vod_id, vod_json)
