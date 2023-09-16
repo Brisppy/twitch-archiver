@@ -1,8 +1,11 @@
 """
 Handler for API requests.
 """
+import logging
 
 import requests
+
+from time import sleep
 
 from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
     TwitchAPIErrorBadRequest
@@ -143,4 +146,21 @@ class Api:
             "variables": variables
         }]
 
-        return Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+        # retry loop for 'service error' responses
+        attempt = 0
+        while True:
+            _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+
+            if attempt >= 5:
+                logging.error('Maximum attempts reached while querying GQL API. Error: %s', _r.json())
+                raise TwitchAPIError(_r)
+
+            elif 'errors' in _r.json()[0].keys():
+                attempt += 1
+                logging.error('Error returned when querying GQL API, retrying. Error: %s', _r.json())
+                sleep(attempt * 10)
+                continue
+
+            break
+
+        return _r
