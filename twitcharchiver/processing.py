@@ -497,7 +497,7 @@ class Processing:
                             chapters_file.write(format_vod_chapters(vod_chapters))
 
                     except BaseException as e:
-                        self.log.error('Failed to retrieve or insert chapters into VOD file. %s', str(e))
+                        self.log.error('Failed to retrieve or insert chapters into VOD file. %s', e)
 
                     try:
                         combine_vod_parts(vod_json, print_progress=not self.quiet)
@@ -539,8 +539,8 @@ class Processing:
                                 # compare hashes
                                 if get_hash(Path(vod_json['store_directory'], 'parts', part)) == \
                                         get_hash(Path(vod_json['store_directory'], 'parts', part + '.corrupt')):
-                                    self.log.debug(f"Re-downloaded .ts segment {part_num} matches corrupt one, "
-                                                   "assuming corruption is on Twitch's end and ignoring.")
+                                    self.log.debug(f"Re-downloaded .ts segment %s matches corrupt one, "
+                                                   "assuming corruption is on Twitch's end and ignoring.", part_num)
                                     muted_segments.append([part_num, part_num])
 
                             combine_vod_parts(vod_json, print_progress=not self.quiet)
