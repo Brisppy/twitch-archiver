@@ -15,14 +15,36 @@ class Api:
     """
     Sends requests to a specified API endpoint.
     """
-    @staticmethod
-    def get_request(url, p=None, h=None):
+    def __init__(self):
         """
-        Wrapper for get requests for catching exceptions and status code issues.\n
+        Class constructor
+        """
+        self._session = requests.session()
+        self._headers = dict()
+        self.logging = logging.getLogger()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # cleanup
+        self._session.close()
+        pass
+
+    def add_headers(self, headers: dict):
+        """
+        Adds desired headers to all calls.
+        :param headers: dictionary of header values to add
+        """
+        self._headers.update(headers)
+
+    def get_request(self, url: str, p: dict | list[dict] = None):
+        """Wrapper for get requests for catching exceptions and status code issues.\n
 
             :param url: http/s endpoint to send request to
+            :type url: str
             :param p: parameter(s) to pass with request
-            :param h: header(s) to pass with request
+            :type p: dict
             :return: entire requests response
             :raises requestError: on requests module error
             :raises twitchAPIErrorBadRequest: on http code 400
@@ -32,10 +54,10 @@ class Api:
         """
         try:
             if p is None:
-                _r = requests.get(url, headers=h, timeout=10)
+                _r = self._session.get(url, headers=self._headers, timeout=10)
 
             else:
-                _r = requests.get(url, params=p, timeout=10)
+                _r = self._session.get(url, params=p, timeout=10)
 
         except requests.exceptions.RequestException as err:
             raise RequestError(url, err) from err
@@ -54,50 +76,28 @@ class Api:
 
         return _r
 
-    @staticmethod
-    def get_request_with_session(url, session):
-        """Wrapper for get requests using a session for catching exceptions and status code issues.
-
-        :param url: http/s endpoint to send request to
-        :param session: a requests session for sending request
-        :return: entire requests response
-        """
-        try:
-            _r = session.get(url, timeout=10)
-
-        except requests.exceptions.RequestException as err:
-            raise RequestError(url, err) from err
-
-        if _r.status_code == 400:
-            raise TwitchAPIErrorBadRequest(_r)
-
-        if _r.status_code == 403:
-            raise TwitchAPIErrorForbidden(_r)
-
-        if _r.status_code == 404:
-            raise TwitchAPIErrorNotFound(_r)
-
-        if _r.status_code != 200:
-            raise TwitchAPIError(_r)
-
-        return _r
-
-    @staticmethod
-    def post_request(url, d=None, j=None, h=None):
+    def post_request(self, url: str, d: dict = None, j: dict | list[dict] = None, h: dict = None):
         """Wrapper for post requests for catching exceptions and status code issues.
 
         :param url: http/s endpoint to send request to
-        :param d: data to send with request
-        :param j: data to send with request as json
-        :param h: headers to send with request
+        :type url: str
+        :param d: formatted data to send with request
+        :type d: str
+        :param j: json to send with request
+        :type j: dict
+        :param h: extra headers to send with request
+        :type h: dict
         :return: entire requests response
         """
+        if not (d or j):
+            raise ValueError('Either data (d) or json (j) must be included with request.')
+
         try:
             if j is None:
-                _r = requests.post(url, data=d, headers=h, timeout=10)
+                _r = self._session.post(url, data=d, headers=self._headers, timeout=10)
 
             elif d is None:
-                _r = requests.post(url, json=j, headers=h, timeout=10)
+                _r = self._session.post(url, json=j, headers=self._headers, timeout=10)
 
         except requests.exceptions.RequestException as err:
             raise RequestError(url, err) from err
@@ -107,31 +107,16 @@ class Api:
 
         return _r
 
-    @staticmethod
-    def post_request_with_session(url, session, j):
-        """Wrapper for post requests for catching exceptions and status code issues.
-
-        :param url: http/s endpoint to send request to
-        :param session: requests session
-        :param j: data to send with request as json
-        :return: entire requests response
-        """
-        try:
-            _r = session.post(url, json=j, timeout=10)
-
-        except requests.exceptions.RequestException as err:
-            raise RequestError(url, err) from err
-
-        return _r
-
-    @staticmethod
-    def gql_request(operation, query_hash, variables):
+    def gql_request(self, operation: str, query_hash: str, variables: dict):
         """Post a gql query.
 
         :param operation: name of operation
+        :type operation: str
         :param query_hash: hash of operation
+        :type query_hash: str
         :param variables: dict of variable to post with request
-        :return: request response
+        :type variables: dict
+        :return: entire request response
         """
         # Uses default client header
         _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
@@ -147,18 +132,18 @@ class Api:
         }]
 
         # retry loop for 'service error' responses
-        attempt = 0
+        _attempt = 0
         while True:
-            _r = Api.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+            _r = self.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
 
-            if attempt >= 5:
-                logging.error('Maximum attempts reached while querying GQL API. Error: %s', _r.json())
+            if _attempt >= 5:
+                self.logging.error('Maximum attempts reached while querying GQL API. Error: %s', _r.json())
                 raise TwitchAPIError(_r)
 
             elif 'errors' in _r.json()[0].keys():
-                attempt += 1
-                logging.error('Error returned when querying GQL API, retrying. Error: %s', _r.json())
-                sleep(attempt * 10)
+                _attempt += 1
+                self.logging.error('Error returned when querying GQL API, retrying. Error: %s', _r.json())
+                sleep(_attempt * 10)
                 continue
 
             break
