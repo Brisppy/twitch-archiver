@@ -62,6 +62,27 @@ class VodPartDownloadError(Exception):
         super().__init__(message)
 
 
+class StreamFetchError(Exception):
+    def __init__(self, channel_name, error):
+        message = f'Error occurred while fetching information for stream by {channel_name}. Error: {error}'
+
+        super().__init__(message)
+
+
+class StreamDownloadError(Exception):
+    def __init__(self, channel_name, error):
+        message = f'Error occurred while downloading stream by {channel_name}. Error: {error}'
+
+        super().__init__(message)
+
+
+class StreamSegmentDownloadError(Exception):
+    def __init__(self, segment_id, channel_name, error):
+        message = f'Error occurred while downloading stream segment {segment_id} for {channel_name}. Error: {error}'
+
+        super().__init__(message)
+
+
 class VodMergeError(Exception):
     def __init__(self, error):
         message = f'Part merging failed. Error: {error}'
@@ -77,16 +98,14 @@ class VodConvertError(Exception):
 
 
 class CorruptPartError(Exception):
-    def __init__(self, parts, formatted_ranges):
+    def __init__(self, parts):
         """Raised when a corrupt part is detected by FFmpeg.
 
-        :param parts: un-formatted list of parts
-        :param formatted_ranges: formatted list of parts
+        :param parts: list of parts
         """
         self.parts = parts
-        self.f_parts = formatted_ranges
 
-        message = f'Corrupt parts found when converting VOD file. Parts: {formatted_ranges}'
+        message = f'Corrupt parts found when converting VOD file. Parts: {parts}'
 
         super().__init__(message)
 
@@ -101,6 +120,13 @@ class ChatDownloadError(Exception):
 class ChatExportError(Exception):
     def __init__(self, error):
         message = f'Chat export failed. Error: {error}'
+
+        super().__init__(message)
+
+
+class ChannelOfflineError(Exception):
+    def __init__(self, channel_name):
+        message = f'{channel_name} is offline.'
 
         super().__init__(message)
 
@@ -141,5 +167,12 @@ class UnsupportedStreamPartDuration(Exception):
     def __init__(self):
         message = 'Multiple parts with unsupported duration found which cannot be accurately combined. ' \
                   'Falling back to VOD archiver only.'
+
+        super().__init__(message)
+
+
+class StreamOfflineError(Exception):
+    def __init__(self, channel):
+        message = f'No stream could be found for {channel.name}.'
 
         super().__init__(message)

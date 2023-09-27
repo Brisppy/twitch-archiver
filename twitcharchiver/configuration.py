@@ -11,28 +11,23 @@ class Configuration:
     """
     Generation, saving and loading of twitch-archive configuration.
     """
-    # reference:
-    #   https://stackoverflow.com/questions/6198372/most-pythonic-way-to-provide-global-configuration-variables-in-config-py/
-    __conf = {
-        'pushbullet_key': '',
-    }
-
     def __init__(self):
-
+        self.__conf = {}
         self.log = logging.getLogger()
 
     def generate_config(self, args):
         """Generates the required configuration from provided arguments, overwriting loaded settings.
 
-        :param args: arguments to generate config from
+        :param args: dict of arguments to generate config from
+        :type args: dict
         """
         self.log.debug('Generating config from provided arguments.')
 
         # if setting loaded from config differs from passed arg (and arg is not none), overwrite it
         for argument in args:
-            if argument in self.get() and args.get(argument) != self.get(argument) \
-                    and args.get(argument) not in [None, False]:
-                self.set(argument, args.get(argument))
+            if argument in self.get() and args[argument] != self.get(argument) \
+                    and args[argument] not in [None, False]:
+                self.set(argument, args[argument])
 
     def load_config(self, conf_file):
         """Loads the settings stored in the configuration ini file.
@@ -73,39 +68,36 @@ class Configuration:
         with open(conf_file, 'w', encoding='utf8') as f:
             config.write(f)
 
-    @staticmethod
-    def set(name, value):
+    def set(self, name, value):
         """Set a specified attribute.
 
         :param name:  name of attribute to change
         :param value: value to set attribute to
         """
-        if name in Configuration.__conf:
-            Configuration.__conf[name] = value
+        if name in self.__conf:
+            self.__conf[name] = value
 
         else:
-            logging.debug("Configuration variable %s from file could not be matched to a runtime variable.", name)
+            self.log.debug("Configuration variable %s from file could not be matched to a runtime variable.", name)
 
-    @staticmethod
-    def get(name=None):
+    def get(self, name=None):
         """Retrieve a specified attribute.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
         :return: requested value(s)
         """
         if name is None:
-            return Configuration.__conf
+            return self.__conf
 
-        return Configuration.__conf[name]
+        return self.__conf[name]
 
-    @staticmethod
-    def get_sanitized(name=None):
+    def get_sanitized(self, name=None):
         """Retrieves a specified attribute, sanitizing secrets.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
         :return: requested value(s)
         """
-        configuration = Configuration.__conf.copy()
+        configuration = self.__conf.copy()
         for key in ['pushbullet_key']:
             if configuration[key] != '':
                 configuration.update({key: 24 * '*' + configuration[key][24:]})

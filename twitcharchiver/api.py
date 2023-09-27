@@ -1,11 +1,10 @@
 """
-Handler for API requests.
+Handles communication with the Twitch API.
 """
-import logging
-
-import requests
-
 from time import sleep
+
+import logging
+import requests
 
 from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
     TwitchAPIErrorBadRequest
@@ -13,14 +12,14 @@ from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErr
 
 class Api:
     """
-    Sends requests to a specified API endpoint.
+    Handles communication with the Twitch API.
     """
     def __init__(self):
         """
-        Class constructor
+        Class constructor.
         """
         self._session = requests.session()
-        self._headers = dict()
+        self._headers = {}
         self.logging = logging.getLogger()
 
     def __enter__(self):
@@ -29,16 +28,19 @@ class Api:
     def __exit__(self, exc_type, exc_val, exc_tb):
         # cleanup
         self._session.close()
-        pass
 
     def add_headers(self, headers: dict):
         """
         Adds desired headers to all calls.
         :param headers: dictionary of header values to add
+        :type headers: dict
+        :return: updated headers
+        :rtype:: dict
         """
         self._headers.update(headers)
+        return self._headers
 
-    def get_request(self, url: str, p: dict | list[dict] = None):
+    def get_request(self, url: str, p: dict = None):
         """Wrapper for get requests for catching exceptions and status code issues.\n
 
             :param url: http/s endpoint to send request to
@@ -76,7 +78,7 @@ class Api:
 
         return _r
 
-    def post_request(self, url: str, d: dict = None, j: dict | list[dict] = None, h: dict = None):
+    def post_request(self, url: str, d: dict = None, j: dict = None, h: dict = None):
         """Wrapper for post requests for catching exceptions and status code issues.
 
         :param url: http/s endpoint to send request to
@@ -94,10 +96,10 @@ class Api:
 
         try:
             if j is None:
-                _r = self._session.post(url, data=d, headers=self._headers, timeout=10)
+                _r = self._session.post(url, data=d, headers=self.add_headers(h), timeout=10)
 
             elif d is None:
-                _r = self._session.post(url, json=j, headers=self._headers, timeout=10)
+                _r = self._session.post(url, json=j, headers=self.add_headers(h), timeout=10)
 
         except requests.exceptions.RequestException as err:
             raise RequestError(url, err) from err
@@ -140,7 +142,7 @@ class Api:
                 self.logging.error('Maximum attempts reached while querying GQL API. Error: %s', _r.json())
                 raise TwitchAPIError(_r)
 
-            elif 'errors' in _r.json()[0].keys():
+            if 'errors' in _r.json()[0].keys():
                 _attempt += 1
                 self.logging.error('Error returned when querying GQL API, retrying. Error: %s', _r.json())
                 sleep(_attempt * 10)

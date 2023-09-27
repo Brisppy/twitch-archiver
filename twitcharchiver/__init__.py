@@ -36,13 +36,16 @@ import textwrap
 from pathlib import Path
 from time import sleep
 
-from twitcharchiver.arguments import Arguments
-from twitcharchiver.configuration import Configuration
-from twitcharchiver.exceptions import TwitchAPIError
-from twitcharchiver.logger import Logger
-from twitcharchiver.processing import Processing
-from twitcharchiver.twitch import Twitch
-from twitcharchiver.utils import getenv, send_push, get_latest_version, version_tuple, check_update_available
+# from twitcharchiver.arguments import Arguments
+# from twitcharchiver.configuration import Configuration
+# from twitcharchiver.downloaders.video import Video
+# from twitcharchiver.downloaders.chat import Chat
+# from twitcharchiver.downloaders.stream import Stream
+# from twitcharchiver.exceptions import TwitchAPIError
+# from twitcharchiver.logger import Logger
+# from twitcharchiver.processing import Processing
+# from twitcharchiver.utils import getenv, send_push, get_latest_version, version_tuple, check_update_available
+# from twitcharchiver.vod import Vod
 
 __version__ = '3.0.7'
 
@@ -78,6 +81,9 @@ def main():
     mode.add_argument('-v', '--vod-id', type=str, action='store',
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
                       default=getenv("TWITCH_ARCHIVER_VOD_ID"))
+    parser.add_argument('-f', '--from-file', type=bool, action='store_true',
+                        help='Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a\n'
+                             'path to a file.', default=False)
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.',
                         default=getenv("TWITCH_ARCHIVER_CHAT", False, True))
     parser.add_argument('-V', '--video', action='store_true', help='Only save video.',
@@ -122,15 +128,14 @@ def main():
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
 
     # setup arguments
-    args = Arguments()
-    args.setup_args(parser.parse_args().__dict__)
+    args = Arguments(parser.parse_args().__dict__)
 
     # setup logging
     log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))
     log.debug('Debug logging enabled.')
 
     # debug only: output sanitized version of arguments
-    args_sanitized = args.get().copy()
+    args_sanitized = args.get()
     for key in ['pushbullet_key']:
         if args_sanitized[key]:
             args_sanitized.update({key: 24 * '*' + args_sanitized[key][24:]})

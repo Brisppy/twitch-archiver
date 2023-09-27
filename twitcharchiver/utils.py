@@ -8,10 +8,8 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 
 from datetime import datetime, timezone
-from glob import glob
 from itertools import groupby
 from math import ceil, floor
 from pathlib import Path
@@ -24,82 +22,28 @@ from twitcharchiver.exceptions import VodConvertError, CorruptPartError
 log = logging.getLogger()
 
 
-def generate_readable_chat_log(chat_log, stream_start):
-    """Converts the raw chat log into a scrollable, readable format.
-
-    :param chat_log: list of chat messages retrieved from twitch which are to be converted
-    :param stream_start: stream start utc timestamp
-    :return: formatted chat log
+def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
     """
-    r_chat_log = []
-    for comment in chat_log:
-        # format comments with / without millisecond timestamp
-        if '.' in comment['createdAt']:
-            created_time = \
-                datetime.strptime(comment['createdAt'], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
-        else:
-            created_time = \
-                datetime.strptime(comment['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+    Builds a directory name based on a title, a timestamp and VOD ID.
 
-        comment_time = f'{get_time_difference(stream_start, created_time):.3f}'
-
-        # catch comments without commenter informations
-        if comment['commenter']:
-            user_name = str(comment['commenter']['displayName'])
-        else:
-            user_name = '~MISSING_COMMENTER_INFO~'
-
-        # catch comments without data
-        if comment['message']['fragments']:
-            user_message = str(comment['message']['fragments'][0]['text'])
-        else:
-            user_message = '~MISSING_MESSAGE_INFO~'
-
-        user_badges = ''
-        try:
-            for badge in comment['message']['userBadges']:
-                if 'broadcaster' in badge['setID']:
-                    user_badges += '(B)'
-
-                if 'moderator' in badge['setID']:
-                    user_badges += '(M)'
-
-                if 'subscriber' in badge['setID']:
-                    user_badges += '(S)'
-
-        except KeyError:
-            pass
-
-        # FORMAT: [TIME] (B1)(B2)NAME: MESSAGE
-        r_chat_log.append(f'[{comment_time}] {user_badges}{user_name}: {user_message}')
-
-    return r_chat_log
-
-
-def export_verbose_chat_log(chat_log, vod_directory):
-    """Exports a given chat log to disk.
-
-    :param chat_log: chat log retrieved from twitch to export
-    :param vod_directory: directory used to store chat log
+    :param title: name of VOD or stream
+    :type title: str
+    :param created_at: timestamp
+    :type created_at: float
+    :param vod_id: ID of VOD
+    :type vod_id: int
+    :return: name of output folder for given VOD or stream parameters
+    :rtype: str
     """
-    Path(vod_directory).parent.mkdir(parents=True, exist_ok=True)
+    if vod_id != 0:
+        _dir_name = ' - '.join([format_timestamp(created_at), sanitize_text(title), str(vod_id)])
+    else:
+        _dir_name = ' - '.join([format_timestamp(created_at), sanitize_text(title), 'STREAM_ONLY'])
+    return _dir_name
 
-    with open(Path(vod_directory, 'verbose_chat.json'), 'w+', encoding="utf-8") as chat_file:
-        chat_file.write(json.dumps(chat_log))
 
-
-def export_readable_chat_log(chat_log, vod_directory):
-    """Exports the provided readable chat log to disk.
-
-    :param chat_log: chat log retrieved from twitch to export
-    :param vod_directory: directory used to store chat log
-    """
-    if Path(vod_directory, 'readable_chat.log').is_file():
-        Path(vod_directory, 'readable_chat.log').unlink()
-
-    with open(Path(vod_directory, 'readable_chat.log'), 'a+', encoding="utf-8") as chat_file:
-        for message in chat_log:
-            chat_file.write(f'{message}\n')
+def format_timestamp(timestamp: float):
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%M-%d_%H-%M-%S")
 
 
 def export_json(vod_json):
@@ -123,157 +67,6 @@ def import_json(vod_json):
     return []
 
 
-def combine_vod_parts(vod_json, print_progress=True):
-    """Combines the downloaded VOD .ts parts.
-
-    :param vod_json: dict of vod parameters retrieved from twitch
-    :param print_progress: boolean whether to print progress bar
-    """
-    log.info('Merging VOD parts. This may take a while.')
-
-    # get ordered list of vod parts
-    vod_parts = [Path(p) for p in sorted(glob(str(Path(vod_json['store_directory'], 'parts', '*.ts'))))]
-
-    progress = Progress()
-
-    # concat files if all pieces present, otherwise fall back to using ffmpeg
-    last_part = int(vod_parts[-1].name.strip('.ts'))
-    part_list = [int(i.name.strip('.ts')) for i in vod_parts]
-
-    dicontinuity = set([i for i in range(last_part + 1)]).difference(part_list)
-    if not dicontinuity:
-        # merge all .ts files by concatenating them
-        with open(str(Path(vod_json['store_directory'], 'merged.ts')), 'wb') as merged:
-            pr = 0
-            for ts_file in vod_parts:
-                pr += 1
-                # append part to merged file
-                with open(ts_file, 'rb') as mergefile:
-                    shutil.copyfileobj(mergefile, merged)
-
-                if print_progress:
-                    progress.print_progress(pr, len(vod_parts))
-
-    else:
-        # merge all .ts files with ffmpeg concat demuxer as missing segments can cause corruption with
-        # other method
-
-        log.debug('Discontinuity found, merging with ffmpeg.\n Discontinuity: %s', dicontinuity)
-
-        # create file with list of parts for ffmpeg
-        with open(Path(vod_json['store_directory'], 'parts', 'segments.txt'), 'w', encoding='utf8') as segment_file:
-            for part in vod_parts:
-                segment_file.write(f"file '{part}'\n")
-
-        with subprocess.Popen(f'ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i '
-                              f'"{str(Path(vod_json["store_directory"], "parts", "segments.txt"))}"'
-                              f' -c copy "{str(Path(vod_json["store_directory"], "merged.ts"))}"',
-                              shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
-            # get progress from ffmpeg output and print progress bar
-            for line in p.stderr:
-                if 'time=' in line:
-                    # extract current timestamp from output
-                    current_time = re.search('(?<=time=).*(?= bitrate=)', line).group(0).split(':')
-                    current_time = \
-                        int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
-
-                    if print_progress:
-                        progress.print_progress(int(current_time), vod_json['duration'])
-
-            if p.returncode:
-                log.error('VOD merger exited with error. Command: %s.', p.args)
-                raise VodConvertError(f'VOD merger exited with error. Command: {p.args}.')
-
-
-def convert_vod(vod_json, ignore_corruptions=None, print_progress=True):
-    """Converts the VOD from a .ts format to .mp4.
-
-    :param vod_json: dict of vod parameters retrieved from twitch
-    :param ignore_corruptions: list of tuples containing (min, max) of corrupt segments which will be ignored
-    :param print_progress: boolean whether to print progress bar
-    :raises vodConvertError: error encountered during conversion process
-    """
-    log.info('Converting VOD to mp4. This may take a while.')
-
-    progress = Progress()
-    corrupt_parts = set()
-    corrupt_part_whitelist = set()
-    if ignore_corruptions:
-        # create corrupt part whitelist form provided (min, max) ranges. The given range is expanded +-2 as the
-        # DTS timestamps can still be wonky past them
-        [corrupt_part_whitelist.update(r) for r in [range(t[0] - 2, t[1] + 3) for t in ignore_corruptions]]
-
-    # get dts offset of first part
-    with subprocess.Popen(f'ffprobe -v quiet -print_format json -show_format -show_streams '
-                          f'"{Path(vod_json["store_directory"], "parts", "00000.ts")}"', shell=True,
-                          stdout=subprocess.PIPE, universal_newlines=True) as p:
-        ts_file_data = ''
-        for line in p.stdout:
-            ts_file_data += line
-
-        dts_offset = float(json.loads(ts_file_data)['format']['start_time']) * 90000
-
-    # create ffmpeg command
-    ffmpeg_cmd = f'ffmpeg -hide_banner -y -i "{Path(vod_json["store_directory"], "merged.ts")}" '
-    # insert metadata if present
-    if Path(vod_json['store_directory'], 'parts', 'chapters.txt').exists():
-        ffmpeg_cmd += f'-i "{Path(vod_json["store_directory"], "parts", "chapters.txt")}" -map_metadata 1 '
-
-    ffmpeg_cmd += f'-c:a copy -c:v copy "{Path(vod_json["store_directory"], "vod.mp4")}"'
-
-    # convert merged .ts file to .mp4
-    with subprocess.Popen(ffmpeg_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True) as p:
-        # get progress from ffmpeg output and catch corrupt segments
-        ffmpeg_log = ''
-        for line in p.stderr:
-            ffmpeg_log += line
-            if 'time=' in line:
-                # extract current timestamp from output
-                current_time = re.search(r'(?<=time=).*(?= bitrate=)', line).group(0).split(':')
-                current_time = int(current_time[0]) * 3600 + int(current_time[1]) * 60 + int(current_time[2][:2])
-
-                if print_progress:
-                    progress.print_progress(int(current_time), vod_json['duration'])
-
-            elif 'Packet corrupt' in line:
-                try:
-                    dts_timestamp = int(re.search(r'(?<=dts = ).*(?=\).)', line).group(0))
-
-                # Catch corrupt parts without timestamp, shows up as 'NOPTS'
-                except ValueError as e:
-                    raise VodConvertError("Corrupt packet encountered at unknown timestamp while converting VOD. "
-                                          "Delete 'parts' folder and re-download VOD.") from e
-
-                corrupt_part = floor((dts_timestamp - dts_offset) / 90000 / 10)
-
-                # ignore if corrupt packet within ignore_corruptions range
-                if corrupt_part in corrupt_part_whitelist:
-                    log.debug('Ignoring corrupt packet as part in whitelist. Part: %s', corrupt_part)
-
-                else:
-                    corrupt_parts.add(int(corrupt_part))
-                    log.error('Corrupt packet encountered. Part: %s', corrupt_part)
-
-    if p.returncode:
-        log.debug('FFmpeg exited with error code, output dumped to VOD directory.')
-        with open(Path(vod_json["store_directory"], 'parts', 'ffmpeg.log'), 'w', encoding='utf8') as ffout:
-            ffout.write(ffmpeg_log)
-
-        raise VodConvertError("VOD converter exited with error. Delete 'parts' directory and re-download VOD.")
-
-    if corrupt_parts:
-        corrupted_ranges = to_ranges(corrupt_parts)
-        formatted_ranges = []
-        for t in corrupted_ranges:
-            if t[0] == t[1]:
-                formatted_ranges.append(f'{t[0]}.ts')
-            else:
-                formatted_ranges.append(f'{t[0]}-{t[1]}.ts')
-
-        # raise error so we can try to recover
-        raise CorruptPartError(corrupt_parts, formatted_ranges)
-
-
 # https://stackoverflow.com/a/43091576
 def to_ranges(iterable):
     """Converts a list of integers to iterable sets of (low, high) (e.g [0, 1, 2, 5, 7, 8] -> (0, 2), (5, 5), (7, 8))
@@ -285,54 +78,6 @@ def to_ranges(iterable):
     for key, group in groupby(enumerate(iterable), lambda t: t[1] - t[0]):
         group = list(group)
         yield group[0][1], group[-1][1]
-
-
-def verify_vod_length(vod_json):
-    """Verifies the length of a given VOD.
-
-    :param vod_json: dict of vod parameters retrieved from twitch
-    :return: true if verification fails, otherwise false
-    """
-    log.debug('Verifying length of VOD file.')
-
-    # skip verification if .ignorelength present
-    if Path(vod_json['store_directory'], '.ignorelength').is_file():
-        log.debug('.ignorelength file present - skipping verification.')
-        return False
-
-    # retrieve vod file duration
-    p = subprocess.run(f'ffprobe -v quiet -i "{Path(vod_json["store_directory"], "vod.mp4")}" '
-                       f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
-                       shell=True, capture_output=True)
-
-    if p.returncode:
-        log.error('VOD length verification exited with error. Command: %s.', p.args)
-        raise VodConvertError(f'VOD length verification exited with error. Command: {p.args}.')
-
-    try:
-        downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
-
-    except Exception as e:
-        log.error('Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. %s', str(e))
-        raise VodConvertError(str(e)) from e
-
-    log.debug('Downloaded VOD length is %s. Expected length is %s.', downloaded_length, vod_json["duration"])
-
-    # pass verification if downloaded file is within 2s of expected length
-    if 2 >= downloaded_length - vod_json['duration'] >= -2:
-        log.debug('VOD passed length verification.')
-        return False
-
-    return True
-
-
-def cleanup_vod_parts(vod_directory):
-    """Deletes temporary and transitional files used for archiving VOD videos.
-
-    :param vod_directory: directory of downloaded vod which needs to be cleaned up
-    """
-    Path(vod_directory, 'merged.ts').unlink()
-    shutil.rmtree(Path(vod_directory, 'parts'))
 
 
 def sanitize_text(string):
@@ -437,7 +182,7 @@ def get_time_difference(start_time, end_time):
     :return: the time in seconds:milliseconds between the two datetimes
     """
 
-    return (end_time - start_time).total_seconds()
+    return end_time - start_time
 
 
 def get_latest_version():
@@ -494,35 +239,6 @@ def check_update_available(local_version, remote_version):
         return True
 
     return False
-
-
-def get_quality_index(desired_quality, available_qualities):
-    """Finds the index of a user defined quality from a list of available stream qualities.
-
-    :param desired_quality: desired quality to search for - best, worst or [resolution, framerate]
-    :param available_qualities: list of available qualities as [[resolution, framerate], ...]
-    :return: list index of desired quality if found
-    """
-    if desired_quality not in ['best', 'worst']:
-        # look for user defined quality in available streams
-        try:
-            return available_qualities.index(desired_quality)
-
-        except ValueError:
-            log.info('User requested quality not found in available streams.')
-            # grab first resolution match
-            try:
-                return [quality[0] for quality in available_qualities].index(desired_quality[0])
-
-            except ValueError:
-                log.info('No match found for user requested resolution. Defaulting to best.')
-                return 0
-
-    elif desired_quality == 'worst':
-        return -1
-
-    else:
-        return 0
 
 
 def send_push(pushbullet_key, title, body=''):
@@ -672,6 +388,63 @@ def get_stream_id_from_preview_url(preview_url):
     return preview_url.split('/')[3].split('_')[-2]
 
 
+def write_file(data: str, file: Path):
+    """
+    Writes data to the provided file.
+
+    :param data: string to write to file
+    :type data: str
+    :param file: Path of output file (will be overwritten)
+    :type file: Path
+    """
+    try:
+        with open(Path(file), 'w', encoding='utf8') as _f:
+            _f.write(data)
+
+    except BaseException as e:
+        log.error('Failed to write data to "%s". Error: %s', Path(file), e)
+
+
+def write_file_line_by_line(data: list, file: Path):
+    """
+    Writes data to the provided file with each list element on a new line.
+
+    :param data: list to write to file
+    :type data: list
+    :param file: Path of output file (will be overwritten)
+    :type file: Path
+    """
+    try:
+        # delete existing file as we must append to it
+        if Path(file).is_file():
+            Path(file).unlink()
+
+        # write each message line by line to readable log
+        with open(Path(file), 'a+', encoding="utf-8") as _f:
+            for _element in data:
+                _f.write(f'{_element}\n')
+
+    except BaseException as e:
+        log.error('Failed to write data to "%s". Error: %s', Path(file), e)
+
+
+def write_json_file(data, file: Path):
+    """
+    Writes data to the provided file.
+
+    :param data: dict to write to file
+    :type data: dict | list
+    :param file: Path of output file (will be overwritten)
+    :type file: Path
+    """
+    try:
+        with open(Path(file), 'w', encoding='utf8') as _f:
+            _f.write(json.dumps(data))
+
+    except BaseException as e:
+        log.error('Failed to write json data to "%s". Error: %s', Path(file), e)
+
+
 class Progress:
     """
     Functions for displaying progress.
@@ -698,13 +471,13 @@ class Progress:
         h, m = divmod(m, 60)
         return f'{h:0>2}:{m:0>2}:{s:0>2}'
 
-    def print_progress(self, cur, total, last_frame=False):
+    def print_progress(self, cur: int, total: int):
         """Prints and updates a nice progress bar.
 
         :param cur: current progress out of total
         :param total: highest value of progress bar
-        :param last_frame: boolean if last frame of progress bar
         """
+        last_frame = cur == total
         percent = floor(100 * (cur / total))
         progress = floor((0.25 * percent)) * '#' + ceil(25 - (0.25 * percent)) * ' '
         if cur == 0 or self.start_time == 0:
