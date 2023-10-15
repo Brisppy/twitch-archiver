@@ -215,3 +215,6 @@ class Chat(Downloader):
         """
         write_file_line_by_line(self.generate_readable_chat_log(self._chat_log), Path(self.output_dir, 'readable_chat.txt'))
         write_json_file(self._chat_log, Path(self.output_dir, 'verbose_chat.json'))
+
+    def get_message_count(self):
+        return len(self._chat_log)

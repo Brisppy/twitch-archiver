@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from tempfile import tempdir
 
-from twitcharchiver.arguments import Arguments
+from twitcharchiver.configuration import Configuration
 from twitcharchiver.exceptions import VodAlreadyCompleted, VodLockedError
 from twitcharchiver.database import Database, UPDATE_VOD, CREATE_VOD
 from twitcharchiver.vod import ArchivedVod
@@ -39,10 +39,10 @@ class DownloadHandler:
         """
         self._log = logging.getLogger()
 
-        _args: dict = Arguments().get()
+        _conf: dict = Configuration().get()
         self._lock_file = None
-        self._config_dir: Path = _args['config_dir']
-        self._with_database: Path = _args['with_database']
+        self._config_dir: Path = _conf['config_dir']
+        self._with_database: Path = _conf['with_database']
         self.vod: ArchivedVod = vod
 
         # build path to lock file based on if stream has an archive or not
@@ -77,15 +77,16 @@ class DownloadHandler:
             self._log.debug('Exception occurred inside DownloadHandler: %s', exc_val)
 
     def get_downloaded_vod(self):
+        from twitcharchiver.vod import Vod
         with Database(Path(self._with_database, 'vods.db')) as db:
             downloaded_vod = ArchivedVod.import_from_db(db.execute_query(
-                'SELECT stream_id,video_archived,chat_archived FROM vods WHERE stream_id IS ?',
+                'SELECT vod_id,stream_id,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
                 {'stream_id': self.vod.s_id}))
 
         if downloaded_vod:
             return downloaded_vod
 
-        return
+        return ArchivedVod(Vod())
 
     def database_vod_completed(self):
         """
@@ -128,7 +129,7 @@ class DownloadHandler:
         # check if VOD already in database
         with Database(Path(self._config_dir, 'vods.db')) as db:
             downloaded_vod = ArchivedVod.import_from_db(db.execute_query(
-                'SELECT stream_id,video_archived,chat_archived FROM vods WHERE stream_id IS ?',
+                'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
                 {'stream_id': self.vod.s_id}))
 
             # set appropriate chat and video flags

@@ -109,12 +109,12 @@ class Arguments:
 
             # store the extracted value or simply pass to passed args if no match found
             if match:
-                parsed_args.append(match)
+                parsed_args.append(match[0])
 
             else:
                 parsed_args.append(arg)
 
-        if cls.get('from-file'):
+        if cls.get('from_file'):
             # convert list to Path() variables
             parsed_args = [Path(arg) for arg in parsed_args]
 

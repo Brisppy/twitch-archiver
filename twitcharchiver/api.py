@@ -27,6 +27,9 @@ class Api:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # cleanup
+        self.close()
+
+    def close(self):
         self._session.close()
 
     def add_headers(self, headers: dict):
