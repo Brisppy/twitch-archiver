@@ -2,7 +2,6 @@
 Module for downloading currently live Twitch broadcasts.
 """
 import os
-import shutil
 import tempfile
 
 from datetime import datetime, timezone
@@ -168,8 +167,10 @@ class Stream(Downloader):
     """
     Class which handles the downloading of video files for a given Twitch stream.
     """
+    _quality: str = ''
+
     def __init__(self, channel: Channel, parent_dir: Path = Path(os.getcwd()), quality: str = 'best',
-                 quiet: bool = False):
+                 quiet: bool = 'False'):
         """
         Class constructor.
 
@@ -184,13 +185,14 @@ class Stream(Downloader):
         """
         super().__init__(parent_dir, quiet)
 
+        self.__setattr__('_quality', quality)
+
         # create segments for combining with archived VOD parts. If true we will try to recreate the segment numbering
         # scheme Twitch uses, otherwise we use our own numbering scheme. Only used when archiving a live stream without
         # a VOD.
         self._align_segments: bool = True
 
         # buffers and progress tracking
-        self._quality: str = quality
         self._index_uri: str = ""
         self._incoming_part_buffer: list[StreamSegment.Part] = []
         self._download_queue: StreamSegmentList = None
@@ -206,6 +208,9 @@ class Stream(Downloader):
         # perform setup
         self._do_setup()
 
+    def __repr__(self):
+        return str({'channel': self.channel, 'index_uri': self._index_uri, 'stream': self.stream})
+
     def download(self):
         """
         Downloads the stream for the channel until stopped or stream ends.
@@ -214,7 +219,7 @@ class Stream(Downloader):
 
         # loop until stream ends
         while True:
-            self.download_once()
+            self.single_download_pass()
 
             # assume stream has ended once >20s has passed since the last segment was advertised
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
@@ -222,22 +227,18 @@ class Stream(Downloader):
                 self._get_final_segment()
                 return
 
-                # sleep if processing time < 4s before checking for new segments
+            # sleep if processing time < 4s before checking for new segments
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
             if _loop_time < 4:
                 sleep(4 - _loop_time)
 
-    def download_once(self):
+    def single_download_pass(self):
         """
         Used to fetch and download stream segments without looping. This is used for creating a stream buffer at the
         start of archiving in case a VOD never becomes available, in which case the previously broadcast segments
         would be lost.
         """
-        # check if initialization already complete
         try:
-            if not self.stream:
-                self._do_setup()
-
             self._fetch_advertised_parts()
             self._build_download_queue()
             self._download_queued_segments()
@@ -258,7 +259,7 @@ class Stream(Downloader):
 
         if not self.stream:
             self._log.info('%s is offline.', self.channel.name)
-            raise StreamOfflineError
+            raise StreamOfflineError(self.channel)
 
         # ensure enough time has passed for VOD api to update before archiving. this is important as it changes
         # the way we archive if the stream is not being archived to a VOD.

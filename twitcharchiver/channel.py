@@ -195,10 +195,9 @@ class Channel:
         :rtype: list[Vod]
         """
         from twitcharchiver.vod import Vod
-        _r = self._api.gql_request('FilterableVideoTower_Videos',
-                                   'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
-                                   {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{self.name.lower()}", "limit": 30,
-                                    "videoSort": "TIME"})
+        _r = self._api.gql_request(
+            'FilterableVideoTower_Videos', 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
+            {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{self.name.lower()}", "limit": 30, "videoSort": "TIME"})
 
         _recent_videos = [Vod(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
 

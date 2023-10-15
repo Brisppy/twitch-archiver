@@ -11,9 +11,13 @@ class Configuration:
     """
     Generation, saving and loading of twitch-archive configuration.
     """
-    def __init__(self):
-        self.__conf = {}
-        self.log = logging.getLogger()
+    # reference:
+    #   https://stackoverflow.com/questions/6198372/most-pythonic-way-to-provide-global-configuration-variables-in-config-py/
+    __conf = {
+        'pushbullet_key': '',
+    }
+
+    log = logging.getLogger()
 
     def generate_config(self, args):
         """Generates the required configuration from provided arguments, overwriting loaded settings.
@@ -68,36 +72,39 @@ class Configuration:
         with open(conf_file, 'w', encoding='utf8') as f:
             config.write(f)
 
-    def set(self, name, value):
+    @classmethod
+    def set(cls, name, value):
         """Set a specified attribute.
 
         :param name:  name of attribute to change
         :param value: value to set attribute to
         """
-        if name in self.__conf:
-            self.__conf[name] = value
+        if name in cls.__conf:
+            cls.__conf[name] = value
 
         else:
-            self.log.debug("Configuration variable %s from file could not be matched to a runtime variable.", name)
+            logging.debug("Configuration variable %s from file could not be matched to a runtime variable.", name)
 
-    def get(self, name=None):
+    @classmethod
+    def get(cls, name=None):
         """Retrieve a specified attribute.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
         :return: requested value(s)
         """
         if name is None:
-            return self.__conf
+            return cls.__conf
 
-        return self.__conf[name]
+        return cls.__conf[name]
 
-    def get_sanitized(self, name=None):
+    @classmethod
+    def get_sanitized(cls, name=None):
         """Retrieves a specified attribute, sanitizing secrets.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
         :return: requested value(s)
         """
-        configuration = self.__conf.copy()
+        configuration = cls.__conf.copy()
         for key in ['pushbullet_key']:
             if configuration[key] != '':
                 configuration.update({key: 24 * '*' + configuration[key][24:]})

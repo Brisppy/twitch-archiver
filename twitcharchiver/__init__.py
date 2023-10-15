@@ -36,18 +36,15 @@ import textwrap
 from pathlib import Path
 from time import sleep
 
-# from twitcharchiver.arguments import Arguments
-# from twitcharchiver.configuration import Configuration
-# from twitcharchiver.downloaders.video import Video
-# from twitcharchiver.downloaders.chat import Chat
-# from twitcharchiver.downloaders.stream import Stream
-# from twitcharchiver.exceptions import TwitchAPIError
-# from twitcharchiver.logger import Logger
-# from twitcharchiver.processing import Processing
-# from twitcharchiver.utils import getenv, send_push, get_latest_version, version_tuple, check_update_available
-# from twitcharchiver.vod import Vod
+from twitcharchiver.arguments import Arguments
+from twitcharchiver.configuration import Configuration
+from twitcharchiver.logger import Logger
+from twitcharchiver.processing import Processing
+from twitcharchiver.utils import getenv, check_update_available, get_latest_version
 
-__version__ = '3.0.7'
+__version__ = '4.0.0'
+
+from twitcharchiver.vod import Vod
 
 
 def main():
@@ -81,7 +78,7 @@ def main():
     mode.add_argument('-v', '--vod-id', type=str, action='store',
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
                       default=getenv("TWITCH_ARCHIVER_VOD_ID"))
-    parser.add_argument('-f', '--from-file', type=bool, action='store_true',
+    parser.add_argument('-f', '--from-file', action='store_true',
                         help='Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a\n'
                              'path to a file.', default=False)
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.',
@@ -120,7 +117,7 @@ def main():
                                        Path(os.path.expanduser("~"), '.config', 'twitch-archiver')))
     parser.add_argument('-p', '--pushbullet-key', action='store',
                         help='Pushbullet key for sending pushes on error. Enabled by supplying key.',
-                        default=getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", False))
+                        default=getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", default_val=''))
     loglevel.add_argument('-Q', '--quiet', action='store_const', help='Disable all log output.', const=50, default=0)
     loglevel.add_argument('-D', '--debug', action='store_const', help='Enable debug logs.', const=10, default=0)
     parser.add_argument('--version', action='version', version=f'Twitch Archiver v{__version__}',
@@ -128,14 +125,14 @@ def main():
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
 
     # setup arguments
-    args = Arguments(parser.parse_args().__dict__)
+    args = Arguments().setup_args(parser.parse_args().__dict__)
 
     # setup logging
     log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))
     log.debug('Debug logging enabled.')
 
     # debug only: output sanitized version of arguments
-    args_sanitized = args.get()
+    args_sanitized = args.get().copy()
     for key in ['pushbullet_key']:
         if args_sanitized[key]:
             args_sanitized.update({key: 24 * '*' + args_sanitized[key][24:]})
@@ -163,7 +160,7 @@ def main():
     # create temp dir for downloads and lock files
     Path(tempfile.gettempdir(), 'twitch-archiver').mkdir(exist_ok=True)
 
-    process = Processing(config.get(), args.get())
+    process = Processing()
 
     while True:
         if args.get('channel') is not None:
@@ -175,9 +172,11 @@ def main():
         else:
             break
 
+    vods = args.get('vod_id')
+    download_queue = []
     if args.get('vod_id') is not None:
-        for vod_id in args.get('vod_id'):
-            process.get_vod_connector(vod_id, args.get('video'), args.get('chat'))
+        for vod_id in vods:
+            download_queue.append(Vod(vod_id))
 
 
 if __name__ == '__main__':

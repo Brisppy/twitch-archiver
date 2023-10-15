@@ -78,7 +78,7 @@ class Api:
 
         return _r
 
-    def post_request(self, url: str, d: dict = None, j: dict = None, h: dict = None):
+    def post_request(self, url: str, d: dict = None, j: dict = None, h: dict = {}):
         """Wrapper for post requests for catching exceptions and status code issues.
 
         :param url: http/s endpoint to send request to

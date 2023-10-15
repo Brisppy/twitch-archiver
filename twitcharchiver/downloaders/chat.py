@@ -60,7 +60,7 @@ class Chat(Downloader):
             self._log.debug('No previous chat log found.')
             return []
 
-    def download(self):
+    def start(self):
         """
         Downloads the chat for the given VOD and exports both a readable and JSON-formatted log to the provided
         directory.
