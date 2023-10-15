@@ -26,7 +26,6 @@ class Vod:
         self.s_id: int = 0
 
         self.category: Category = Category()
-        self.channel: Channel = Channel()
         self.created_at: float = 0
         self.description: str = ""
         self.duration: int = 0
@@ -38,7 +37,7 @@ class Vod:
         self.muted_segments: list = []
 
         if vod_id != 0:
-            self.set(vod_id)
+            self._setup(vod_id)
 
         if vod_info:
             self._parse_dict(vod_info)
@@ -61,7 +60,7 @@ class Vod:
     def __bool__(self):
         return bool(self.v_id or self.s_id)
 
-    def set(self, vod_id: int):
+    def _setup(self, vod_id: int):
         """
         Sets the VOD ID and retrieves its information.
         """
@@ -69,21 +68,28 @@ class Vod:
         self._fetch_metadata()
 
     def _parse_dict(self, vod_info: dict):
-        _vod = Vod()
         self._log.debug('Parsing provided metadata for VOD %s: %s', self.v_id, vod_info)
 
         # reformat to database schema
-        self.channel = Channel()
         self.category = Category(vod_info['game'])
-        self.created_at = \
-            datetime.strptime(vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
-        self.description = vod_info['description']
         self.duration = vod_info['lengthSeconds']
         self.published_at = \
             datetime.strptime(vod_info['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
         self.thumbnail_url = vod_info['previewThumbnailURL']
         self.title = vod_info['title']
         self.view_count = vod_info['viewCount']
+
+        # use published_at as created_at if not provided
+        if 'createdAt' in vod_info.keys():
+            self.created_at = \
+                datetime.strptime(vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+        elif 'publishedAt' in vod_info.keys():
+            self.created_at = \
+                datetime.strptime(vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+
+        # set description if provided
+        if 'description' in vod_info.keys():
+            self.description = vod_info['description']
 
     def _fetch_metadata(self):
         """
@@ -120,10 +126,10 @@ class Vod:
         :return: dictionary of stored VOD values
         :rtype: dict
         """
-        _vod_info = {'vod_id': self.v_id, 'stream_id': self.s_id, 'channel': self.channel,
-                     'title': self.title, 'description': self.description, 'created_at': self.created_at,
-                     'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
-                     'view_count': self.view_count, 'duration': self.duration, 'muted_segments': self.muted_segments}
+        _vod_info = {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
+                     'created_at': self.created_at, 'published_at': self.published_at,
+                     'thumbnail_url': self.thumbnail_url, 'view_count': self.view_count, 'duration': self.duration,
+                     'muted_segments': self.muted_segments}
 
         self._log.debug('VOD information: %s', _vod_info)
         return _vod_info
@@ -151,15 +157,16 @@ class Vod:
         :return: True if VOD live
         :rtype: bool
         """
+        channel = self.get_vod_owner()
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
         _time_since_created = time_since_date(self.created_at)
         if _time_since_created < 60:
             self._log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.',
-                            self.channel.name)
+                            channel.name)
             sleep(60 - _time_since_created)
 
         # check if channel is offline
-        _stream_info = self.channel.get_stream_info()
+        _stream_info = channel.get_stream_info()
 
         if _stream_info:
             try:
@@ -177,10 +184,10 @@ class Vod:
             except IndexError:
                 pass
 
-            self._log.debug('Stream status could not be retrieved for %s.', self.channel.name)
+            self._log.debug('Stream status could not be retrieved for %s.', channel.name)
             return False
 
-        self._log.debug('%s is offline and so VOD must be offline.', self.channel.name)
+        self._log.debug('%s is offline and so VOD must be offline.', channel.name)
         return False
 
     def get_chapters(self):
@@ -357,6 +364,8 @@ class Vod:
         """
         Retrieves the playlist for a given VOD index along with updating the VOD duration.
         """
+        if index_url == "":
+            index_url = self.get_index_url()
 
         _vod_playlist = self._api.get_request(index_url).text
 
@@ -366,26 +375,29 @@ class Vod:
 
         return _vod_playlist
 
-    def get_quality_index(self, desired_quality, available_qualities):
+    @staticmethod
+    def get_quality_index(desired_quality, available_qualities):
         """Finds the index of a user defined quality from a list of available stream qualities.
 
         :param desired_quality: desired quality to search for - best, worst or [resolution, framerate]
         :param available_qualities: list of available qualities as [[resolution, framerate], ...]
         :return: list index of desired quality if found
         """
+        _log = logging.getLogger()
+
         if desired_quality not in ['best', 'worst']:
             # look for user defined quality in available streams
             try:
                 return available_qualities.index(desired_quality)
 
             except ValueError:
-                self._log.info('User requested quality not found in available streams.')
+                _log.info('User requested quality not found in available streams.')
                 # grab first resolution match
                 try:
                     return [quality[0] for quality in available_qualities].index(desired_quality[0])
 
                 except ValueError:
-                    self._log.info('No match found for user requested resolution. Defaulting to best.')
+                    _log.info('No match found for user requested resolution. Defaulting to best.')
                     return 0
 
         elif desired_quality == 'worst':
@@ -404,14 +416,20 @@ class Vod:
         _stream.s_id = stream_json['stream']['id']
 
         _stream.category = Category(stream_json['stream']['game'])
-        _stream.channel = Channel(stream_json['displayName'])
         _stream.created_at = datetime.strptime(stream_json['stream']['createdAt'],
-                                                   '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+                                                           '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
         _stream.duration = time_since_date(_stream.created_at)
         _stream.published_at = _stream.created_at
         _stream.title = stream_json['broadcastSettings']['title']
 
         return _stream
+
+    @staticmethod
+    def from_json(vod_json):
+        _vod = Vod(vod_info=vod_json)
+        _vod.v_id = int(vod_json['id'])
+
+        return _vod
 
 
 class ArchivedVod(Vod):
@@ -435,11 +453,12 @@ class ArchivedVod(Vod):
         """
         Creates a new ArchivedVod with values from the provided database return. We can't fetch this from Twitch as
         they delete the records when the VOD expires or is manually deleted.
+
+        :param args: {vod_id, stream_id, created_at, chat_archived, video_archived}
         """
         _archived_vod = ArchivedVod(args[4], args[5])
         _archived_vod.v_id = args[0]
         _archived_vod.s_id = args[1]
-        _archived_vod.channel = args[2]
         _archived_vod.created_at = args[3]
 
         return _archived_vod

@@ -8,10 +8,13 @@ import m3u8
 
 
 class Category:
+    """
+    A category is used to describe what a Twitch stream is currently streaming. This class stores information
+    relating to categories.
+    """
     def __init__(self, game=None):
         """
-        A category is used to describe what a Twitch stream is currently streaming. This class stores information
-        relating to categories.
+        Class constructor.
 
         :param game: dictionary of game information retrieved from Twitch
         :type game: dict
@@ -40,16 +43,28 @@ class Category:
     def __repr__(self):
         return str({'id': self.id, 'name': self.name})
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return bool(self.id == other.id)
+
     def get_category_info(self):
+        """
+        Generates and returns a dictionary of relevant category information.
+
+        :return: dict of values which make up a category.
+        """
         return {'id': self.id, 'slug': self.slug, 'thumbnail_url': self.thumbnail_url, 'name': self.name,
                 'display_name': self.display_name, 'type': self.type}
 
 
 class Chapters:
+    """
+    Chapters split up an individual VOD into separate 'moments', describing what game or stream category each
+    section of the VOD contains. This class stores moments related to a given Twitch VOD.
+    """
     def __init__(self, moments: list[dict] = None):
         """
-        Chapters split up an individual VOD into separate 'moments', describing what game or stream category each
-        section of the VOD contains. This class stores moments related to a given Twitch VOD.
+        Class constructor.
 
         :param moments: moments list retrieved from Twitch API
         :type moments: list[dict]
@@ -63,27 +78,52 @@ class Chapters:
         return str([m for m in self.moments])
 
     def insert_moment(self, moment):
+        """
+        Inserts a moment into the chapter.
+
+        :param moment: A moment retrieved from the Twitch API
+        :type moment: Moment
+        """
         self.moments.append(self.Moment(moment))
 
-    def create_chapter_from_category(self, category: Category, duration):
+        return self
+
+    @staticmethod
+    def create_chapter_from_category(category: Category, duration: int):
+        """
+        Converts a Category into a single chapter which spans an entire VOD. This is useful when no chapters
+        are included with a VOD - this happens when only one category spans its entire length.
+
+        :param category: A VOD category retrieved from the Twitch API.
+        :type category: Category
+        :param duration: length in seconds of the VOD
+        :type duration: int
+        :return: A Chapter containing a moment of the category spanning the entire VOD length
+        :rtype: Chapters
+        """
         # convert category into moment spanning whole duration of VOD
         _segment = Segment(0, duration)
-        _moment = self.Moment()
+        _moment = Chapters.Moment()
         # todo check if 'GAME CHANGE' is the same name used by TWITCH
         _moment.type = 'GAME CHANGE'
         _moment.description = category.display_name
         _moment.category = category
         _moment.segment = _segment
-        self.moments = [_moment]
 
-        return self
+        return Chapters().insert_moment(_moment)
 
     class Moment:
+        """
+        A moment is a portion of a Twitch VOD containing a game or category and the section of the VOD it belongs
+        to. This class stores that information.
+        """
         def __init__(self, moment: dict = None):
             """
-            A moment is a segment of a Twitch VOD containing a game or category and the section of the VOD it belongs
-            to. This class stores that information.
+            Class constructor.
+
+            :param moment:
             """
+
             self.id = None
             self.segment = None
             self.type = None
@@ -106,9 +146,14 @@ class Chapters:
 
 
 class Segment:
+    """
+    A segment of a video is a portion of it described with a position from the start, and a duration.
+    """
     def __init__(self, position: float, duration: float):
         """
-        A segment of a VOD is a section of it which can be described by its starting position and duration.
+
+        :param position:
+        :param duration:
         """
         self.position: float = position
         self.duration: float = duration
@@ -118,7 +163,18 @@ class Segment:
 
 
 class MpegSegment(Segment):
+    """
+    MpegSegments are the individual pieces which comprise a Twitch VOD. This class defines the storage and
+    provides useful methods for handling them.
+    """
     def __init__(self, segment_id: int() = 0, duration: int = 0, url: str = "", muted: bool = False):
+        """
+
+        :param segment_id:
+        :param duration:
+        :param url:
+        :param muted:
+        """
         self.muted = muted
         self.id = segment_id
         self.url = url
@@ -146,6 +202,11 @@ class MpegSegment(Segment):
     def convert_m3u8_segment(segment: m3u8.Segment):
         """
         Derives an MpegSegment from a provided m3u8.Segment instance
+
+        :param segment:
+        :type segment:
+        :return:
+        :rtype:
         """
         return MpegSegment(int(re.sub(
             r'.ts|-[a-zA-Z]*.ts', '', segment.uri)), segment.duration, segment.uri, 'muted' in segment.uri)

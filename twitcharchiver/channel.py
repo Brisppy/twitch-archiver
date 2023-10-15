@@ -35,6 +35,15 @@ class Channel:
     def __repr__(self):
         return str({'id': self.id, 'name': self.name})
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return bool(self.id == other.id)
+
+        return False
+
+    def get_info(self):
+        return {'id': self.id, 'name': self.name}
+
     def _parse_dict(self, owner: dict):
         """
         Parses information from 'owner' object returned from Twitch.
@@ -57,7 +66,7 @@ class Channel:
             return _user_data
 
         else:
-            return dict()
+            return {}
 
     def is_live(self):
         """
@@ -107,7 +116,7 @@ class Channel:
             self.log.debug('No data returned by ChannelVideoLength API for %s.', self.name)
             return int()
 
-    def get_stream_index(self, quality: str = 'best'):
+    def get_stream_index(self, quality: str = 'chunked'):
         """
         Retrieves a m3u8 index of the channel's live stream.
 
@@ -141,15 +150,17 @@ class Channel:
         _available_resolutions.insert(0, _index.media[0].name.strip(' (source)').split('p'))
         self.log.debug('Available resolutions for %s are: %s', self.name, _available_resolutions)
 
-        _index_url = _index.playlists[Vod.get_quality_index(quality, _available_resolutions)].uri
+        _index_url = _index.playlists[Vod().get_quality_index(quality, _available_resolutions)].uri
         self.log.debug('Index for broadcast by %s: %s', self.name, _index_url)
 
         return _index_url
 
-    def get_stream_playlist(self, index_url: str):
+    def get_stream_playlist(self, index_url: str = ""):
         """
         Retrieves the playlist for a given VOD index along with updating the VOD duration.
         """
+        if not index_url:
+            index_url = self.get_stream_index()
 
         _stream_playlist = self._api.get_request(index_url).text
         self.log.debug('Playlist for broadcast by %s: %s', self.name, _stream_playlist)
@@ -199,7 +210,7 @@ class Channel:
             'FilterableVideoTower_Videos', 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
             {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{self.name.lower()}", "limit": 30, "videoSort": "TIME"})
 
-        _recent_videos = [Vod(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
+        _recent_videos = [Vod.from_json(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
 
         self.log.debug('Recent videos for %s: %s', self.name, _recent_videos)
         return _recent_videos
@@ -230,7 +241,7 @@ class Channel:
                                        _query_vars)
 
             # retrieve list of videos from response
-            _videos = [Vod(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
+            _videos = [Vod.from_json(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
             self.log.debug('Retrieved videos for %s: %s', self.name, _videos)
             _channel_videos.extend(_videos)
 

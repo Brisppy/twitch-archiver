@@ -76,7 +76,7 @@ class Processing:
                 elif self.archive_video and not self.archive_only:
                     with DownloadHandler(ArchivedVod(stream.stream, video_archived=True)) as _dh:
                         try:
-                            stream.download()
+                            stream.start()
 
                         except BaseException as e:
                             self.log.error('Error downloading live-only stream by %s.', channel.name)
@@ -92,7 +92,7 @@ class Processing:
             with Database(Path(self.config_dir, 'vods.db')) as db:
                 # dict containing stream_id: (vod_id, video_downloaded, chat_downloaded)
                 downloaded_vods: list[ArchivedVod] = [ArchivedVod.import_from_db(v) for v in db.execute_query(
-                    'SELECT vod_id,stream_id,user_name,created_at,video_archived,chat_archived FROM vods '
+                    'SELECT vod_id,stream_id,created_at,video_archived,chat_archived FROM vods '
                     'WHERE user_id IS ?', {'user_id': channel.id})]
             self.log.debug('Downloaded VODs: %s', downloaded_vods)
 
@@ -202,7 +202,7 @@ class Processing:
             try:
                 _dh.create_lock()
 
-                stream.download()
+                stream.start()
 
                 _dh.remove_lock()
 

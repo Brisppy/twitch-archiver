@@ -125,7 +125,8 @@ def main():
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
 
     # setup arguments
-    args = Arguments().setup_args(parser.parse_args().__dict__)
+    args = Arguments()
+    args.setup_args(parser.parse_args().__dict__)
 
     # setup logging
     log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))

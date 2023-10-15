@@ -2,6 +2,7 @@
 Module for downloading currently live Twitch broadcasts.
 """
 import os
+import shutil
 import tempfile
 
 from datetime import datetime, timezone
@@ -211,9 +212,9 @@ class Stream(Downloader):
     def __repr__(self):
         return str({'channel': self.channel, 'index_uri': self._index_uri, 'stream': self.stream})
 
-    def download(self):
+    def start(self):
         """
-        Downloads the stream for the channel until stopped or stream ends.
+        Begins downloading the stream for the channel until stopped or stream ends.
         """
         _start_timestamp: float = datetime.utcnow().timestamp()
 
@@ -254,6 +255,9 @@ class Stream(Downloader):
             raise StreamDownloadError(self.channel.name, e) from e
 
     def _do_setup(self):
+        """
+        Performs required setup prior to starting download.
+        """
         self._log.debug('Fetching required stream information.')
         self.stream = Vod.from_stream_json(self.channel.get_stream_info())
 
@@ -300,6 +304,14 @@ class Stream(Downloader):
         self._index_uri = self.channel.get_stream_index(self._quality)
 
     def _buffer_stream(self, stream_length: int):
+        """
+        Builds a temporary buffer when a stream has just started to ensure the Twitch API has updated when we
+        attempt to fetch VOD information.
+
+        :param stream_length: time in seconds stream has been live
+        :type stream_length: int
+        :return:
+        """
         self._log.debug('Stream began less than 120s ago, delaying archival start until VOD API updated.')
 
         # create temporary download directory
@@ -309,7 +321,7 @@ class Stream(Downloader):
         # download new parts every 4s
         for _ in range(int((120 - stream_length) / 4)):
             _start_timestamp: float = datetime.utcnow().timestamp()
-            self.download_once()
+            self.single_download_pass()
 
             # wait if less than 4s passed since grabbing more parts
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
