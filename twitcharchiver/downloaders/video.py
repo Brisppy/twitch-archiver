@@ -81,7 +81,7 @@ class Video(Downloader):
             self._log.info('Delaying archival of VOD %s as VOD has been live for less than 5 minutes.', self.vod.v_id)
             sleep(300 - _time_since_start)
 
-    def download(self):
+    def start(self):
         """Starts download the given VOD."""
         try:
             # begin download
@@ -372,7 +372,7 @@ class Video(Downloader):
 
                     except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
                         self._log.debug('Error 403 or 404 returned when checking for new VOD parts - VOD was likely'
-                                       ' deleted.')
+                                        ' deleted.')
                         self.vod.status = 'archive'
                         break
 

@@ -1,5 +1,5 @@
 """
-Class for retrieving and storing a Twitch VOD and its' associated information.
+Class for retrieving and storing a Twitch VOD and its associated information.
 """
 import logging
 import re
@@ -19,7 +19,7 @@ from twitcharchiver.utils import time_since_date, get_stream_id_from_preview_url
 
 class Vod:
     def __init__(self, vod_id: int = 0, vod_info: dict = None):
-        self.log = logging.getLogger()
+        self._log = logging.getLogger()
         self._api: Api = Api()
 
         self.v_id: int = vod_id
@@ -70,7 +70,7 @@ class Vod:
 
     def _parse_dict(self, vod_info: dict):
         _vod = Vod()
-        self.log.debug('Parsing provided metadata for VOD %s: %s', self.v_id, vod_info)
+        self._log.debug('Parsing provided metadata for VOD %s: %s', self.v_id, vod_info)
 
         # reformat to database schema
         self.channel = Channel()
@@ -97,15 +97,14 @@ class Vod:
         _vod_info = _r.json()[0]['data']['video']
         self._parse_dict(_vod_info)
 
-        self.status = ['live' if self.is_live() else 'archive']
         self.muted_segments = self.get_muted_segments()
 
-        self.log.debug('Filled metadata for VOD %s: %s', self.v_id, self.get_info())
+        self._log.debug('Filled metadata for VOD %s: %s', self.v_id, self.get_info())
 
     def time_since_live(self):
         _seconds_since_start = time_since_date(self.created_at)
 
-        self.log.debug('VOD %s has been live for %s seconds.', self.v_id, _seconds_since_start)
+        self._log.debug('VOD %s has been live for %s seconds.', self.v_id, _seconds_since_start)
         return _seconds_since_start
 
     def refresh_vod_metadata(self):
@@ -126,7 +125,7 @@ class Vod:
                      'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
                      'view_count': self.view_count, 'duration': self.duration, 'muted_segments': self.muted_segments}
 
-        self.log.debug('VOD information: %s', _vod_info)
+        self._log.debug('VOD information: %s', _vod_info)
         return _vod_info
 
     def get_category(self):
@@ -141,7 +140,7 @@ class Vod:
                                     "isVodOrCollection": True, "vodID": str(self.v_id)})
 
         _vod_category = Category(_r.json()[0]['data']['video']['game'])
-        self.log.debug('Category for VOD %s is %s', self.v_id, _vod_category.get_category_info)
+        self._log.debug('Category for VOD %s is %s', self.v_id, _vod_category.get_category_info)
 
         return _vod_category
 
@@ -155,8 +154,8 @@ class Vod:
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
         _time_since_created = time_since_date(self.created_at)
         if _time_since_created < 60:
-            self.log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.',
-                           self.channel.name)
+            self._log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.',
+                            self.channel.name)
             sleep(60 - _time_since_created)
 
         # check if channel is offline
@@ -170,7 +169,7 @@ class Vod:
 
                 # if vod created within 10s of stream created time
                 if 10 >= self.created_at - _stream_created_time >= -10:
-                    self.log.debug(
+                    self._log.debug(
                         'VOD creation time (%s) is within 10s of stream created time (%s), running in live mode.',
                         self.created_at, _stream_created_time)
                     return True
@@ -178,10 +177,10 @@ class Vod:
             except IndexError:
                 pass
 
-            self.log.debug('Stream status could not be retrieved for %s.', self.channel.name)
+            self._log.debug('Stream status could not be retrieved for %s.', self.channel.name)
             return False
 
-        self.log.debug('%s is offline and so VOD must be offline.', self.channel.name)
+        self._log.debug('%s is offline and so VOD must be offline.', self.channel.name)
         return False
 
     def get_chapters(self):
@@ -198,17 +197,17 @@ class Vod:
         _chapters = Chapters([node['node'] for node in _r.json()[0]['data']['video']['moments']['edges']])
 
         try:
-            self.log.debug('Chapters for VOD %s: %s', self.v_id, _chapters)
+            self._log.debug('Chapters for VOD %s: %s', self.v_id, _chapters)
             return _chapters
 
         except TypeError:
-            self.log.debug('No chapters found for VOD %s.', self.v_id)
+            self._log.debug('No chapters found for VOD %s.', self.v_id)
             # create single chapter out of VOD category
             _category = self.get_category()
             _chapters = Chapters()
             _chapters.create_chapter_from_category(_category, self.duration)
 
-            self.log.debug('Chapters generated for VOD based on %s: %s', _category, self.v_id)
+            self._log.debug('Chapters generated for VOD based on %s: %s', _category, self.v_id)
             return _chapters
 
     def get_muted_segments(self):
@@ -225,10 +224,10 @@ class Vod:
 
         if _segments:
             _muted_segments = [MpegSegment(s['offset'], s['duration'], muted=True) for s in _segments['nodes']]
-            self.log.debug('Muted segments for VOD %s: %s', self.v_id, _muted_segments)
+            self._log.debug('Muted segments for VOD %s: %s', self.v_id, _muted_segments)
             return _muted_segments
 
-        self.log.debug('No muted segments found for VOD %s.', self.v_id)
+        self._log.debug('No muted segments found for VOD %s.', self.v_id)
         return []
 
     def get_vod_owner(self):
@@ -244,7 +243,7 @@ class Vod:
 
         _owner = _r.json()[0]['data']['video']['owner']
         _channel = Channel(_owner['displayName'])
-        self.log.debug('Owner of VOD %s is %s.', self.v_id, _channel)
+        self._log.debug('Owner of VOD %s is %s.', self.v_id, _channel)
 
         return _channel
 
@@ -260,7 +259,7 @@ class Vod:
 
         _stream_id = get_stream_id_from_preview_url(_r.json()[0]['data']['video']['seekPreviewsURL'])
 
-        self.log.debug('Stream ID for VOD %s: %s', self.v_id, _stream_id)
+        self._log.debug('Stream ID for VOD %s: %s', self.v_id, _stream_id)
         return _stream_id
 
     def get_index_url(self, quality: str = 'best'):
@@ -293,13 +292,13 @@ class Vod:
             _available_resolutions.insert(0, _index.media[0].name.split('p'))
 
             _index_url = _index.playlists[self.get_quality_index(quality, _available_resolutions)].uri
-            self.log.debug('Index for VOD %s: %s', self.v_id, _index_url)
+            self._log.debug('Index for VOD %s: %s', self.v_id, _index_url)
 
             return _index_url
 
-        # catch for sub-only vods
+        # catch for sub-only VODs
         except TwitchAPIErrorForbidden:
-            self.log.debug('VOD %s is subscriber-only. Generating index URL.', self.v_id)
+            self._log.debug('VOD %s is subscriber-only. Generating index URL.', self.v_id)
             # retrieve cloudfront storage location from VOD thumbnail
             _cf_info = self.thumbnail_url.split('/')
             _cf_domain = _cf_info[4]
@@ -315,7 +314,7 @@ class Vod:
 
             # create index url
             _index_url = f'https://{_cf_domain}.cloudfront.net/{_vod_uid}/{quality}/index-dvr.m3u8'
-            self.log.debug('Index URL for %s: %s', self.channel.name, _index_url)
+            self._log.debug('Index URL for %s: %s', self.channel.name, _index_url)
 
             return _index_url
 
@@ -348,10 +347,10 @@ class Vod:
         _token = _r.json()['data']['videoPlaybackAccessToken']
 
         if _token:
-            self.log.debug('Token retrieved for VOD %s: %s', self.v_id, _token)
+            self._log.debug('Token retrieved for VOD %s: %s', self.v_id, _token)
             return _token
 
-        self.log.debug('Token could not be retrieved for VOD %s: %s', self.v_id, _r.text)
+        self._log.debug('Token could not be retrieved for VOD %s: %s', self.v_id, _r.text)
         return ""
 
     def get_index_playlist(self, index_url: str = ""):
@@ -367,28 +366,26 @@ class Vod:
 
         return _vod_playlist
 
-    @staticmethod
-    def get_quality_index(desired_quality, available_qualities):
+    def get_quality_index(self, desired_quality, available_qualities):
         """Finds the index of a user defined quality from a list of available stream qualities.
 
         :param desired_quality: desired quality to search for - best, worst or [resolution, framerate]
         :param available_qualities: list of available qualities as [[resolution, framerate], ...]
         :return: list index of desired quality if found
         """
-        _log = logging.getLogger()
         if desired_quality not in ['best', 'worst']:
             # look for user defined quality in available streams
             try:
                 return available_qualities.index(desired_quality)
 
             except ValueError:
-                _log.info('User requested quality not found in available streams.')
+                self._log.info('User requested quality not found in available streams.')
                 # grab first resolution match
                 try:
                     return [quality[0] for quality in available_qualities].index(desired_quality[0])
 
                 except ValueError:
-                    _log.info('No match found for user requested resolution. Defaulting to best.')
+                    self._log.info('No match found for user requested resolution. Defaulting to best.')
                     return 0
 
         elif desired_quality == 'worst':
@@ -404,21 +401,55 @@ class Vod:
             return Vod()
 
         _stream = Vod()
-        _stream.v_id = 0
         _stream.s_id = stream_json['stream']['id']
 
         _stream.category = Category(stream_json['stream']['game'])
         _stream.channel = Channel(stream_json['displayName'])
         _stream.created_at = datetime.strptime(stream_json['stream']['createdAt'],
                                                    '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
-        _stream.description = ""
         _stream.duration = time_since_date(_stream.created_at)
         _stream.published_at = _stream.created_at
-        _stream.thumbnail_url = ""
         _stream.title = stream_json['broadcastSettings']['title']
-        _stream.view_count = 0
-
-        _stream.muted_segments = []
 
         return _stream
 
+
+class ArchivedVod(Vod):
+    """
+    Defines an archive of a VOD. Used for tracking the status of previously archived VODs.
+    """
+    def __init__(self, vod: Vod, chat_archived: bool = False, video_archived: bool = False):
+        super().__init__()
+        self._convert_from_vod(vod)
+        self.chat_archived: bool = chat_archived
+        self.video_archived: bool = video_archived
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.v_id == other.v_id and self.chat_archived == other.chat_archived \
+                and self.video_archived == other.video_archived
+        return False
+
+    @staticmethod
+    def import_from_db(*args):
+        """
+        Creates a new ArchivedVod with values from the provided database return. We can't fetch this from Twitch as
+        they delete the records when the VOD expires or is manually deleted.
+        """
+        _archived_vod = ArchivedVod(args[4], args[5])
+        _archived_vod.v_id = args[0]
+        _archived_vod.s_id = args[1]
+        _archived_vod.channel = args[2]
+        _archived_vod.created_at = args[3]
+
+        return _archived_vod
+
+    def _convert_from_vod(self, vod: Vod):
+        """
+        Converts an existing VOD into an ArchivedVod.
+
+        :param vod: VOD to create ArchivedVod from
+        :type vod: Vod
+        """
+        for key, value in vars(vod).items():
+            setattr(self, key, value)

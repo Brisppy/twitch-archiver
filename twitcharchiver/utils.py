@@ -17,8 +17,6 @@ from textwrap import dedent
 
 import requests
 
-from twitcharchiver.exceptions import VodConvertError, CorruptPartError
-
 log = logging.getLogger()
 
 
@@ -131,38 +129,7 @@ def convert_to_hms(seconds):
     return f"{hours:02d}h{minutes % 60:02d}m{seconds % 60:02d}s"
 
 
-def create_lock(lock_dir, vod_id):
-    """Creates a lock file for a given VOD.
-
-    :param lock_dir: path to directory with lock file
-    :param vod_id: id of vod which lock file is created for
-    :return: true if lock file creation fails
-    """
-    try:
-        with open(Path(lock_dir, f'.lock.{vod_id}'), 'x', encoding='utf8') as _:
-            pass
-        return
-
-    except FileExistsError:
-        return True
-
-
-def remove_lock(lock_dir, vod_id):
-    """Removes a given lock file.
-
-    :param lock_dir: path to directory with lock file
-    :param vod_id: id of vod which lock file is created for
-    :return: error if lock file removal fails
-    """
-    try:
-        Path(lock_dir, f'.lock.{vod_id}').unlink()
-        return
-
-    except Exception as e:
-        return e
-
-
-def time_since_date(timestamp):
+def time_since_date(timestamp: float):
     """Returns the time in seconds between a given datetime and now.
 
     :param timestamp: utc timestamp to compare current datetime to

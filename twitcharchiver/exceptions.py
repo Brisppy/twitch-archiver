@@ -3,6 +3,8 @@ Custom exceptions used by Twitch Archiver.
 """
 
 import logging
+import tempfile
+from pathlib import Path
 
 log = logging.getLogger()
 
@@ -151,14 +153,41 @@ class DatabaseQueryError(Exception):
         super().__init__(message)
 
 
-class UnlockingError(Exception):
-    def __init__(self, channel_name, stream_id, vod_id=None):
-        if vod_id:
-            message = f"Failed to remove lock file for VOD {vod_id} by {channel_name}. Check VOD downloaded " \
-                      f"correctly and remove '.lock.{stream_id}' file from config directory."
+class VodAlreadyCompleted(Exception):
+    def __init__(self, vod):
+        message = f"VOD {vod.v_id} has already been completed in the requested formats according to the VOD database."
+
+        super().__init__(message)
+
+
+class VodUnlockingError(Exception):
+    def __init__(self, vod):
+        message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
+                  f"downloaded correctly and remove '.lock.{vod.s_id}-stream-only' file from config directory."
+
+        super().__init__(message)
+
+
+class VodLockedError(Exception):
+    def __init__(self, vod):
+        message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
+                  f"downloaded correctly and remove '.lock.{vod.s_id}-stream-only' file from config directory."
+
+        super().__init__(message)
+
+
+class UnhandledDownloadError(Exception):
+    def __init__(self, vod):
+        # handle unsynced stream download (no vod id)
+        if vod.v_id == 0:
+            message = f"An unhandled exception occurred while downloading stream {vod.s_id} by {vod.channel.name}. "\
+                      f"Check stream downloaded correctly and remove lock file "\
+                      f"({Path(tempfile.gettempdir(), 'twitch-archiver', f'.lock.{vod.s_id}-stream-only')})."
+
         else:
-            message = f"Failed to remove lock file for stream {stream_id} by {channel_name}. Check stream" \
-                      f"downloaded correctly and remove '.lock.{stream_id}-stream-only' file from config directory."
+            message = f"An unhandled exception occurred while downloading VOD {vod.v_id} by {vod.channel.name}. "\
+                      f"Check stream downloaded correctly and remove lock file "\
+                      f"({Path(tempfile.gettempdir(), 'twitch-archiver', f'.lock.{vod.s_id}')})."
 
         super().__init__(message)
 
@@ -173,6 +202,6 @@ class UnsupportedStreamPartDuration(Exception):
 
 class StreamOfflineError(Exception):
     def __init__(self, channel):
-        message = f'No stream could be found for {channel.name}.'
+        message = f'Requested stream ({channel.name}) is not currently live.'
 
         super().__init__(message)
