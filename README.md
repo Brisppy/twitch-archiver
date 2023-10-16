@@ -37,7 +37,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 
 ## Requirements
 * **[Python](https://www.python.org/) >= 3.7**
-* **[FFmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](#installation))
+* **[FFmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](https://phoenixnap.com/kb/ffmpeg-windows))
 
 ## Installation & Usage
 ### Installation

@@ -62,6 +62,8 @@ class Video(Downloader):
         self.output_dir: Path = None
         self.vod: Vod = vod
 
+        self.base_url: str = ""
+
         # perform various setup tasks
         self._do_setup()
 
@@ -74,6 +76,8 @@ class Video(Downloader):
         # collect previously downloaded segments (if any)
         self._completed_segments.update(set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
                                              for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))]))
+
+        self.base_url = self._extract_base_url()
 
         # delay archival start for new vods (started less than 5m ago)
         _time_since_start = self.vod.time_since_live()
@@ -107,7 +111,7 @@ class Video(Downloader):
         """
         try:
             self._log.debug('Downloading VOD thumbnail.')
-            thumbnail = Api.get_request(self.vod.thumbnail_url.replace('%{width}x%{height}', '1920x1080'))
+            thumbnail = self._api.get_request(self.vod.thumbnail_url.replace('%{width}x%{height}', '1920x1080'))
             with open(Path(self.output_dir, 'thumbnail.jpg'), 'wb') as thumbnail_file:
                 thumbnail_file.write(thumbnail.content)
 
@@ -131,7 +135,7 @@ class Video(Downloader):
 
         except CorruptPartError as c:
             self._log.error("Corrupt segments found while converting VOD. Attempting to retry parts:"
-                           "\n%s", ', '.join([str(p) for p in c.parts]))
+                            "\n%s", ', '.join([str(p) for p in c.parts]))
 
             self._repair_vod_corruptions(c)
 
@@ -178,7 +182,7 @@ class Video(Downloader):
                 if get_hash(Path(self.output_dir, 'parts', part)) == \
                         get_hash(Path(self.output_dir, 'parts', part + '.corrupt')):
                     self._log.debug(f"Re-downloaded .ts segment %s matches corrupt one, "
-                                   "assuming corruption is on Twitch's end and ignoring.", part_num)
+                                    "assuming corruption is on Twitch's end and ignoring.", part_num)
                     self._muted_segments.add(MpegSegment(part_num, muted=True))
 
             self._merge()
@@ -195,7 +199,7 @@ class Video(Downloader):
             vod_chapters = self.vod.get_chapters()
             # write chapters to file
             with open(Path(self.output_dir, 'chapters.json'), 'w', encoding='utf8') as chapters_file:
-                chapters_file.write(json.dumps(vod_chapters))
+                chapters_file.write(str(vod_chapters))
 
             # format and write vod chapters to parts dir
             with open(Path(self.output_dir, 'parts', 'chapters.txt'), 'w', encoding='utf8') as chapters_file:
@@ -210,7 +214,7 @@ class Video(Downloader):
 
         :return: list of segments padded to 5 digits with .ts extension
         """
-        return [f'{_id:05d}' for _id in self._completed_segments]
+        return [f'{seg.id:05d}.ts' for seg in self._completed_segments]
 
     def _combine_vod_parts(self):
         """
@@ -230,7 +234,7 @@ class Video(Downloader):
                 for _part in self.get_completed_parts():
                     _pt += 1
                     # append part to merged file
-                    with open(_part, 'rb') as _ts_part:
+                    with open(Path(self.output_dir, 'parts', _part), 'rb') as _ts_part:
                         shutil.copyfileobj(_ts_part, _merged_file)
 
                     if not self._quiet:
@@ -335,7 +339,7 @@ class Video(Downloader):
                               stdout=subprocess.PIPE, universal_newlines=True) as _p:
             _ts_file_data = ''
             for _line in _p.stdout:
-                str.join(_ts_file_data, _line)
+                _ts_file_data += _line
 
             return float(json.loads(_ts_file_data)['format']['start_time']) * 90000
 
@@ -353,7 +357,7 @@ class Video(Downloader):
             #   if new parts are found, we go back and download them
             #   if 10 minutes passes without new parts, or we receive a 403 or 404, the stream is over / deleted, and
             #     so we download any remaining parts then return
-            if self.vod.status == 'live':
+            if self.vod.is_live():
                 for _ in range(11):
                     self._log.debug('Waiting 60s to see if VOD changes.')
                     sleep(60)
@@ -395,7 +399,7 @@ class Video(Downloader):
         _buffer: set[MpegSegment] = set()
 
         # process all segments in playlist
-        for segment in [MpegSegment.convert_m3u8_segment(_s) for _s in index_playlist.segments]:
+        for segment in [MpegSegment.convert_m3u8_segment(_s, self.base_url) for _s in index_playlist.segments]:
             # add segment to download buffer if it isn't completed
             if segment not in self._completed_segments:
                 _buffer.add(segment)
@@ -439,7 +443,7 @@ class Video(Downloader):
 
         # don't bother if piece already downloaded
         if os.path.exists(_segment_path):
-            return
+            return ""
 
         # files are downloaded to $TMP, then moved to final destination
         # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
@@ -447,7 +451,7 @@ class Video(Downloader):
         #   files from storage avoiding any downtime downloading
 
         # create temporary file for downloading to
-        with open(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)), 'wb') as _tmp_ts_file:
+        with open(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id), f'{segment.id}.ts'), 'wb') as _tmp_ts_file:
             for _ in range(6):
                 if _ > 4:
                     self._log.debug('Maximum retries for segment %s reached.', Path(_segment_path).stem)
@@ -486,9 +490,9 @@ class Video(Downloader):
         except BaseException as e:
             self._log.error('Exception encountered while moving downloaded MPEG-TS segment %s.', segment.url,
                             exc_info=True)
-            return e
+            return str(e)
 
-        return
+        return ""
 
     def verify_length(self):
         """Verifies the length of the downloaded VOD.

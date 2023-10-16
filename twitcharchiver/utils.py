@@ -17,6 +17,8 @@ from textwrap import dedent
 
 import requests
 
+from twitcharchiver.twitch import Chapters
+
 log = logging.getLogger()
 
 
@@ -313,10 +315,11 @@ def getenv(name, default_val=None, is_bool=False):
     return val if val else None
 
 
-def format_vod_chapters(chapters):
+def format_vod_chapters(chapters: Chapters):
     """Formats vod chapters retrieved from Twitch into an FFmpeg insertable format
 
-    :param chapters: either a list of vod chapters or tuple containing (chapter_name, start, end)
+    :param chapters: Chapters which make up the VOD
+    :type chapters: Chapters
     :return: chapters formatted as a string readable by ffmpeg
     """
     formatted_chapters = ";FFMETADATA1\n"
@@ -329,19 +332,12 @@ def format_vod_chapters(chapters):
     
     """)
 
-    if isinstance(chapters, tuple):
+    # some chapters have no game attached and so the 'description' is used instead
+    for chapter in chapters:
         formatted_chapters += chapter_base.format(
-            start=chapters[1],
-            end=chapters[2],
-            title=chapters[0])
-
-    else:
-        # some chapters have no game attached and so the 'description' is used instead
-        for chapter in chapters:
-            formatted_chapters += chapter_base.format(
-                start=chapter['positionMilliseconds'],
-                end=chapter['positionMilliseconds'] + chapter['durationMilliseconds'],
-                title=chapter['description'])
+            start=chapter.segment.position * 1000,
+            end=(chapter.segment.position + chapter.segment.duration) * 1000,
+            title=chapter.description)
 
     return formatted_chapters
 

@@ -69,13 +69,20 @@ class Chapters:
         :param moments: moments list retrieved from Twitch API
         :type moments: list[dict]
         """
-        self.moments = []
+        self._moments = []
 
         if moments:
-            self.moments = [self.Moment(m) for m in moments]
+            self._moments = [self.Moment(m) for m in moments]
+
+    def __bool__(self):
+        return bool(self._moments)
 
     def __repr__(self):
-        return str([m for m in self.moments])
+        return str([str(m) for m in self._moments])
+
+    def __iter__(self):
+        for m in self._moments:
+            yield m
 
     def insert_moment(self, moment):
         """
@@ -84,9 +91,7 @@ class Chapters:
         :param moment: A moment retrieved from the Twitch API
         :type moment: Moment
         """
-        self.moments.append(self.Moment(moment))
-
-        return self
+        self._moments.append(moment)
 
     @staticmethod
     def create_chapter_from_category(category: Category, duration: int):
@@ -102,15 +107,16 @@ class Chapters:
         :rtype: Chapters
         """
         # convert category into moment spanning whole duration of VOD
-        _segment = Segment(0, duration)
         _moment = Chapters.Moment()
         # todo check if 'GAME CHANGE' is the same name used by TWITCH
-        _moment.type = 'GAME CHANGE'
-        _moment.description = category.display_name
+        _moment.type = 'GAME_CHANGE'
+        _moment.description = category.display_name or category.name
         _moment.category = category
-        _moment.segment = _segment
+        _moment.segment = Segment(0, duration)
 
-        return Chapters().insert_moment(_moment)
+        _chapter = Chapters()
+        _chapter.insert_moment(_moment)
+        return _chapter
 
     class Moment:
         """
@@ -128,6 +134,7 @@ class Chapters:
             self.segment = None
             self.type = None
             self.description = None
+            self.category = None
 
             if moment:
                 self.id = moment['id']
@@ -136,10 +143,8 @@ class Chapters:
                 self.type = moment['type']
                 self.description = moment['description']
 
-            if 'game' in moment:
-                self.category = Category(moment['game'])
-            else:
-                self.category = None
+                if 'game' in moment.keys():
+                    self.category = Category(moment['game'])
 
         def __repr__(self):
             return str({'description': self.description, 'type': self.type, 'segment': self.segment})
@@ -187,29 +192,29 @@ class MpegSegment(Segment):
         return hash(self.id)
 
     def __eq__(self, other):
-        if type(self) == type(other):
-            return self.id == other.v_id
-        else:
-            return False
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+        return False
 
     def __ne__(self, other):
-        if type(self) == type(other):
-            return self.id != other.v_id
-        else:
-            return True
+        if isinstance(other, self.__class__):
+            return self.id != other.id
+        return True
 
     @staticmethod
-    def convert_m3u8_segment(segment: m3u8.Segment):
+    def convert_m3u8_segment(segment: m3u8.Segment, base_url: str):
         """
         Derives an MpegSegment from a provided m3u8.Segment instance
 
-        :param segment:
+        :param segment: m3u8.Segment
         :type segment:
-        :return:
-        :rtype:
+        :param base_url: url directory where segments (00000.ts, 000001.ts, etc) are located online
+        :type base_url: str
+        :return: segment generated from the provided m3u8 segment
+        :rtype: MpegSegment
         """
         return MpegSegment(int(re.sub(
-            r'.ts|-[a-zA-Z]*.ts', '', segment.uri)), segment.duration, segment.uri, 'muted' in segment.uri)
+            r'.ts|-[a-zA-Z]*.ts', '', segment.uri)), segment.duration, f'{base_url}{segment.uri}', 'muted' in segment.uri)
 
     def id_padded(self):
         """

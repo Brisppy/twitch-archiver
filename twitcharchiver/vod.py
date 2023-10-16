@@ -168,7 +168,7 @@ class Vod:
         # check if channel is offline
         _stream_info = channel.get_stream_info()
 
-        if _stream_info:
+        if _stream_info['stream']:
             try:
                 # if stream live and vod start time matches
                 _stream_created_time = \
@@ -203,19 +203,17 @@ class Vod:
         # extract and return list of moments from returned json
         _chapters = Chapters([node['node'] for node in _r.json()[0]['data']['video']['moments']['edges']])
 
-        try:
+        if _chapters:
             self._log.debug('Chapters for VOD %s: %s', self.v_id, _chapters)
             return _chapters
 
-        except TypeError:
-            self._log.debug('No chapters found for VOD %s.', self.v_id)
-            # create single chapter out of VOD category
-            _category = self.get_category()
-            _chapters = Chapters()
-            _chapters.create_chapter_from_category(_category, self.duration)
+        self._log.debug('No chapters found for VOD %s.', self.v_id)
+        # create single chapter out of VOD category
+        _category = self.get_category()
+        _chapters = Chapters.create_chapter_from_category(_category, self.duration)
 
-            self._log.debug('Chapters generated for VOD based on %s: %s', _category, self.v_id)
-            return _chapters
+        self._log.debug('Chapters generated for VOD based on %s: %s', _category, self.v_id)
+        return _chapters
 
     def get_muted_segments(self):
         """Retrieves any muted segments for the VOD.
