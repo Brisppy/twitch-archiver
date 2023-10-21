@@ -36,8 +36,8 @@ class Arguments:
         # required as values set via environment variables bypass argparse mutex handling
         for mutex_args in (("vod_id", "channel"), ("live_only", "archive_only")):
             mutex_arg_0, mutex_arg_1 = cls.get(mutex_args[0]), cls.get(mutex_args[1])
-            # check if both mutex args have a value (including empty string)
-            if mutex_arg_0 is not None and mutex_arg_1 is not None:
+            # check if both mutex args have been set
+            if mutex_arg_0 and mutex_arg_1:
                 raise ValueError("Cannot accept both of the following mutually exclusive arguments: '"
                                  f"{mutex_args[0]}={mutex_arg_0}' and '{mutex_args[1]}={mutex_arg_1}'")
 
