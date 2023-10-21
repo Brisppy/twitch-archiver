@@ -56,6 +56,7 @@ class Channel:
         """
         Fetches metadata from Twitch regarding the channel.
         """
+        # todo: catch 'service error' returns
         _r = self._api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
                                    {"login": f"{self.name.lower()}"})
         _user_data = _r.json()[0]['data']['userOrError']
@@ -65,8 +66,7 @@ class Channel:
         if "userDoesNotExist" not in _user_data.keys():
             return _user_data
 
-        else:
-            return {}
+        return {}
 
     def is_live(self):
         """
@@ -92,9 +92,9 @@ class Channel:
         if _stream_info:
             self.log.debug('Stream info for %s: %s', self.name, _stream_info)
             return _stream_info
-        else:
-            self.log.debug('No broadcast info found for %s', self.name)
-            return dict()
+
+        self.log.debug('No broadcast info found for %s', self.name)
+        return {}
 
     def get_broadcast_vod_id(self):
         """
@@ -112,9 +112,9 @@ class Channel:
             broadcast_info = _channel_video_length[0]['node']['id']
             self.log.debug('Live broadcast info: %s', broadcast_info)
             return int(broadcast_info)
-        else:
-            self.log.debug('No data returned by ChannelVideoLength API for %s.', self.name)
-            return int()
+
+        self.log.debug('No data returned by ChannelVideoLength API for %s.', self.name)
+        return int()
 
     def get_stream_index(self, quality: str = 'chunked'):
         """
@@ -255,6 +255,6 @@ class Channel:
         if _channel_videos:
             self.log.debug('Full list of VODs for %s: %s', self.name, _channel_videos)
             return _channel_videos
-        else:
-            self.log.debug('No VODs found for %s.', self.name)
-            return []
+
+        self.log.debug('No VODs found for %s.', self.name)
+        return []
