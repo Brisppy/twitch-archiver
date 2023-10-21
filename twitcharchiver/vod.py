@@ -85,7 +85,7 @@ class Vod:
                 datetime.strptime(vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
         elif 'publishedAt' in vod_info.keys():
             self.created_at = \
-                datetime.strptime(vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+                datetime.strptime(vod_info['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
         # set description if provided
         if 'description' in vod_info.keys():

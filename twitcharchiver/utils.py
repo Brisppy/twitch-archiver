@@ -311,8 +311,8 @@ def getenv(name, default_val=None, is_bool=False):
 
         raise ValueError(f"Invalid boolean value (true or false) received for environment variable: {name}={val}")
 
-    # return empty strings '' as None type
-    return val if val else None
+    # default return
+    return val
 
 
 def format_vod_chapters(chapters: Chapters):

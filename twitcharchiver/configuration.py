@@ -27,11 +27,13 @@ class Configuration:
         """
         self.log.debug('Generating config from provided arguments.')
 
-        # if setting loaded from config differs from passed arg (and arg is not none), overwrite it
+        # overwrite configuration with passed args (if set) as they have precedence
         for argument in args:
-            if argument in self.get() and args[argument] != self.get(argument) \
-                    and args[argument] not in [None, False]:
-                self.set(argument, args[argument])
+            # dont copy value if it is empty and config value set
+            if args.get(argument) == '' and self.get(argument):
+                continue
+
+            self.set(argument, args.get(argument))
 
     def load_config(self, conf_file):
         """Loads the settings stored in the configuration ini file.
@@ -79,21 +81,20 @@ class Configuration:
         :param name:  name of attribute to change
         :param value: value to set attribute to
         """
-        if name in cls.__conf:
-            cls.__conf[name] = value
-
-        else:
-            logging.debug("Configuration variable %s from file could not be matched to a runtime variable.", name)
+        cls.__conf[name] = value
 
     @classmethod
     def get(cls, name=None):
         """Retrieve a specified attribute.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
-        :return: requested value(s)
+        :return: requested value(s), None if value cannot be found
         """
         if name is None:
             return cls.__conf
+
+        if name not in cls.__dict__:
+            return None
 
         return cls.__conf[name]
 
@@ -106,7 +107,7 @@ class Configuration:
         """
         configuration = cls.__conf.copy()
         for key in ['pushbullet_key']:
-            if configuration[key] != '':
+            if configuration[key]:
                 configuration.update({key: 24 * '*' + configuration[key][24:]})
 
         if name is None:
