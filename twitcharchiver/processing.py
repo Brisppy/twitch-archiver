@@ -31,15 +31,15 @@ class Processing:
     def __init__(self):
 
         self.log = logging.getLogger()
-        args = Arguments().get()
+        conf = Configuration().get()
 
-        self.archive_chat = args['chat']
-        self.archive_video = args['video']
-        self.archive_only = args['archive_only']
-        self.config_dir = args['config_dir']
-        self.live_only = args['live_only']
-        self.pushbullet_key = args['pushbullet_key']
-        self.threads = args['threads']
+        self.archive_chat = conf['chat']
+        self.archive_video = conf['video']
+        self.archive_only = conf['archive_only']
+        self.config_dir = conf['config_dir']
+        self.live_only = conf['live_only']
+        self.pushbullet_key = conf['pushbullet_key']
+        self.threads = conf['threads']
 
         # create signal handler for graceful removal of lock files
         signal.signal(signal.SIGTERM, signal.default_int_handler)
@@ -48,7 +48,6 @@ class Processing:
         """
         Download all vods from a specified channel or list of channels.
         """
-        from twitcharchiver.downloader import DownloadHandler
         for _channel_name in channels:
             self.log.info("Now archiving channel '%s'.", _channel_name)
 
@@ -79,7 +78,7 @@ class Processing:
                             stream.start()
 
                         except BaseException as e:
-                            self.log.error('Error downloading live-only stream by %s.', channel.name)
+                            self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, e)
 
             # move on if channel offline and `live-only` set
             elif self.live_only:
@@ -115,8 +114,7 @@ class Processing:
                 self.log.info('No new VODs are available in the requested formats for %s.', channel.name)
                 continue
 
-            else:
-                self.vod_downloader(download_queue)
+            self.vod_downloader(download_queue)
 
     def vod_downloader(self, download_queue: list[ArchivedVod]):
         self.log.info('%s VOD(s) in download queue.', len(download_queue))
@@ -216,12 +214,12 @@ class Processing:
             except (RequestError, VodMergeError) as e:
                 self.log.error('Exception encountered while downloading or merging stream.\n{e}', exc_info=True)
                 send_push(self.pushbullet_key,
-                          f'Error downloading live-only stream by {stream_vod.channel.name}.', str(e))
+                          f'Error downloading live-only stream by {stream.channel.name}.', str(e))
 
             except BaseException as e:
                 self.log.error('Exception encountered while downloading or merging stream.\n{e}', exc_info=True)
                 send_push(self.pushbullet_key,
-                          f'Error downloading live-only stream by {stream_vod.channel.name}.', str(e))
+                          f'Error downloading live-only stream by {stream.channel.name}.', str(e))
 
             finally:
                 _dh.remove_lock()

@@ -9,6 +9,9 @@ from twitcharchiver.utils import build_output_dir_name
 
 
 class TestChat(TestCase):
+    """
+    Class containing functions for integration testing of chat log downloading other related functions.
+    """
     def setUp(self) -> None:
         """
         Performs setup required for testing.
@@ -17,6 +20,9 @@ class TestChat(TestCase):
         self.chat_a = Chat(Vod(553141160))
 
     def test_download(self):
+        """
+        Tests downloading of chat log.
+        """
         # download chat log
         self.chat_a.start()
 

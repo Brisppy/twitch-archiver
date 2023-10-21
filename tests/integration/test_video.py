@@ -1,3 +1,8 @@
+"""
+Module for testing Twitch video downloads.
+"""
+
+
 import os
 import shutil
 from pathlib import Path
@@ -9,6 +14,9 @@ from twitcharchiver.downloaders.video import Video
 
 
 class TestVideo(TestCase):
+    """
+    Class containing functions for integration testing of video download and other related functions.
+    """
     def setUp(self) -> None:
         """
         Performs setup required for testing.
@@ -17,6 +25,9 @@ class TestVideo(TestCase):
         self.video_a = Video(Vod(552662968))
 
     def test_download(self):
+        """
+        Tests downloading and verification methods.
+        """
         # download VOD
         self.video_a.start()
 
