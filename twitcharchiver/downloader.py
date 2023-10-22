@@ -39,7 +39,7 @@ class DownloadHandler:
         """
         self._log = logging.getLogger()
 
-        _conf: dict = Configuration().get()
+        _conf: dict = Configuration.get()
         self._lock_file = None
         self._config_dir: Path = _conf['config_dir']
         self._with_database: Path = _conf['with_database']
@@ -55,7 +55,7 @@ class DownloadHandler:
     def __enter__(self):
         # check if VOD has been completed already
         if self._with_database:
-            if self.database_vod_completed:
+            if self.database_vod_completed():
                 raise VodAlreadyCompleted(self.vod)
 
         # attempt to create lock file
@@ -79,7 +79,7 @@ class DownloadHandler:
     def get_downloaded_vod(self):
         with Database(Path(self._with_database, 'vods.db')) as db:
             downloaded_vod = ArchivedVod.import_from_db(db.execute_query(
-                'SELECT vod_id,stream_id,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
+                'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
                 {'stream_id': self.vod.s_id}))
 
         if downloaded_vod:
