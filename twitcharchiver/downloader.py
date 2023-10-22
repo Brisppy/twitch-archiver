@@ -77,7 +77,6 @@ class DownloadHandler:
             self._log.debug('Exception occurred inside DownloadHandler: %s', exc_val)
 
     def get_downloaded_vod(self):
-        from twitcharchiver.vod import Vod
         with Database(Path(self._with_database, 'vods.db')) as db:
             downloaded_vod = ArchivedVod.import_from_db(db.execute_query(
                 'SELECT vod_id,stream_id,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
@@ -86,7 +85,7 @@ class DownloadHandler:
         if downloaded_vod:
             return downloaded_vod
 
-        return ArchivedVod(Vod())
+        return ArchivedVod()
 
     def database_vod_completed(self):
         """

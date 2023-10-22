@@ -18,12 +18,12 @@ from twitcharchiver.utils import time_since_date, get_stream_id_from_preview_url
 
 
 class Vod:
-    def __init__(self, vod_id: int = 0, vod_info: dict = None):
+    def __init__(self, vod_id: int = 0, stream_id: int = 0, vod_info: dict = None):
         self._log = logging.getLogger()
         self._api: Api = Api()
 
         self.v_id: int = vod_id
-        self.s_id: int = 0
+        self.s_id: int = stream_id
 
         self.category: Category = Category()
         self.created_at: float = 0
@@ -68,9 +68,15 @@ class Vod:
         self._fetch_metadata()
 
     def _parse_dict(self, vod_info: dict):
-        self._log.debug('Parsing provided metadata for VOD %s: %s', self.v_id, vod_info)
+        """
+        Parses a provided dictionary of VOD information retrieve from Twitch.
 
-        # reformat to database schema
+        :param vod_info:
+        :return:
+        """
+        self._log.debug('Parsing provided metadata for VOD %s: %s', vod_info['id'], vod_info)
+
+        self.v_id = vod_info['id']
         self.category = Category(vod_info['game'])
         self.duration = vod_info['lengthSeconds']
         self.published_at = \
@@ -95,7 +101,7 @@ class Vod:
         """
         Retrieves metadata for a given VOD ID. Formatting is done to ensure backwards compatibility.
         """
-        _channel = self.get_vod_owner()
+        _channel: Channel = self.get_vod_owner()
 
         _r = self._api.gql_request('VideoMetadata', 'c25707c1e5176320ceac6b447d052480887e23bc794ca1d02becd0bcc91844fe',
                                    {'channelLogin': _channel.name, 'videoID': str(self.v_id)})
@@ -104,6 +110,9 @@ class Vod:
         self._parse_dict(_vod_info)
 
         self.muted_segments = self.get_muted_segments()
+
+        if self.s_id == 0:
+            self.s_id = self._get_stream_id()
 
         self._log.debug('Filled metadata for VOD %s: %s', self.v_id, self.get_info())
 
@@ -252,7 +261,7 @@ class Vod:
 
         return _channel
 
-    def get_stream_id(self):
+    def _get_stream_id(self):
         """Retrieves the associated stream ID for the VOD
 
         :return: stream id
@@ -434,9 +443,8 @@ class ArchivedVod(Vod):
     """
     Defines an archive of a VOD. Used for tracking the status of previously archived VODs.
     """
-    def __init__(self, vod: Vod, chat_archived: bool = False, video_archived: bool = False):
+    def __init__(self, chat_archived: bool = False, video_archived: bool = False):
         super().__init__()
-        self._convert_from_vod(vod)
         self.chat_archived: bool = chat_archived
         self.video_archived: bool = video_archived
 
@@ -445,6 +453,10 @@ class ArchivedVod(Vod):
             return self.v_id == other.v_id and self.chat_archived == other.chat_archived \
                 and self.video_archived == other.video_archived
         return False
+
+    def export_to_db(self):
+        # check if VOD already in db
+        pass
 
     @staticmethod
     def import_from_db(*args):
@@ -457,16 +469,30 @@ class ArchivedVod(Vod):
         _archived_vod = ArchivedVod(args[4], args[5])
         _archived_vod.v_id = args[0]
         _archived_vod.s_id = args[1]
-        _archived_vod.created_at = args[3]
+
+        # format date if using format prior to 4.0.0
+        if isinstance(args[3], str):
+            _archived_vod.created_at = \
+                datetime.strptime(args[3], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc).timestamp()
+
+        else:
+            _archived_vod.created_at = args[3]
 
         return _archived_vod
 
-    def _convert_from_vod(self, vod: Vod):
+    @staticmethod
+    def convert_from_vod(vod: Vod):
         """
         Converts an existing VOD into an ArchivedVod.
 
         :param vod: VOD to create ArchivedVod from
         :type vod: Vod
+        :return: ArchivedVod created from Vod
+        :rtype: ArchivedVod
         """
+        _a_vod = ArchivedVod()
+
         for key, value in vars(vod).items():
-            setattr(self, key, value)
+            setattr(_a_vod, key, value)
+
+        return _a_vod

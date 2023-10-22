@@ -2,6 +2,7 @@
 Class for retrieving and storing information related to channels and users.
 """
 import logging
+import sys
 from random import randrange
 
 import m3u8
