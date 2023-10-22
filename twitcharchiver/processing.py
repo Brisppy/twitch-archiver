@@ -3,16 +3,13 @@ Primary processing loops for calling the various download functions using the su
 """
 
 import logging
-import multiprocessing
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
-from twitcharchiver.arguments import Arguments
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import DownloadHandler
 from twitcharchiver.downloaders.chat import Chat
@@ -31,7 +28,7 @@ class Processing:
     def __init__(self):
 
         self.log = logging.getLogger()
-        conf = Configuration().get()
+        conf = Configuration.get()
 
         self.archive_chat = conf['chat']
         self.archive_video = conf['video']
@@ -57,7 +54,7 @@ class Processing:
             # retrieve available vods and extract required info
             channel_videos: list[Vod] = channel.get_channel_videos()
 
-            with Database(self.config_dir) as db:
+            with Database(Path(self.config_dir, 'vods.db')) as db:
                 db.setup()
 
             channel_live = channel.is_live()
@@ -85,7 +82,7 @@ class Processing:
                 self.log.debug('%s is offline and `live-only` argument provided.', channel.name)
                 continue
 
-            self.log.debug('Available VODs: %s', channel_videos)
+            self.log.debug('Available VODs: %s', [v.v_id for v in channel_videos])
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, 'vods.db')) as db:
@@ -93,7 +90,7 @@ class Processing:
                 downloaded_vods: list[ArchivedVod] = [ArchivedVod.import_from_db(v) for v in db.execute_query(
                     'SELECT vod_id,stream_id,created_at,video_archived,chat_archived FROM vods '
                     'WHERE user_id IS ?', {'user_id': channel.id})]
-            self.log.debug('Downloaded VODs: %s', downloaded_vods)
+            self.log.debug('Downloaded VODs: %s', [v.v_id for v in downloaded_vods])
 
             # generate vod queue using downloaded and available vods
             download_queue: list[ArchivedVod] = []
@@ -192,11 +189,7 @@ class Processing:
         # todo : set store_directoy to STREAM_ONLY
         #      : make sure the duration and other parts are updated throughout
 
-        # generate stream dict
-        stream_vod = ArchivedVod(Vod())
-        stream_vod.video_archived = True
-
-        with DownloadHandler(stream_vod) as _dh:
+        with DownloadHandler(ArchivedVod.convert_from_vod(stream.stream)) as _dh:
             try:
                 _dh.create_lock()
 
