@@ -12,12 +12,11 @@ from twitcharchiver.exceptions import DatabaseError, DatabaseQueryError
 __db_version__ = 5
 
 
-# todo: enable write ahead logging
-
 class Database:
     """
     Functions for interacting with the VOD database.
     """
+
     def __init__(self, database_path):
         """Class constructor.
 
@@ -128,8 +127,7 @@ create_vods_table = [
         "user_id"           INTEGER,
         "user_login"        TEXT,
         "user_name"         TEXT,
-        "game_id"           INTEGER,
-        "game_name"         TEXT,
+        "chapters"          TEXT,
         "title"             TEXT,
         "description"       TEXT,
         "created_at"        DATETIME,
@@ -144,21 +142,21 @@ create_vods_table = [
         "chat_archived"     BIT,
         PRIMARY KEY("vod_id","stream_id")
     );""",
-    f"PRAGMA user_version = {__db_version__};"]
+    f"PRAGMA user_version = {__db_version__};",
+    "PRAGMA journal_mode=WAL;"]
 
 CREATE_VOD = """
 INSERT INTO
-vods (stream_id, user_id, user_login, user_name, game_id, game_name, title, description, created_at, published_at, 
-      url, thumbnail_url, view_count, duration, muted_segments, vod_id, store_directory, video_archived, chat_archived)
+vods (stream_id, vod_id, user_id, user_name, chapters, title, description, created_at, published_at, thumbnail_url,
+      duration, muted_segments, chat_archived, video_archived)
 VALUES
-(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 UPDATE_VOD = """
 UPDATE vods
-SET stream_id=?, user_id=?, user_login=?, user_name=?, game_id=?, game_name=?, title=?, description=?, created_at=?,
-    published_at=?, url=?, thumbnail_url=?, view_count=?, duration=?, muted_segments=?, vod_id=?, store_directory=?,
-    video_archived=?, chat_archived=?
+SET stream_id=?, vod_id=?, user_id=?, user_name=?, chapters=?, title=?, description=?, created_at=?, published_at=?,
+    thumbnail_url=?, duration=?, muted_segments=?, chat_archived=?, video_archived=?
 WHERE stream_id IS ?;
 """
 
@@ -232,34 +230,31 @@ version_3_to_4_upgrade = [
     "DROP TABLE vods_bak;",
     "PRAGMA user_version = 4;"]
 
-# add game_name and game_id columns
-# remove viewable, language, type columns
+# add field for VOD chapters
+# remove user_login, url, view_count, viewable, language, type, store_directory fields
+# swapped order of chat and video archive flags
+# enable write-ahead logging
 version_4_to_5_upgrade = [
     "ALTER TABLE vods RENAME TO vods_bak;",
     """CREATE TABLE "vods" (
         "vod_id"            INTEGER,
         "stream_id"         INTEGER,
         "user_id"           INTEGER,
-        "user_login"        TEXT,
         "user_name"         TEXT,
-        "game_id"           INTEGER,
-        "game_name"         TEXT,
+        "chapters"          TEXT,
         "title"             TEXT,
         "description"       TEXT,
         "created_at"        DATETIME,
         "published_at"      DATETIME,
-        "url"               TEXT,
         "thumbnail_url"     TEXT,
-        "view_count"        TEXT,
         "duration"          INTEGER,
         "muted_segments"    TEXT,
-        "store_directory"   TEXT,
-        "video_archived"    BIT,
         "chat_archived"     BIT,
+        "video_archived"    BIT,
         PRIMARY KEY("vod_id","stream_id")
     );""",
-    "INSERT INTO vods SELECT vod_id, stream_id, user_id, user_login, user_name, NULL, NULL, title, description, "
-    "created_at, published_at, url, thumbnail_url, view_count, duration, muted_segments, store_directory, "
-    "video_archived, chat_archived FROM vods_bak;",
+    "INSERT INTO vods SELECT vod_id, stream_id, user_id, user_name, NULL, title, description, "
+    "created_at, published_at, thumbnail_url, duration, muted_segments, video_archived, chat_archived FROM vods_bak;",
     "DROP TABLE vods_bak;",
-    "PRAGMA user_version = 5;"]
+    "PRAGMA user_version = 5;",
+    "PRAGMA journal_mode=WAL;"]
