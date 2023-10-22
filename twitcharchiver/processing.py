@@ -88,7 +88,7 @@ class Processing:
             with Database(Path(self.config_dir, 'vods.db')) as db:
                 # dict containing stream_id: (vod_id, video_downloaded, chat_downloaded)
                 downloaded_vods: list[ArchivedVod] = [ArchivedVod.import_from_db(v) for v in db.execute_query(
-                    'SELECT vod_id,stream_id,created_at,video_archived,chat_archived FROM vods '
+                    'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods '
                     'WHERE user_id IS ?', {'user_id': channel.id})]
             self.log.debug('Downloaded VODs: %s', [v.v_id for v in downloaded_vods])
 
@@ -97,14 +97,16 @@ class Processing:
             for _vod in channel_videos:
                 # add any vods not already archived
                 if _vod not in downloaded_vods:
-                    download_queue.append(ArchivedVod(_vod))
+                    download_queue.append(ArchivedVod.convert_from_vod(_vod))
 
                 # if VOD already downloaded, add it to the queue if formats are missing
                 else:
                     # get downloaded VOD from list of downloaded VODs
                     _downloaded_vod = downloaded_vods[[v.v_id for v in downloaded_vods].index(_vod.v_id)]
 
-                    download_queue.append(ArchivedVod(_vod, _downloaded_vod.chat_archived, _downloaded_vod.video_archived))
+                    # append to queue with already archived formats flagged as done
+                    download_queue.append(ArchivedVod.convert_from_vod(
+                        _vod, _downloaded_vod.chat_archived, _downloaded_vod.video_archived))
 
             # exit if vod queue empty
             if not download_queue:
@@ -139,7 +141,7 @@ class Processing:
                 chat_download_queue.append(Chat(_vod))
 
         for _downloader in video_download_queue:
-            self._start_download(_downloader, True)
+            self._start_download(_downloader)
 
         # create threadpool for chat downloads
         _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
@@ -151,8 +153,8 @@ class Processing:
             if future.result():
                 continue
 
-    def _start_download(self, _downloader, video: bool = False, chat: bool = False):
-        with DownloadHandler(ArchivedVod(_downloader.vod, chat, video)) as _dh:
+    def _start_download(self, _downloader):
+        with DownloadHandler(_downloader.vod) as _dh:
             try:
                 _downloader.start()
 

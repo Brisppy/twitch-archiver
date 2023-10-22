@@ -34,8 +34,6 @@ class Vod:
         self.title: str = ""
         self.view_count: int = 0
 
-        self.muted_segments: list = []
-
         if vod_id != 0:
             self._setup(vod_id)
 
@@ -109,8 +107,6 @@ class Vod:
         _vod_info = _r.json()[0]['data']['video']
         self._parse_dict(_vod_info)
 
-        self.muted_segments = self.get_muted_segments()
-
         if self.s_id == 0:
             self.s_id = self._get_stream_id()
 
@@ -135,13 +131,11 @@ class Vod:
         :return: dictionary of stored VOD values
         :rtype: dict
         """
-        _vod_info = {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
-                     'created_at': self.created_at, 'published_at': self.published_at,
-                     'thumbnail_url': self.thumbnail_url, 'view_count': self.view_count, 'duration': self.duration,
-                     'muted_segments': self.muted_segments}
-
-        self._log.debug('VOD information: %s', _vod_info)
-        return _vod_info
+        channel = self.get_vod_owner()
+        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'user_id': channel.id, 'user_name': channel.name,
+                'chapters': str(self.get_chapters()), 'title': self.title, 'description': self.description,
+                'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
+                'duration': self.duration, 'muted_segments': str(self.get_muted_segments())}
 
     def get_category(self):
         """Retrieves Twitch category for a specified VOD.
@@ -193,7 +187,7 @@ class Vod:
             except IndexError:
                 pass
 
-            self._log.debug('Stream status could not be retrieved for %s.', channel.name)
+            self._log.debug('VOD is not paired with the current stream.', channel.name)
             return False
 
         self._log.debug('%s is offline and so VOD must be offline.', channel.name)
@@ -454,34 +448,39 @@ class ArchivedVod(Vod):
                 and self.video_archived == other.video_archived
         return False
 
-    def export_to_db(self):
-        # check if VOD already in db
-        pass
+    def get_info(self):
+        channel = self.get_vod_owner()
+        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'user_id': channel.id, 'user_name': channel.name,
+                'chapters': str(self.get_chapters()), 'title': self.title, 'description': self.description,
+                'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
+                'duration': self.duration, 'muted_segments': str(self.get_muted_segments()),
+                'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
 
     @staticmethod
-    def import_from_db(*args):
+    def import_from_db(args):
         """
         Creates a new ArchivedVod with values from the provided database return. We can't fetch this from Twitch as
         they delete the records when the VOD expires or is manually deleted.
 
         :param args: {vod_id, stream_id, created_at, chat_archived, video_archived}
+        :type args: tuple
         """
-        _archived_vod = ArchivedVod(args[4], args[5])
+        _archived_vod = ArchivedVod(args[3], args[4])
         _archived_vod.v_id = args[0]
         _archived_vod.s_id = args[1]
 
         # format date if using format prior to 4.0.0
-        if isinstance(args[3], str):
+        if isinstance(args[2], str):
             _archived_vod.created_at = \
-                datetime.strptime(args[3], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc).timestamp()
+                datetime.strptime(args[2], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
         else:
-            _archived_vod.created_at = args[3]
+            _archived_vod.created_at = args[2]
 
         return _archived_vod
 
     @staticmethod
-    def convert_from_vod(vod: Vod):
+    def convert_from_vod(vod: Vod, chat_archived: bool = False, video_archived: bool = False):
         """
         Converts an existing VOD into an ArchivedVod.
 
@@ -490,7 +489,7 @@ class ArchivedVod(Vod):
         :return: ArchivedVod created from Vod
         :rtype: ArchivedVod
         """
-        _a_vod = ArchivedVod()
+        _a_vod = ArchivedVod(chat_archived, video_archived)
 
         for key, value in vars(vod).items():
             setattr(_a_vod, key, value)
