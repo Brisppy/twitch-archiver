@@ -62,15 +62,15 @@ class Processing:
                 # fetch current stream info
                 stream: Stream = Stream(channel)
 
-                # if VOD was missed by the chanel video fetcher as the stream was too new we add it to the videos.
+                # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
                 # otherwise we add it to the download queue
                 if stream.stream.v_id:
                     if stream.stream.v_id not in [v.v_id for v in channel_videos]:
                         channel_videos.insert(0, Vod(stream.stream.v_id))
 
-                # no paired VOD exist, so we archive the stream before moving onto VODs
+                # no paired VOD exists, so we archive the stream before moving onto VODs
                 elif self.archive_video and not self.archive_only:
-                    with DownloadHandler(ArchivedVod(stream.stream, video_archived=True)) as _dh:
+                    with DownloadHandler(ArchivedVod.convert_from_vod(stream.stream, video_archived=True)) as _dh:
                         try:
                             stream.start()
 
@@ -95,6 +95,9 @@ class Processing:
             # generate vod queue using downloaded and available vods
             download_queue: list[ArchivedVod] = []
             for _vod in channel_videos:
+                # insert channel data
+                _vod.channel = channel
+
                 # add any vods not already archived
                 if _vod not in downloaded_vods:
                     download_queue.append(ArchivedVod.convert_from_vod(_vod))
@@ -116,37 +119,45 @@ class Processing:
             self.vod_downloader(download_queue)
 
     def vod_downloader(self, download_queue: list[ArchivedVod]):
+        """
+        Downloads a given list of VODs according to the settings stored inside the class.
+
+        :param download_queue: List of ArchivedVod objects
+        :type download_queue: list(ArchivedVod)
+        """
         self.log.info('%s VOD(s) in download queue.', len(download_queue))
         self.log.debug('VOD queue: %s', download_queue)
 
-        video_download_queue = []
-        chat_download_queue = []
+        _video_download_queue = []
+        _chat_download_queue = []
         # begin processing each available vod
         for _vod in download_queue:
-            if _vod.is_live():
-                # skip if we aren't after currently live streams
-                if self.archive_only:
-                    self.log.info('Skipping VOD as it is live and no-stream argument provided.')
-                    continue
+            # only check if VOD live if channel is live
+            if _vod.channel.is_live():
+                if _vod.is_live():
+                    # skip if we aren't after currently live streams
+                    if self.archive_only:
+                        self.log.info('Skipping VOD as it is live and no-stream argument provided.')
+                        continue
 
-            else:
-                # skip if we are only after currently live streams, and stream_id is not live
-                if self.live_only:
-                    continue
+                else:
+                    # skip if we are only after currently live streams, and stream_id is not live
+                    if self.live_only:
+                        continue
 
             if not _vod.video_archived and self.archive_video:
-                video_download_queue.append(Video(_vod))
+                _video_download_queue.append(Video(_vod))
 
             if not _vod.chat_archived and self.archive_chat:
-                chat_download_queue.append(Chat(_vod))
+                _chat_download_queue.append(Chat(_vod))
 
-        for _downloader in video_download_queue:
+        for _downloader in _video_download_queue:
             self._start_download(_downloader)
 
         # create threadpool for chat downloads
         _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
         futures = []
-        for _downloader in chat_download_queue:
+        for _downloader in _chat_download_queue:
             futures.append(_worker_pool.submit(_downloader.start))
 
         for future in futures:
@@ -188,7 +199,7 @@ class Processing:
         if not stream:
             stream = Stream(channel)
 
-        # todo : set store_directoy to STREAM_ONLY
+        # todo : set store_directory to STREAM_ONLY
         #      : make sure the duration and other parts are updated throughout
 
         with DownloadHandler(ArchivedVod.convert_from_vod(stream.stream)) as _dh:

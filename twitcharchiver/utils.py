@@ -43,7 +43,7 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
 
 
 def format_timestamp(timestamp: float):
-    return datetime.fromtimestamp(timestamp).strftime("%Y-%M-%d_%H-%M-%S")
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d_%H-%M-%S")
 
 
 def export_json(vod_json):
@@ -118,6 +118,8 @@ def convert_to_seconds(duration):
     if len(duration) == 3:
         return (int(duration[0]) * 3600) + (int(duration[1]) * 60) + int(duration[2])
 
+    return
+
 
 def convert_to_hms(seconds):
     """Converts a given time in seconds to the format HHhMMmSSs.
@@ -169,7 +171,7 @@ def get_latest_version():
         release_notes = _r.json()['body']
 
     # return a dummy value if request fails
-    except Exception:
+    except BaseException:
         return '0.0.0', ''
 
     return latest_version, release_notes
@@ -233,7 +235,7 @@ def send_push(pushbullet_key, title, body=''):
                 else:
                     log.error('Error sending push. Error %s: %s', _r.status_code, _r.text)
 
-        except Exception as e:
+        except BaseException as e:
             log.error('Error sending push. Error: %s', e)
 
 
@@ -424,7 +426,7 @@ class Progress:
     # reference:
     #   https://stackoverflow.com/questions/63865536/how-to-convert-seconds-to-hhmmss-format-without-failing-if-hour-more-than-24
     @staticmethod
-    def to_hms(s):
+    def to_hms(s: int):
         """Converts a given time in seconds to HHhMMmSSs.
 
         :param s: time in seconds

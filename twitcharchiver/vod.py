@@ -1,6 +1,7 @@
 """
 Class for retrieving and storing a Twitch VOD and its associated information.
 """
+import json
 import logging
 import re
 from datetime import datetime, timezone
@@ -18,13 +19,23 @@ from twitcharchiver.utils import time_since_date, get_stream_id_from_preview_url
 
 
 class Vod:
+    """
+    A VOD or Video On Demand is an archive of a livestream which has been saved by Twitch. This class holds various
+    functions for storing, fetching and manipulating VOD data.
+    """
     def __init__(self, vod_id: int = 0, stream_id: int = 0, vod_info: dict = None):
+        """
+        Class constructor.
+
+        :param vod_id: Numeric VOD ID of the archive.
+        :param stream_id: Numeric stream ID of the archive.
+        :param vod_info: Dict of VOD values retrieved from Twitch.
+        """
         self._log = logging.getLogger()
         self._api: Api = Api()
 
         self.v_id: int = vod_id
         self.s_id: int = stream_id
-
         self.category: Category = Category()
         self.created_at: float = 0
         self.description: str = ""
@@ -34,10 +45,12 @@ class Vod:
         self.title: str = ""
         self.view_count: int = 0
 
-        if vod_id != 0:
+        self.channel = Channel()
+
+        if vod_id:
             self._setup(vod_id)
 
-        if vod_info:
+        elif vod_info:
             self._parse_dict(vod_info)
 
     def __eq__(self, other):
@@ -53,7 +66,7 @@ class Vod:
         return False
 
     def __repr__(self):
-        return str(self.get_info())
+        return str(self.to_dict())
 
     def __bool__(self):
         return bool(self.v_id or self.s_id)
@@ -69,12 +82,14 @@ class Vod:
         """
         Parses a provided dictionary of VOD information retrieve from Twitch.
 
-        :param vod_info:
-        :return:
+        :param vod_info: Dict of values related to the VOD retrieved from Twitch
         """
         self._log.debug('Parsing provided metadata for VOD %s: %s', vod_info['id'], vod_info)
 
-        self.v_id = vod_info['id']
+        if not self.v_id:
+            self.v_id = vod_info['id']
+        if not self.s_id:
+            self.s_id = self._get_stream_id()
         self.category = Category(vod_info['game'])
         self.duration = vod_info['lengthSeconds']
         self.published_at = \
@@ -85,11 +100,11 @@ class Vod:
 
         # use published_at as created_at if not provided
         if 'createdAt' in vod_info.keys():
-            self.created_at = \
-                datetime.strptime(vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+            self.created_at = datetime.strptime(
+                vod_info['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
         elif 'publishedAt' in vod_info.keys():
-            self.created_at = \
-                datetime.strptime(vod_info['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+            self.created_at = datetime.strptime(
+                vod_info['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
         # set description if provided
         if 'description' in vod_info.keys():
@@ -107,15 +122,17 @@ class Vod:
         _vod_info = _r.json()[0]['data']['video']
         self._parse_dict(_vod_info)
 
-        if self.s_id == 0:
-            self.s_id = self._get_stream_id()
-
-        self._log.debug('Filled metadata for VOD %s: %s', self.v_id, self.get_info())
+        self._log.debug('Filled metadata for VOD %s: %s', self.v_id, self.to_dict())
 
     def time_since_live(self):
-        _seconds_since_start = time_since_date(self.created_at)
+        """
+        Fetches the time since the VOD was created / started.
 
-        self._log.debug('VOD %s has been live for %s seconds.', self.v_id, _seconds_since_start)
+        :return: seconds since VOD started
+        :rtype: int
+        """
+        _seconds_since_start: int = time_since_date(self.created_at)
+
         return _seconds_since_start
 
     def refresh_vod_metadata(self):
@@ -124,18 +141,15 @@ class Vod:
         """
         self._fetch_metadata()
 
-    def get_info(self):
+    def to_dict(self):
         """
-        Returns all relevant VOD information.
+        Returns useful VOD variables.
 
-        :return: dictionary of stored VOD values
-        :rtype: dict
+        :return: dict of VOD attributes
         """
-        channel = self.get_vod_owner()
-        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'user_id': channel.id, 'user_name': channel.name,
-                'chapters': str(self.get_chapters()), 'title': self.title, 'description': self.description,
+        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
                 'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
-                'duration': self.duration, 'muted_segments': str(self.get_muted_segments())}
+                'duration': self.duration}
 
     def get_category(self):
         """Retrieves Twitch category for a specified VOD.
@@ -244,16 +258,17 @@ class Vod:
         :return: Channel containing `id` and `name` of VOD owner
         :rtype: Channel
         """
-        _r = self._api.gql_request('ComscoreStreamingQuery',
-                                   'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
-                                   {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
-                                    "isVodOrCollection": True, "vodID": str(self.v_id)})
+        if not self.channel:
+            _r = self._api.gql_request('ComscoreStreamingQuery',
+                                       'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
+                                       {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
+                                        "isVodOrCollection": True, "vodID": str(self.v_id)})
 
-        _owner = _r.json()[0]['data']['video']['owner']
-        _channel = Channel(_owner['displayName'])
-        self._log.debug('Owner of VOD %s is %s.', self.v_id, _channel)
+            _owner = _r.json()[0]['data']['video']['owner']
+            self.channel = Channel(_owner['displayName'])
 
-        return _channel
+        self._log.debug('Owner of VOD %s is %s.', self.v_id, self.channel)
+        return self.channel
 
     def _get_stream_id(self):
         """Retrieves the associated stream ID for the VOD
@@ -322,7 +337,7 @@ class Vod:
 
             # create index url
             _index_url = f'https://{_cf_domain}.cloudfront.net/{_vod_uid}/{quality}/index-dvr.m3u8'
-            self._log.debug('Index URL for %s: %s', self.channel.name, _index_url)
+            self._log.debug('Index URL for %s: %s', self.v_id, _index_url)
 
             return _index_url
 
@@ -409,6 +424,14 @@ class Vod:
 
     @staticmethod
     def from_stream_json(stream_json):
+        """
+        Generates a Vod object from a given stream JSON provided by Twitch when fetching channel data.
+
+        :param stream_json: Dict of stream variables
+        :type stream_json: dict
+        :return: Vod containing stream information
+        :rtype: Vod
+        """
         # return empty VOD if no stream
         if not stream_json['stream']:
             return Vod()
@@ -417,20 +440,13 @@ class Vod:
         _stream.s_id = stream_json['stream']['id']
 
         _stream.category = Category(stream_json['stream']['game'])
-        _stream.created_at = datetime.strptime(stream_json['stream']['createdAt'],
-                                                           '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+        _stream.created_at = (datetime.strptime(
+            stream_json['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp())
         _stream.duration = time_since_date(_stream.created_at)
         _stream.published_at = _stream.created_at
         _stream.title = stream_json['broadcastSettings']['title']
 
         return _stream
-
-    @staticmethod
-    def from_json(vod_json):
-        _vod = Vod(vod_info=vod_json)
-        _vod.v_id = int(vod_json['id'])
-
-        return _vod
 
 
 class ArchivedVod(Vod):
@@ -448,13 +464,34 @@ class ArchivedVod(Vod):
                 and self.video_archived == other.video_archived
         return False
 
-    def get_info(self):
-        channel = self.get_vod_owner()
-        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'user_id': channel.id, 'user_name': channel.name,
-                'chapters': str(self.get_chapters()), 'title': self.title, 'description': self.description,
+    def __repr__(self):
+        return str(self.to_dict())
+
+    def to_dict(self):
+        """
+        Returns useful VOD variables.
+
+        :return: dict of VOD attributes
+        """
+        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
                 'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
-                'duration': self.duration, 'muted_segments': str(self.get_muted_segments()),
-                'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
+                'duration': self.duration, 'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
+
+    def get_all_info(self):
+        """
+        Retrieves all info related to the VOD including the channel, chapters, and muted segments.
+
+        :return: dict of all VOD information
+        :rtype: dict
+        """
+        _info = self.to_dict()
+        channel = self.get_vod_owner()
+        _info['chapters'] = str(self.get_chapters())
+        _info['muted_segments'] = str(self.get_muted_segments())
+        _info['channel_id'] = channel.id
+        _info['channel_name'] = channel.name
+
+        return _info
 
     @staticmethod
     def import_from_db(args):
