@@ -42,6 +42,9 @@ class Channel:
 
         return False
 
+    def __hash__(self):
+        return hash(self.id)
+
     def get_info(self):
         return {'id': self.id, 'name': self.name}
 
@@ -57,7 +60,6 @@ class Channel:
         """
         Fetches metadata from Twitch regarding the channel.
         """
-        # todo: catch 'service error' returns
         _r = self._api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
                                    {"login": f"{self.name.lower()}"})
         _user_data = _r.json()[0]['data']['userOrError']
@@ -74,6 +76,12 @@ class Channel:
         Checks if the channel is currently live.
         """
         return self.stream is not None
+
+    def refresh_metadata(self):
+        """
+        Refreshes all metadata for the channel.
+        """
+        self._fetch_metadata()
 
     def get_stream_info(self):
         """Retrieves information relating to a channel if it is currently live.
@@ -211,7 +219,7 @@ class Channel:
             'FilterableVideoTower_Videos', 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
             {"broadcastType": "ARCHIVE", "channelOwnerLogin": f"{self.name.lower()}", "limit": 30, "videoSort": "TIME"})
 
-        _recent_videos = [Vod.from_json(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
+        _recent_videos = [Vod(vod_info=v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
 
         self.log.debug('Recent videos for %s: %s', self.name, _recent_videos)
         return _recent_videos
@@ -242,7 +250,7 @@ class Channel:
                                        _query_vars)
 
             # retrieve list of videos from response
-            _videos = [Vod.from_json(v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
+            _videos = [Vod(vod_info=v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
             self.log.debug('Retrieved videos for %s: %s', self.name, _videos)
             _channel_videos.extend(_videos)
 

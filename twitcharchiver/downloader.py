@@ -1,6 +1,7 @@
 import logging
+import tempfile
+
 from pathlib import Path
-from tempfile import tempdir
 
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.exceptions import VodAlreadyCompleted, VodLockedError
@@ -42,15 +43,15 @@ class DownloadHandler:
         _conf: dict = Configuration.get()
         self._lock_file = None
         self._config_dir: Path = _conf['config_dir']
-        self._with_database: Path = _conf['with_database']
+        self._with_database: bool = bool(_conf['channel'])
         self.vod: ArchivedVod = vod
 
         # build path to lock file based on if stream has an archive or not
         if self.vod.v_id == 0:
-            self._lf_path = Path(tempdir, str(self.vod.s_id), '.lock-stream-only')
+            self._lf_path = Path(tempfile.gettempdir(), str(self.vod.s_id), '.lock-stream-only')
 
         else:
-            self._lf_path = Path(tempdir, str(self.vod.s_id), '.lock')
+            self._lf_path = Path(tempfile.gettempdir(), str(self.vod.s_id), '.lock')
 
     def __enter__(self):
         # check if VOD has been completed already
@@ -77,7 +78,7 @@ class DownloadHandler:
             self._log.debug('Exception occurred inside DownloadHandler: %s', exc_val)
 
     def get_downloaded_vod(self):
-        with Database(Path(self._with_database, 'vods.db')) as db:
+        with Database(Path(self._config_dir, 'vods.db')) as db:
             downloaded_vod = ArchivedVod.import_from_db(db.execute_query(
                 'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
                 {'stream_id': self.vod.s_id}))

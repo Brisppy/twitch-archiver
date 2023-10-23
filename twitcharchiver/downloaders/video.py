@@ -77,8 +77,6 @@ class Video(Downloader):
         self._completed_segments.update(set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
                                              for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))]))
 
-        self.base_url = self._extract_base_url()
-
         # delay archival start for new vods (started less than 5m ago)
         _time_since_start = self.vod.time_since_live()
         if _time_since_start < 300:
@@ -88,6 +86,9 @@ class Video(Downloader):
     def start(self):
         """Starts download the given VOD."""
         try:
+            # fetch url for video segments
+            self.base_url = self._extract_base_url()
+
             # begin download
             self._download_loop()
 

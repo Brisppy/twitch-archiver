@@ -141,10 +141,6 @@ class Api:
         while True:
             _r = self.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
 
-            if 'error' in _r.text:
-                #todo catch this properly
-                self.logging.debug('Timeout or service error encountered when querying GQL API. Error: %s', _r.json())
-
             if _attempt >= 5:
                 self.logging.error('Maximum attempts reached while querying GQL API. Error: %s', _r.json())
                 raise TwitchAPIError(_r)
