@@ -159,7 +159,7 @@ class Channel:
         _available_resolutions.insert(0, _index.media[0].name.strip(' (source)').split('p'))
         self.log.debug('Available resolutions for %s are: %s', self.name, _available_resolutions)
 
-        _index_url = _index.playlists[Vod().get_quality_index(quality, _available_resolutions)].uri
+        _index_url = _index.playlists[Vod.get_quality_index(quality, _available_resolutions)].uri
         self.log.debug('Index for broadcast by %s: %s', self.name, _index_url)
 
         return _index_url

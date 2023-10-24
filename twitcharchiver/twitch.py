@@ -47,7 +47,7 @@ class Category:
         if isinstance(other, self.__class__):
             return bool(self.id == other.id)
 
-    def get_category_info(self):
+    def to_dict(self):
         """
         Generates and returns a dictionary of relevant category information.
 

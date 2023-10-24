@@ -46,12 +46,12 @@ class DownloadHandler:
         self._with_database: bool = bool(_conf['channel'])
         self.vod: ArchivedVod = vod
 
-        # build path to lock file based on if stream has an archive or not
+        # build path to lock file based on if vod being archived or not
         if self.vod.v_id == 0:
-            self._lf_path = Path(tempfile.gettempdir(), str(self.vod.s_id), '.lock-stream-only')
+            self._lock_fp = Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id) + '.lock-stream')
 
         else:
-            self._lf_path = Path(tempfile.gettempdir(), str(self.vod.s_id), '.lock')
+            self._lock_fp = Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id) + '.lock')
 
     def __enter__(self):
         # check if VOD has been completed already
@@ -66,25 +66,27 @@ class DownloadHandler:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # add VOD to database
-        if self._with_database:
-            self.insert_into_database()
-
         # attempt to delete lock file
         if self.remove_lock():
-            pass
+            self._log.debug('Failed to remove lock file.')
 
         if isinstance(exc_val, Exception):
             self._log.debug('Exception occurred inside DownloadHandler: %s', exc_val)
 
+        else:
+            # add VOD to database if exit not due to exception
+            if self._with_database:
+                self.insert_into_database()
+
     def get_downloaded_vod(self):
         with Database(Path(self._config_dir, 'vods.db')) as db:
-            downloaded_vod = ArchivedVod.import_from_db(db.execute_query(
+            # use list comprehension to avoid issues with attempting to import VOD when none returned
+            downloaded_vod = [ArchivedVod.import_from_db(v) for v in db.execute_query(
                 'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
-                {'stream_id': self.vod.s_id}))
+                {'stream_id': self.vod.s_id})]
 
         if downloaded_vod:
-            return downloaded_vod
+            return downloaded_vod[0]
 
         return ArchivedVod()
 
@@ -107,7 +109,7 @@ class DownloadHandler:
         :raises FileExistsError:
         """
         try:
-            self._lock_file = open(self._lf_path, 'x')
+            self._lock_file = open(self._lock_fp, 'x')
 
         except FileExistsError:
             self._log.debug('Lock file exists for VOD %s.', self.vod)
@@ -120,10 +122,11 @@ class DownloadHandler:
         """
         try:
             self._lock_file.close()
+            self._lock_fp.unlink()
 
         except BaseException as e:
             self._log.debug('Failed to remove lock file for VOD %s. %s', self.vod, e)
-            return 1
+            return e
 
     def insert_into_database(self):
         # check if VOD already in database
@@ -138,7 +141,7 @@ class DownloadHandler:
 
             # if already present update it
             if downloaded_vod:
-                db.execute_query(UPDATE_VOD, self.vod)
+                db.execute_query(UPDATE_VOD, self.vod.get_db_insertion_values())
 
             else:
-                db.execute_query(CREATE_VOD, self.vod)
+                db.execute_query(CREATE_VOD, self.vod.get_db_insertion_values())

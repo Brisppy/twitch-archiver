@@ -52,7 +52,7 @@ class Video(Downloader):
         self._worker_pool = ThreadPoolExecutor(max_workers=threads)
 
         # set quality
-        self.__setattr__('quality', quality)
+        self.__setattr__('_quality', quality)
 
         # buffers and progress tracking
         self._completed_segments: set[MpegSegment] = set()
@@ -86,9 +86,6 @@ class Video(Downloader):
     def start(self):
         """Starts download the given VOD."""
         try:
-            # fetch url for video segments
-            self.base_url = self._extract_base_url()
-
             # begin download
             self._download_loop()
 
@@ -105,6 +102,11 @@ class Video(Downloader):
 
         except BaseException as e:
             raise VodDownloadError(e) from e
+
+        finally:
+            # kill download workers
+            self._log.info('Shutting down workers...')
+            self._worker_pool.shutdown()
 
     def _get_thumbnail(self):
         """
@@ -143,9 +145,9 @@ class Video(Downloader):
         except BaseException as e:
             raise VodMergeError(e) from e
 
-        self._log.info('Verifying length of the downloaded VOD and cleaning up temporary files.')
+        self._log.info('Verifying length of the downloaded VOD.')
         if self.verify_length():
-            self._cleanup_temp_files()
+            self._log.info('VOD passed length verification.')
 
         else:
             raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
@@ -345,12 +347,14 @@ class Video(Downloader):
             return float(json.loads(_ts_file_data)['format']['start_time']) * 90000
 
     def _download_loop(self):
-        _index_playlist = m3u8.loads(self.vod.get_index_playlist(self.vod.get_index_url()))
+        _index_url = self.vod.get_index_url(self._quality)
+        _index_playlist = m3u8.loads(self.vod.get_index_playlist(_index_url))
+        self.base_url = self._extract_base_url(_index_url)
 
         while True:
             # refresh mpegts segment playlist
             _prev_index_playlist = _index_playlist
-            _index_playlist = m3u8.loads(self.vod.get_index_playlist(self.vod.get_index_url()))
+            _index_playlist = m3u8.loads(self.vod.get_index_playlist(_index_url))
 
             self._get_m3u8_video(_index_playlist)
 
@@ -385,10 +389,10 @@ class Video(Downloader):
             else:
                 break
 
-    def _extract_base_url(self):
-        _index_url = self.vod.get_index_url()
-        _m = re.findall(r'(?<=\/)(index.*)', _index_url)[0]
-        return _index_url.replace(_m, '')
+    @staticmethod
+    def _extract_base_url(index_url: str):
+        _m = re.findall(r'(?<=\/)(index.*)', index_url)[0]
+        return index_url.replace(_m, '')
 
     def _get_m3u8_video(self, index_playlist: m3u8):
         """Downloads the video for a specified m3u8 playlist.
@@ -528,12 +532,11 @@ class Video(Downloader):
 
         # pass verification if downloaded file is within 2s of expected length
         if 2 >= downloaded_length - self.vod.duration >= -2:
-            self._log.debug('VOD passed length verification.')
             return True
 
         return False
 
-    def _cleanup_temp_files(self):
+    def cleanup_temp_files(self):
         """
         Deletes temporary and transitional files used for archiving VOD video.
         """
