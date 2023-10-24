@@ -162,16 +162,22 @@ class VodAlreadyCompleted(Exception):
 
 class VodUnlockingError(Exception):
     def __init__(self, vod):
-        message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
-                  f"downloaded correctly and remove '.lock.{vod.s_id}-stream-only' file from config directory."
+        if vod.v_id:
+            message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
+                      f"downloaded correctly and remove '.lock.{vod.v_id}' file from config directory."
+        else:
+            message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
+                      f"downloaded correctly and remove '.lock.{vod.s_id}-stream' file from config directory."
 
         super().__init__(message)
 
 
 class VodLockedError(Exception):
     def __init__(self, vod):
-        message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
-                  f"downloaded correctly and remove '.lock.{vod.s_id}-stream-only' file from config directory."
+        if vod.v_id:
+            message = f"Lock file (.lock.{vod.v_id}) already present for VOD {vod.v_id} by {vod.channel.name}."
+        else:
+            message = f"Lock file (.lock.{vod.s_id}-stream) already present for stream {vod.v_id} by {vod.channel.name}."
 
         super().__init__(message)
 

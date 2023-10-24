@@ -1,7 +1,6 @@
 """
 Class for retrieving and storing a Twitch VOD and its associated information.
 """
-import json
 import logging
 import re
 from datetime import datetime, timezone
@@ -15,7 +14,7 @@ from twitcharchiver.api import Api
 from twitcharchiver.channel import Channel
 from twitcharchiver.twitch import Category, Chapters, MpegSegment
 from twitcharchiver.exceptions import TwitchAPIErrorForbidden
-from twitcharchiver.utils import time_since_date, get_stream_id_from_preview_url
+from twitcharchiver.utils import time_since_date
 
 
 class Vod:
@@ -35,7 +34,7 @@ class Vod:
         self._api: Api = Api()
 
         self.v_id: int = vod_id
-        self.s_id: int = stream_id
+        self._s_id: int = stream_id
         self.category: Category = Category()
         self.created_at: float = 0
         self.description: str = ""
@@ -45,7 +44,7 @@ class Vod:
         self.title: str = ""
         self.view_count: int = 0
 
-        self.channel = Channel()
+        self._channel = Channel()
 
         if vod_id:
             self._setup(vod_id)
@@ -69,7 +68,7 @@ class Vod:
         return str(self.to_dict())
 
     def __bool__(self):
-        return bool(self.v_id or self.s_id)
+        return bool(self.v_id or self._s_id)
 
     def _setup(self, vod_id: int):
         """
@@ -88,8 +87,6 @@ class Vod:
 
         if not self.v_id:
             self.v_id = vod_info['id']
-        if not self.s_id:
-            self.s_id = self._get_stream_id()
         self.category = Category(vod_info['game'])
         self.duration = vod_info['lengthSeconds']
         self.published_at = \
@@ -114,10 +111,8 @@ class Vod:
         """
         Retrieves metadata for a given VOD ID. Formatting is done to ensure backwards compatibility.
         """
-        _channel: Channel = self.get_vod_owner()
-
         _r = self._api.gql_request('VideoMetadata', 'c25707c1e5176320ceac6b447d052480887e23bc794ca1d02becd0bcc91844fe',
-                                   {'channelLogin': _channel.name, 'videoID': str(self.v_id)})
+                                   {'channelLogin': self.channel.name, 'videoID': str(self.v_id)})
 
         _vod_info = _r.json()[0]['data']['video']
         self._parse_dict(_vod_info)
@@ -163,7 +158,7 @@ class Vod:
                                     "isVodOrCollection": True, "vodID": str(self.v_id)})
 
         _vod_category = Category(_r.json()[0]['data']['video']['game'])
-        self._log.debug('Category for VOD %s is %s', self.v_id, _vod_category.get_category_info)
+        self._log.debug('Category for VOD %s is %s', self.v_id, _vod_category)
 
         return _vod_category
 
@@ -174,16 +169,15 @@ class Vod:
         :return: True if VOD live
         :rtype: bool
         """
-        channel = self.get_vod_owner()
         # wait until 1m has passed since vod created time as the stream api may not have updated yet
         _time_since_created = time_since_date(self.created_at)
         if _time_since_created < 60:
             self._log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.',
-                            channel.name)
+                            self.channel.name)
             sleep(60 - _time_since_created)
 
         # check if channel is offline
-        _stream_info = channel.get_stream_info()
+        _stream_info = self.channel.get_stream_info()
 
         if _stream_info['stream']:
             try:
@@ -201,10 +195,10 @@ class Vod:
             except IndexError:
                 pass
 
-            self._log.debug('VOD is not paired with the current stream.', channel.name)
+            self._log.debug('VOD is not paired with the current stream.', self.channel.name)
             return False
 
-        self._log.debug('%s is offline and so VOD must be offline.', channel.name)
+        self._log.debug('%s is offline and so VOD must be offline.', self.channel.name)
         return False
 
     def get_chapters(self):
@@ -252,23 +246,47 @@ class Vod:
         self._log.debug('No muted segments found for VOD %s.', self.v_id)
         return []
 
-    def get_vod_owner(self):
+    def _get_channel(self):
         """Retrieves the channel which a given VOD belongs to
 
         :return: Channel containing `id` and `name` of VOD owner
         :rtype: Channel
         """
-        if not self.channel:
-            _r = self._api.gql_request('ComscoreStreamingQuery',
-                                       'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
-                                       {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
-                                        "isVodOrCollection": True, "vodID": str(self.v_id)})
+        _r = self._api.gql_request('ComscoreStreamingQuery',
+                                   'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
+                                   {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
+                                    "isVodOrCollection": True, "vodID": str(self.v_id)})
 
-            _owner = _r.json()[0]['data']['video']['owner']
-            self.channel = Channel(_owner['displayName'])
+        _channel = Channel(_r.json()[0]['data']['video']['owner']['displayName'])
+        return _channel
 
-        self._log.debug('Owner of VOD %s is %s.', self.v_id, self.channel)
-        return self.channel
+    @property
+    def channel(self):
+        """
+        Only fetch and store channel for the VOD if it is used.
+        """
+        if not self._channel:
+            self._channel = self._get_channel()
+
+        return self._channel
+
+    @channel.setter
+    def channel(self, value):
+        self._channel = value
+
+    @property
+    def s_id(self):
+        """
+        Only fetch and store stream_id for the VOD if it is used.
+        """
+        if not self._s_id:
+            self._s_id = self._get_stream_id()
+
+        return self._s_id
+
+    @s_id.setter
+    def s_id(self, value):
+        self._s_id = value
 
     def _get_stream_id(self):
         """Retrieves the associated stream ID for the VOD
@@ -276,14 +294,14 @@ class Vod:
         :return: stream id
         :rtype: int
         """
+        if self.thumbnail_url != 'https://vod-secure.twitch.tv/_404/404_processing_%{width}x%{height}.png':
+            return self.thumbnail_url.split('/')[5].split('_')[2]
+
         _r = self._api.gql_request('VideoPlayer_VODSeekbarPreviewVideo',
                                    '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
                                    {'includePrivate': False, 'videoID': str(self.v_id)})
 
-        _stream_id = get_stream_id_from_preview_url(_r.json()[0]['data']['video']['seekPreviewsURL'])
-
-        self._log.debug('Stream ID for VOD %s: %s', self.v_id, _stream_id)
-        return _stream_id
+        return _r.json()[0]['data']['video']['seekPreviewsURL'].split('/')[3].split('_')[-2]
 
     def get_index_url(self, quality: str = 'best'):
         """Retrieves an index of m3u8 streams for a given VOD.
@@ -474,22 +492,23 @@ class ArchivedVod(Vod):
         :return: dict of VOD attributes
         """
         return {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
-                'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
+                'created_at': datetime.utcfromtimestamp(self.created_at),
+                'published_at': datetime.utcfromtimestamp(self.published_at), 'thumbnail_url': self.thumbnail_url,
                 'duration': self.duration, 'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
 
-    def get_all_info(self):
+    def get_db_insertion_values(self):
         """
         Retrieves all info related to the VOD including the channel, chapters, and muted segments.
 
         :return: dict of all VOD information
         :rtype: dict
         """
+
         _info = self.to_dict()
-        channel = self.get_vod_owner()
+        _info['channel_id'] = self.channel.id
+        _info['channel_name'] = self.channel.name
         _info['chapters'] = str(self.get_chapters())
         _info['muted_segments'] = str(self.get_muted_segments())
-        _info['channel_id'] = channel.id
-        _info['channel_name'] = channel.name
 
         return _info
 
@@ -502,6 +521,9 @@ class ArchivedVod(Vod):
         :param args: {vod_id, stream_id, created_at, chat_archived, video_archived}
         :type args: tuple
         """
+        if len(args) != 5:
+            return
+
         _archived_vod = ArchivedVod(args[3], args[4])
         _archived_vod.v_id = args[0]
         _archived_vod.s_id = args[1]

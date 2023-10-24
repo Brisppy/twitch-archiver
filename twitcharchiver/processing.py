@@ -16,7 +16,7 @@ from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
 from twitcharchiver.database import Database
-from twitcharchiver.exceptions import RequestError, VodDownloadError, VodMergeError
+from twitcharchiver.exceptions import RequestError, VodDownloadError, VodMergeError, VodLockedError
 from twitcharchiver.utils import send_push
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -165,29 +165,30 @@ class Processing:
                 continue
 
     def _start_download(self, _downloader):
-        with DownloadHandler(_downloader.vod) as _dh:
-            try:
+        try:
+            with DownloadHandler(_downloader.vod) as _dh:
                 _downloader.start()
+                _downloader.cleanup_temp_files()
 
-            # catch user exiting and remove lock file
-            except KeyboardInterrupt:
-                self.log.info('Termination signal received, halting VOD downloader.')
-                _dh.remove_lock()
-                sys.exit(0)
+        except VodLockedError:
+            return
 
-            # catch halting errors
-            except (RequestError, VodDownloadError, VodMergeError) as e:
-                self.log.error('Error downloading VOD %s.', _downloader.vod, exc_info=True)
-                send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
+        # catch user exiting and remove lock file
+        except KeyboardInterrupt:
+            self.log.info('Termination signal received, halting VOD downloader.')
+            sys.exit(0)
 
-            # catch unhandled exceptions
-            except BaseException as e:
-                self.log.error('Error downloading VOD %s.', _downloader.vod, exc_info=True)
-                send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
+        # catch halting errors
+        except (RequestError, VodDownloadError, VodMergeError) as e:
+            self.log.error('Error downloading VOD %s.', _downloader.vod, exc_info=True)
+            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
+            sys.exit(1)
 
-            finally:
-                _dh.remove_lock()
-                sys.exit(1)
+        # catch unhandled exceptions
+        except BaseException as e:
+            self.log.error('Error downloading VOD %s.', _downloader.vod, exc_info=True)
+            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
+            sys.exit(1)
 
     def get_stream_without_archive(self, channel: Channel, stream=None):
         """Archives a live stream without a paired VOD.

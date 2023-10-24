@@ -54,10 +54,10 @@ class Chat(Downloader):
                 return []
 
             else:
+                self._log.debug('Chat log found for VOD %s.', self.vod)
                 return chat_log
 
         except FileNotFoundError:
-            self._log.debug('No previous chat log found.')
             return []
 
     def start(self):

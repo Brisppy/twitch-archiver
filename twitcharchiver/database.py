@@ -147,16 +147,16 @@ create_vods_table = [
 
 CREATE_VOD = """
 INSERT INTO
-vods (stream_id, vod_id, user_id, user_name, chapters, title, description, created_at, published_at, thumbnail_url,
-      duration, muted_segments, chat_archived, video_archived)
+vods (stream_id, vod_id, title, description, created_at, published_at, thumbnail_url, duration, user_id, user_name,
+      chapters, muted_segments, chat_archived, video_archived)
 VALUES
 (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 UPDATE_VOD = """
 UPDATE vods
-SET stream_id=?, vod_id=?, user_id=?, user_name=?, chapters=?, title=?, description=?, created_at=?, published_at=?,
-    thumbnail_url=?, duration=?, muted_segments=?, chat_archived=?, video_archived=?
+SET stream_id=?, vod_id=?, title=?, description=?, created_at=?, published_at=?, thumbnail_url=?, duration=?, user_id=?,
+    user_name=?, chapters=?, muted_segments=?, chat_archived=?, video_archived=?
 WHERE stream_id IS ?;
 """
 
