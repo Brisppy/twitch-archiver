@@ -78,7 +78,7 @@ class Chapters:
         return bool(self._moments)
 
     def __repr__(self):
-        return str([str(m) for m in self._moments])
+        return str([m for m in self._moments])
 
     def __iter__(self):
         for m in self._moments:
