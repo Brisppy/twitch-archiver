@@ -45,6 +45,9 @@ class Channel:
     def __hash__(self):
         return hash(self.id)
 
+    def __bool__(self):
+        return bool(self.id)
+
     def get_info(self):
         return {'id': self.id, 'name': self.name}
 

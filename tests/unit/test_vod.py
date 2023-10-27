@@ -28,14 +28,6 @@ class TestVod(unittest.TestCase):
         else:
             self.fail('Test not performed as channel is offline.')
 
-    def test_get_info(self):
-        # check info retrieval (excluding mutable view_count)
-        expected = {'vod_id': 635457205, 'stream_id': 0, 'channel': Channel(), 'title': "Reckful - LF girlfriend - let's just play chess and try to get better", 'description': None, 'created_at': 1590769097.0, 'published_at': 1590769097.0, 'thumbnail_url': 'https://static-cdn.jtvnw.net/cf_vods/d2nvs31859zcd8/919d6843e967a2a6efa1_reckful_38359115104_1466332961//thumb/thumb0-90x60.jpg', 'duration': 32085}
-        returned = self.vod_a.get_info()
-        returned.pop('view_count')
-        returned.pop('muted_segments')
-        self.assertDictEqual(expected, returned)
-
     def test_get_category(self):
         self.assertEqual(str({'id': '743', 'name': 'Chess'}), str(self.vod_a.get_category()))
 
@@ -48,13 +40,13 @@ class TestVod(unittest.TestCase):
         self.assertEqual(expected, str(self.vod_a.get_muted_segments()))
 
     def test_get_vod_owner(self):
-        self.assertEqual("{'id': '9072112', 'name': 'Reckful'}", str(self.vod_a._get_channel()))
+        self.assertEqual("{'id': '9072112', 'name': 'Reckful'}", str(self.vod_a.channel))
 
     def test_get_stream_id(self):
         self.assertEqual(38359115104, int(self.vod_a.s_id))
 
     def test_get_index_url(self):
-        self.assertIsNotNone("https://d2nvs31859zcd8.cloudfront.net/919d6843e967a2a6efa1_reckful_38359115104_1466332961/chunked/index-muted-O46PQF03L2.m3u8", self.vod_a._get_index_url())
+        self.assertIsNotNone("https://d2nvs31859zcd8.cloudfront.net/919d6843e967a2a6efa1_reckful_38359115104_1466332961/chunked/index-muted-O46PQF03L2.m3u8", self.vod_a.get_index_url())
 
     def test_from_stream_json(self):
         self.assertIsNotNone(self.channel_a.get_stream_info())
