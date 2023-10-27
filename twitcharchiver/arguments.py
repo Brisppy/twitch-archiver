@@ -95,6 +95,15 @@ class Arguments:
         # separate comma-separated values
         parsed_args: list = []
 
+        # extract vods ids if file being passed
+        if cls.get('from_file'):
+            collected: list = []
+            for arg in cls.get(arg_name).split(','):
+                # convert list to Path() variables and store for further proocessing
+                collected.extend(Arguments.load_file_line_by_line(Path(arg)))
+
+            cls.set(arg_name, ','.join(collected))
+
         # format urls to just vod ids or channel names
         for arg in cls.get(arg_name).split(','):
             # skip empty args
@@ -114,20 +123,16 @@ class Arguments:
             else:
                 parsed_args.append(arg)
 
-        if cls.get('from_file'):
-            # convert list to Path() variables
-            parsed_args = [Path(arg) for arg in parsed_args]
-
         cls.set(arg_name, parsed_args)
 
     @classmethod
-    def load_file_line_by_line(cls, file_path: str, var: str):
+    def load_file_line_by_line(cls, file_path: Path):
         """
         Loads a given file line by line into the provided configuration variable.
         """
         try:
             with open(Path(file_path), 'r') as _fp:
-                cls.set(var, _fp.readlines())
+                return [line.rstrip() for line in _fp]
 
         except BaseException as e:
             cls._log.error('Failed to read from provided input file. %s', e)
