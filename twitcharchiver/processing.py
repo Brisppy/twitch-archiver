@@ -34,8 +34,13 @@ class Processing:
         self.archive_video = conf['video']
         self.archive_only = conf['archive_only']
         self.config_dir = conf['config_dir']
+        # store parent dir for creation of channel subdirectories stored in output_dir
+        self._parent_dir = conf['directory']
+        self.output_dir = self._parent_dir
         self.live_only = conf['live_only']
         self.pushbullet_key = conf['pushbullet_key']
+        self.quality = conf['quality']
+        self.quiet = conf['quiet']
         self.threads = conf['threads']
 
         # create signal handler for graceful removal of lock files
@@ -116,6 +121,8 @@ class Processing:
                 self.log.info('No new VODs are available in the requested formats for %s.', channel.name)
                 continue
 
+            # set output directory to subdir of channel name
+            self.output_dir = Path(self._parent_dir, _channel_name)
             self.vod_downloader(download_queue)
 
     def vod_downloader(self, download_queue: list[ArchivedVod]):
@@ -146,10 +153,10 @@ class Processing:
                         continue
 
             if not _vod.video_archived and self.archive_video:
-                _video_download_queue.append(Video(_vod))
+                _video_download_queue.append(Video(_vod, self.output_dir, self.quality, self.quiet, self.threads))
 
             if not _vod.chat_archived and self.archive_chat:
-                _chat_download_queue.append(Chat(_vod))
+                _chat_download_queue.append(Chat(_vod, self.output_dir, self.quiet))
 
         for _downloader in _video_download_queue:
             self._start_download(_downloader)
