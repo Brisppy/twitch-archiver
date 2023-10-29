@@ -86,7 +86,7 @@ def sanitize_text(string):
     :param string: string of characters to sanitize
     :return: sanitized string
     """
-    return re.sub(r'[/\\:|<>"?*\0-\x1f]]', '_', string)
+    return re.sub(r'[/\\:|<>"?*\0-\x1f]', '_', string)
 
 
 def sanitize_date(date):
