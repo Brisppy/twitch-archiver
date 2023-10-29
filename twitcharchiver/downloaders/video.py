@@ -59,8 +59,9 @@ class Video(Downloader):
         self._muted_segments: set[MpegSegment] = set()
 
         # vod-specific vars
-        self.output_dir: Path = None
         self.vod: Vod = vod
+        self.output_dir = Path(self._parent_dir,
+                               build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
 
         self.base_url: str = ""
 
@@ -69,7 +70,6 @@ class Video(Downloader):
 
     def _do_setup(self):
         # create output dir and temporary buffer dir
-        self.output_dir = build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id)
         Path(self.output_dir, 'parts').mkdir(parents=True, exist_ok=True)
         Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)).mkdir(parents=True, exist_ok=True)
 
@@ -140,7 +140,7 @@ class Video(Downloader):
             self._log.error("Corrupt segments found while converting VOD. Attempting to retry parts:"
                             "\n%s", ', '.join([str(p) for p in c.parts]))
 
-            self._repair_vod_corruptions(c)
+            self._repair_vod_corruptions(c.parts)
 
         except BaseException as e:
             raise VodMergeError(e) from e
@@ -153,40 +153,45 @@ class Video(Downloader):
             raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
                                 "'vod/parts' directory if VOD still available.")
 
-    def _repair_vod_corruptions(self, corruption):
+    def _repair_vod_corruptions(self, corruption: list[MpegSegment]):
         # check vod still available
         # todo: test if this works, originally called get_index_playlist()
-        if not self.vod.get_index_url(self._quality):
+        _index_url = self.vod.get_index_url(self._quality)
+        if not _index_url:
             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                    "unable to re-download the missing segments. Either re-download "
                                    "the VOD if it is still available, or manually convert 'merged.ts' "
-                                   f"using FFmpeg. Corrupt parts:\n{', '.join(corruption.f_parts)}")
+                                   f"using FFmpeg. Corrupt parts:\n{str(corruption)}")
 
         # rename corrupt segments
-        for part in corruption.parts:
+        for part in corruption:
             # convert part number to segment file
-            part = str(f'{int(part):05d}' + '.ts')
+            part_fp = str(f'{part.id:05d}' + '.ts')
 
             # rename part
-            shutil.move(Path(self.output_dir, 'parts', part),
-                        Path(self.output_dir, 'parts', part + '.corrupt'))
+            shutil.move(Path(self.output_dir, 'parts', part_fp),
+                        Path(self.output_dir, 'parts', part_fp + '.corrupt'))
+
+            # remove from completed segments
+            self._completed_segments.remove(part)
 
         # download and combine vod again
         try:
-            _index_playlist = m3u8.loads(self.vod.get_index_playlist(self.vod.get_index_url()))
+            _index_playlist = m3u8.loads(self.vod.get_index_playlist(_index_url))
             self._get_m3u8_video(_index_playlist)
 
             # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes
             # so we can work out if a segment is corrupt on twitch's end or ours
-            for part_num in corruption.parts:
-                part = str(f'{int(part_num):05d}' + '.ts')
+            for part in corruption:
+                part_fp = str(f'{part.id:05d}' + '.ts')
 
                 # compare hashes
-                if get_hash(Path(self.output_dir, 'parts', part)) == \
-                        get_hash(Path(self.output_dir, 'parts', part + '.corrupt')):
-                    self._log.debug(f"Re-downloaded .ts segment %s matches corrupt one, "
-                                    "assuming corruption is on Twitch's end and ignoring.", part_num)
-                    self._muted_segments.add(MpegSegment(part_num, muted=True))
+                if get_hash(Path(self.output_dir, 'parts', part_fp)) == \
+                        get_hash(Path(self.output_dir, 'parts', part_fp + '.corrupt')):
+                    self._log.debug("Re-downloaded .ts segment %s matches corrupt one, "
+                                    "assuming corruption is on Twitch's end and ignoring.", part.id)
+                    part.muted = True
+                    self._muted_segments.add(part)
 
             self._merge()
 
@@ -194,7 +199,7 @@ class Video(Downloader):
             raise VodDownloadError(
                 "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
                 "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
-                f"'parts' folder if issue persists.\n{', '.join(c.f_parts)}") from e
+                f"'parts' folder if issue persists.\n{str(corruption)}") from e
 
     def _write_chapters(self):
         # retrieve vod chapters
@@ -206,7 +211,7 @@ class Video(Downloader):
 
             # format and write vod chapters to parts dir
             with open(Path(self.output_dir, 'parts', 'chapters.txt'), 'w', encoding='utf8') as chapters_file:
-                chapters_file.write(format_vod_chapters(vod_chapters))
+                chapters_file.write(str(format_vod_chapters(vod_chapters)))
 
         except BaseException as e:
             self._log.error('Failed to retrieve or insert chapters into VOD file. %s', e)
@@ -319,6 +324,7 @@ class Video(Downloader):
 
                     # ignore if corrupt packet within ignore_corruptions range
                     if _corrupt_part in self._muted_segments:
+                        _corrupt_part.muted = True
                         self._log.debug('Ignoring corrupt packet as part in whitelist. Part: %s', _corrupt_part)
 
                     else:
@@ -409,8 +415,8 @@ class Video(Downloader):
             if segment not in self._completed_segments:
                 _buffer.add(segment)
 
-                if segment.muted:
-                    self._muted_segments.add(segment)
+            if segment.muted:
+                self._muted_segments.add(segment)
 
         if _buffer:
             download_error = []
