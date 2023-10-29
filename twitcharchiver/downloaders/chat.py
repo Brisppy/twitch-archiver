@@ -36,7 +36,8 @@ class Chat(Downloader):
         # vod-specific vars
         self.vod: Vod = vod
         # create output dir
-        self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
+        self.output_dir = Path(self._parent_dir,
+                               build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
         # load chat from file if a download was attempted previously
