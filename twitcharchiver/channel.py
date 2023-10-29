@@ -2,7 +2,6 @@
 Class for retrieving and storing information related to channels and users.
 """
 import logging
-import sys
 from random import randrange
 
 import m3u8
@@ -21,7 +20,7 @@ class Channel:
         :type owner: dict
         """
         self._api: Api = Api()
-        self.log = logging.getLogger()
+        self._log = logging.getLogger()
 
         self.id: int = 0
         self.name: str = channel_name
@@ -34,7 +33,7 @@ class Channel:
             self._parse_dict(self._fetch_metadata())
 
     def __repr__(self):
-        return str({'id': self.id, 'name': self.name})
+        return str(self.get_info())
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -49,7 +48,7 @@ class Channel:
         return bool(self.id)
 
     def get_info(self):
-        return {'id': self.id, 'name': self.name}
+        return {'id': self.id, 'name': self.name, 'stream': self.stream}
 
     def _parse_dict(self, owner: dict):
         """
@@ -66,7 +65,7 @@ class Channel:
         _r = self._api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
                                    {"login": f"{self.name.lower()}"})
         _user_data = _r.json()[0]['data']['userOrError']
-        self.log.debug('User data for %s: %s', self.name, _user_data)
+        self._log.debug('User data for %s: %s', self.name, _user_data)
 
         # failure return contains "userDoesNotExist" key
         if "userDoesNotExist" not in _user_data.keys():
@@ -102,10 +101,10 @@ class Channel:
         _stream_info = _r.json()[0]['data']['user']
 
         if _stream_info:
-            self.log.debug('Stream info for %s: %s', self.name, _stream_info)
+            self._log.debug('Stream info for %s: %s', self.name, _stream_info)
             return _stream_info
 
-        self.log.debug('No broadcast info found for %s', self.name)
+        self._log.debug('No broadcast info found for %s', self.name)
         return {}
 
     def get_broadcast_vod_id(self):
@@ -122,10 +121,10 @@ class Channel:
 
         if _channel_video_length:
             broadcast_info = _channel_video_length[0]['node']['id']
-            self.log.debug('Live broadcast info: %s', broadcast_info)
+            self._log.debug('Live broadcast info: %s', broadcast_info)
             return int(broadcast_info)
 
-        self.log.debug('No data returned by ChannelVideoLength API for %s.', self.name)
+        self._log.debug('No data returned by ChannelVideoLength API for %s.', self.name)
         return int()
 
     def get_stream_index(self, quality: str = 'chunked'):
@@ -160,10 +159,10 @@ class Channel:
                                   m[0].group_id != 'chunked']
         # insert 'chunked' stream separately as its named differently and strip ' (source)' from name
         _available_resolutions.insert(0, _index.media[0].name.strip(' (source)').split('p'))
-        self.log.debug('Available resolutions for %s are: %s', self.name, _available_resolutions)
+        self._log.debug('Available resolutions for %s are: %s', self.name, _available_resolutions)
 
         _index_url = _index.playlists[Vod.get_quality_index(quality, _available_resolutions)].uri
-        self.log.debug('Index for broadcast by %s: %s', self.name, _index_url)
+        self._log.debug('Index for broadcast by %s: %s', self.name, _index_url)
 
         return _index_url
 
@@ -175,7 +174,7 @@ class Channel:
             index_url = self.get_stream_index()
 
         _stream_playlist = self._api.get_request(index_url).text
-        self.log.debug('Playlist for broadcast by %s: %s', self.name, _stream_playlist)
+        self._log.debug('Playlist for broadcast by %s: %s', self.name, _stream_playlist)
 
         return _stream_playlist
 
@@ -206,7 +205,7 @@ class Channel:
         _r = self._api.post_request('https://gql.twitch.tv/gql', j={'query': _q}, h=_h)
 
         _access_token = _r.json()['data']['streamPlaybackAccessToken']
-        self.log.debug('Access token retrieved for %s. %s', self.name, _access_token)
+        self._log.debug('Access token retrieved for %s. %s', self.name, _access_token)
 
         return _access_token
 
@@ -224,7 +223,7 @@ class Channel:
 
         _recent_videos = [Vod(vod_info=v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
 
-        self.log.debug('Recent videos for %s: %s', self.name, _recent_videos)
+        self._log.debug('Recent videos for %s: %s', self.name, _recent_videos)
         return _recent_videos
 
     def get_latest_video(self):
@@ -254,7 +253,7 @@ class Channel:
 
             # retrieve list of videos from response
             _videos = [Vod(vod_info=v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
-            self.log.debug('Retrieved videos for %s: %s', self.name, _videos)
+            self._log.debug('Retrieved videos for %s: %s', self.name, _videos)
             _channel_videos.extend(_videos)
 
             if _r.json()[0]['data']['user']['videos']['pageInfo']['hasNextPage'] is not False:
@@ -265,8 +264,8 @@ class Channel:
                 break
 
         if _channel_videos:
-            self.log.debug('Full list of VODs for %s: %s', self.name, _channel_videos)
+            self._log.debug('Full list of VODs for %s: %s', self.name, _channel_videos)
             return _channel_videos
 
-        self.log.debug('No VODs found for %s.', self.name)
+        self._log.debug('No VODs found for %s.', self.name)
         return []
