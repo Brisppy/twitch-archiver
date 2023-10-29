@@ -93,6 +93,13 @@ class Video(Downloader):
             self._merge()
             self._get_thumbnail()
 
+            if self.verify_length():
+                self._log.info('VOD passed length verification.')
+
+            else:
+                raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
+                                    "'vod/parts' directory if VOD still available.")
+
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.warning('HTTP code 403 or 404 encountered, VOD %s was likely deleted.', self.vod.v_id)
             with open(Path(self.output_dir, '.ignorelength'), 'w', encoding='utf8') as _:
@@ -144,14 +151,6 @@ class Video(Downloader):
 
         except BaseException as e:
             raise VodMergeError(e) from e
-
-        self._log.info('Verifying length of the downloaded VOD.')
-        if self.verify_length():
-            self._log.info('VOD passed length verification.')
-
-        else:
-            raise VodMergeError('VOD length outside of acceptable range. If error persists delete '
-                                "'vod/parts' directory if VOD still available.")
 
     def _repair_vod_corruptions(self, corruption: list[MpegSegment]):
         # check vod still available
