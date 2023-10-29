@@ -5,7 +5,7 @@ from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.exceptions import VodAlreadyCompleted, VodLockedError
-from twitcharchiver.database import Database, UPDATE_VOD, CREATE_VOD
+from twitcharchiver.database import Database, INSERT_VOD
 from twitcharchiver.vod import ArchivedVod
 
 
@@ -150,7 +150,7 @@ class DownloadHandler:
                 # set flags for updating
                 self.vod.chat_archived = self.vod.chat_archived or downloaded_vod.chat_archived
                 self.vod.video_archived = self.vod.video_archived or downloaded_vod.video_archived
-                db.execute_query(UPDATE_VOD, self.vod.get_db_insertion_values())
+                db.execute_query(INSERT_VOD, self.vod.ordered_db_dict())
 
             else:
-                db.execute_query(CREATE_VOD, self.vod.get_db_insertion_values())
+                db.execute_query(INSERT_VOD, self.vod.ordered_db_dict())

@@ -153,9 +153,11 @@ class Processing:
                         continue
 
             if not _vod.video_archived and self.archive_video:
+                _vod.video_archived = True
                 _video_download_queue.append(Video(_vod, self.output_dir, self.quality, self.quiet, self.threads))
 
             if not _vod.chat_archived and self.archive_chat:
+                _vod.chat_archived = True
                 _chat_download_queue.append(Chat(_vod, self.output_dir, self.quiet))
 
         for _downloader in _video_download_queue:
@@ -165,7 +167,7 @@ class Processing:
         _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
         futures = []
         for _downloader in _chat_download_queue:
-            futures.append(_worker_pool.submit(_downloader.start))
+            futures.append(_worker_pool.submit(self._start_download, _downloader))
 
         for future in futures:
             if future.result():

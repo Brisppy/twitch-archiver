@@ -125,39 +125,28 @@ create_vods_table = [
         "vod_id"            INTEGER,
         "stream_id"         INTEGER,
         "user_id"           INTEGER,
-        "user_login"        TEXT,
         "user_name"         TEXT,
         "chapters"          TEXT,
         "title"             TEXT,
         "description"       TEXT,
         "created_at"        DATETIME,
         "published_at"      DATETIME,
-        "url"               TEXT,
         "thumbnail_url"     TEXT,
-        "view_count"        TEXT,
         "duration"          INTEGER,
         "muted_segments"    TEXT,
-        "store_directory"   TEXT,
-        "video_archived"    BIT,
         "chat_archived"     BIT,
+        "video_archived"    BIT,
         PRIMARY KEY("vod_id","stream_id")
     );""",
     f"PRAGMA user_version = {__db_version__};",
     "PRAGMA journal_mode=WAL;"]
 
-CREATE_VOD = """
-INSERT INTO
-vods (stream_id, vod_id, title, description, created_at, published_at, thumbnail_url, duration, user_id, user_name,
-      chapters, muted_segments, chat_archived, video_archived)
+INSERT_VOD = """
+REPLACE INTO
+vods (vod_id, stream_id, user_id, user_name, chapters, title, description, created_at, published_at, thumbnail_url, 
+      duration, muted_segments, chat_archived, video_archived)
 VALUES
 (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-"""
-
-UPDATE_VOD = """
-UPDATE vods
-SET stream_id=?, vod_id=?, title=?, description=?, created_at=?, published_at=?, thumbnail_url=?, duration=?, user_id=?,
-    user_name=?, chapters=?, muted_segments=?, chat_archived=?, video_archived=?
-WHERE stream_id IS ?;
 """
 
 # change pk from id to user_id + created_at
