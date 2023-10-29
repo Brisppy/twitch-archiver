@@ -497,7 +497,7 @@ class ArchivedVod(Vod):
                 'published_at': datetime.utcfromtimestamp(self.published_at), 'thumbnail_url': self.thumbnail_url,
                 'duration': self.duration, 'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
 
-    def get_db_insertion_values(self):
+    def ordered_db_dict(self):
         """
         Retrieves all info related to the VOD including the channel, chapters, and muted segments.
 
@@ -505,13 +505,12 @@ class ArchivedVod(Vod):
         :rtype: dict
         """
 
-        _info = self.to_dict()
-        _info['channel_id'] = self.channel.id
-        _info['channel_name'] = self.channel.name
-        _info['chapters'] = str(self.get_chapters())
-        _info['muted_segments'] = str(self.get_muted_segments())
-
-        return _info
+        return {'vod_id': self.v_id, 'stream_id': self._s_id, 'user_id': self.channel.id,
+                'user_name': self.channel.name, 'chapters': str(self.get_chapters()), 'title': self.title,
+                'description': self.description, 'created_at': datetime.utcfromtimestamp(self.created_at),
+                'published_at': datetime.utcfromtimestamp(self.published_at), 'thumbnail_url': self.thumbnail_url,
+                'duration': self.duration, 'muted_segments': str(self.get_muted_segments()),
+                'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
 
     @staticmethod
     def import_from_db(args):
@@ -530,12 +529,13 @@ class ArchivedVod(Vod):
         _archived_vod.s_id = args[1]
 
         # format date if using format prior to 4.0.0
-        if isinstance(args[2], str):
+        if 'Z' in args[2]:
             _archived_vod.created_at = \
                 datetime.strptime(args[2], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
         else:
-            _archived_vod.created_at = args[2]
+            _archived_vod.created_at = \
+                datetime.strptime(args[2], '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc).timestamp()
 
         return _archived_vod
 
