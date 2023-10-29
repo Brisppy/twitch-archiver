@@ -54,7 +54,7 @@ class Channel:
         """
         Parses information from 'owner' object returned from Twitch.
         """
-        self.id = owner['id']
+        self.id = int(owner['id'])
         self.name = owner['displayName']
         self.stream = owner['stream']
 

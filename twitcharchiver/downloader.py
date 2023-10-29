@@ -25,6 +25,12 @@ class Downloader:
         self.__setattr__('_parent_dir', parent_dir)
         self.__setattr__('_quiet', quiet)
 
+    def start(self):
+        return
+
+    def cleanup_temp_files(self):
+        return
+
 
 class DownloadHandler:
     """
