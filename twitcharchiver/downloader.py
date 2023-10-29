@@ -136,11 +136,14 @@ class DownloadHandler:
                 {'stream_id': self.vod.s_id}))
 
             # set appropriate chat and video flags
-            self.vod.chat_archived = self.vod.chat_archived or downloaded_vod.chat_archived
-            self.vod.video_archived = self.vod.video_archived or downloaded_vod.video_archived
+            self.vod.chat_archived = self.vod.chat_archived
+            self.vod.video_archived = self.vod.video_archived
 
             # if already present update it
             if downloaded_vod:
+                # set flags for updating
+                self.vod.chat_archived = self.vod.chat_archived or downloaded_vod.chat_archived
+                self.vod.video_archived = self.vod.video_archived or downloaded_vod.video_archived
                 db.execute_query(UPDATE_VOD, self.vod.get_db_insertion_values())
 
             else:
