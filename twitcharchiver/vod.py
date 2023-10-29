@@ -86,7 +86,7 @@ class Vod:
         self._log.debug('Parsing provided metadata for VOD %s: %s', vod_info['id'], vod_info)
 
         if not self.v_id:
-            self.v_id = vod_info['id']
+            self.v_id = int(vod_info['id'])
         self.category = Category(vod_info['game'])
         self.duration = vod_info['lengthSeconds']
         self.published_at = \
@@ -142,7 +142,7 @@ class Vod:
 
         :return: dict of VOD attributes
         """
-        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
+        return {'vod_id': self.v_id, 'stream_id': self._s_id, 'title': self.title, 'description': self.description,
                 'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
                 'duration': self.duration}
 
@@ -195,7 +195,7 @@ class Vod:
             except IndexError:
                 pass
 
-            self._log.debug('VOD is not paired with the current stream.', self.channel.name)
+            self._log.debug('VOD is not paired with the current stream by %s.', self.channel.name)
             return False
 
         self._log.debug('%s is offline and so VOD must be offline.', self.channel.name)
@@ -205,7 +205,7 @@ class Vod:
         """Retrieves the chapters for a given Twitch VOD.
 
         :return: Retrieves any chapters for the VOD, or a single chapter with the VOD category otherwise.
-        :rtype: list[Chapters]
+        :rtype: Chapters
         """
         _r = self._api.gql_request('VideoPlayer_ChapterSelectButtonVideo',
                                    '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
@@ -295,13 +295,14 @@ class Vod:
         :rtype: int
         """
         if self.thumbnail_url != 'https://vod-secure.twitch.tv/_404/404_processing_%{width}x%{height}.png':
-            return self.thumbnail_url.split('/')[5].split('_')[2]
+            # use index for end of list as users with '_' in their name will break this
+            return int(self.thumbnail_url.split('/')[5].split('_')[-2])
 
         _r = self._api.gql_request('VideoPlayer_VODSeekbarPreviewVideo',
                                    '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
                                    {'includePrivate': False, 'videoID': str(self.v_id)})
 
-        return _r.json()[0]['data']['video']['seekPreviewsURL'].split('/')[3].split('_')[-2]
+        return int(_r.json()[0]['data']['video']['seekPreviewsURL'].split('/')[3].split('_')[-2])
 
     def get_index_url(self, quality: str = 'best'):
         """Retrieves an index of m3u8 streams for a given VOD.
@@ -455,7 +456,7 @@ class Vod:
             return Vod()
 
         _stream = Vod()
-        _stream.s_id = stream_json['stream']['id']
+        _stream._s_id = stream_json['stream']['id']
 
         _stream.category = Category(stream_json['stream']['game'])
         _stream.created_at = (datetime.strptime(
@@ -491,7 +492,7 @@ class ArchivedVod(Vod):
 
         :return: dict of VOD attributes
         """
-        return {'vod_id': self.v_id, 'stream_id': self.s_id, 'title': self.title, 'description': self.description,
+        return {'vod_id': self.v_id, 'stream_id': self._s_id, 'title': self.title, 'description': self.description,
                 'created_at': datetime.utcfromtimestamp(self.created_at),
                 'published_at': datetime.utcfromtimestamp(self.published_at), 'thumbnail_url': self.thumbnail_url,
                 'duration': self.duration, 'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
