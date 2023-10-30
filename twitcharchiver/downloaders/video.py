@@ -48,8 +48,7 @@ class Video(Downloader):
         # init downloader
         super().__init__(parent_dir, quiet)
 
-        # downloader pool
-        self._worker_pool = ThreadPoolExecutor(max_workers=threads)
+        self.threads = threads
 
         # set quality
         self.__setattr__('_quality', quality)
@@ -63,7 +62,11 @@ class Video(Downloader):
         self.output_dir = Path(self._parent_dir,
                                build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
 
-        self.base_url: str = ""
+        # video segment containers and required params
+        self._index_url: str = ""
+        self._base_url: str = ""
+        self._index_playlist: m3u8 = None
+        self._prev_index_playlist: m3u8 = None
 
         # perform various setup tasks
         self._do_setup()
@@ -77,15 +80,21 @@ class Video(Downloader):
         self._completed_segments.update(set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
                                              for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))]))
 
-        # delay archival start for new vods (started less than 5m ago)
-        _time_since_start = self.vod.time_since_live()
-        if _time_since_start < 300:
-            self._log.info('Delaying archival of VOD %s as VOD has been live for less than 5 minutes.', self.vod.v_id)
-            sleep(300 - _time_since_start)
-
     def start(self):
-        """Starts download the given VOD."""
+        """
+        Starts downloading VOD video segments.
+        """
         try:
+            # delay archival start for new vods (started less than 5m ago)
+            _time_since_start = self.vod.time_since_live()
+            if _time_since_start < 300:
+                self._log.info('Delaying archival of VOD %s as VOD has been live for less than 5 minutes.',
+                               self.vod.v_id)
+                sleep(300 - _time_since_start)
+
+            self._index_url = self.vod.get_index_url(self._quality)
+            self._base_url = self._extract_base_url(self._index_url)
+
             # begin download
             self._download_loop()
 
@@ -114,6 +123,10 @@ class Video(Downloader):
             # kill download workers
             self._log.info('Shutting down workers...')
             self._worker_pool.shutdown()
+
+    def refresh_playlist(self):
+        self._prev_index_playlist = self._index_playlist
+        self._index_playlist = m3u8.loads(self.vod.get_index_playlist(self._index_url))
 
     def _get_thumbnail(self):
         """
@@ -155,8 +168,7 @@ class Video(Downloader):
     def _repair_vod_corruptions(self, corruption: list[MpegSegment]):
         # check vod still available
         # todo: test if this works, originally called get_index_playlist()
-        _index_url = self.vod.get_index_url(self._quality)
-        if not _index_url:
+        if not self._index_url:
             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                    "unable to re-download the missing segments. Either re-download "
                                    "the VOD if it is still available, or manually convert 'merged.ts' "
@@ -176,8 +188,8 @@ class Video(Downloader):
 
         # download and combine vod again
         try:
-            _index_playlist = m3u8.loads(self.vod.get_index_playlist(_index_url))
-            self._get_m3u8_video(_index_playlist)
+            self.refresh_playlist()
+            self.download_m3u8_playlist()
 
             # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes
             # so we can work out if a segment is corrupt on twitch's end or ours
@@ -352,64 +364,51 @@ class Video(Downloader):
             return float(json.loads(_ts_file_data)['format']['start_time']) * 90000
 
     def _download_loop(self):
-        _index_url = self.vod.get_index_url(self._quality)
-        _index_playlist = m3u8.loads(self.vod.get_index_playlist(_index_url))
-        self.base_url = self._extract_base_url(_index_url)
+        self.refresh_playlist()
+        self.download_m3u8_playlist()
 
-        while True:
-            # refresh mpegts segment playlist
-            _prev_index_playlist = _index_playlist
-            _index_playlist = m3u8.loads(self.vod.get_index_playlist(_index_url))
+        # while VOD live, check for new parts every 60 seconds. if no new parts discovered after 10 minutes, or error
+        # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
+        while self.vod.is_live():
+            for _ in range(11):
+                if _ >= 10:
+                    self._log.debug('10m has passed since VOD duration changed - assuming it is no longer live.')
+                    return
 
-            self._get_m3u8_video(_index_playlist)
+                # if VOD is live check for new parts every 60s
+                self._log.debug('Waiting 60s to see if VOD changes.')
+                sleep(60)
 
-            # if the vod is live we check every minute for new parts.
-            #   if new parts are found, we go back and download them
-            #   if 10 minutes passes without new parts, or we receive a 403 or 404, the stream is over / deleted, and
-            #     so we download any remaining parts then return
-            if self.vod.is_live():
-                for _ in range(11):
-                    self._log.debug('Waiting 60s to see if VOD changes.')
-                    sleep(60)
-                    try:
-                        if len(_prev_index_playlist.segments < len(_index_playlist)):
-                            self._log.debug('New VOD parts found.')
-                            self.vod.status = 'live'
-                            break
+                try:
+                    # refresh mpegts segment playlist
+                    self.refresh_playlist()
 
-                        if _ > 9:
-                            self._log.debug('10m has passed since VOD duration changed - assuming it is no longer live.')
-                            self.vod.status = 'archive'
-
-                        else:
-                            continue
-
-                    except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
-                        self._log.debug('Error 403 or 404 returned when checking for new VOD parts - VOD was likely'
-                                        ' deleted.')
-                        self.vod.status = 'archive'
+                    # if new segments found, download them
+                    if len(self._prev_index_playlist.segments < len(self._index_playlist.segments)):
+                        self._log.debug('New VOD parts found.')
+                        self.download_m3u8_playlist()
+                        # new segments downloaded - restart loop
                         break
 
-            # vod is not live, download complete
-            else:
-                break
+                except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
+                    self._log.debug(
+                        'Error 403 or 404 returned when checking for new VOD parts - VOD was likely deleted.')
+                    return
 
     @staticmethod
     def _extract_base_url(index_url: str):
         _m = re.findall(r'(?<=\/)(index.*)', index_url)[0]
         return index_url.replace(_m, '')
 
-    def _get_m3u8_video(self, index_playlist: m3u8):
+    def download_m3u8_playlist(self):
         """Downloads the video for a specified m3u8 playlist.
 
-        :param index_playlist: m3u8 playlist retrieved from Twitch
-        :type index_playlist: m3u8
         :raises vodPartDownloadError: error returned when downloading vod parts
         """
         _buffer: set[MpegSegment] = set()
 
         # process all segments in playlist
-        for segment in [MpegSegment.convert_m3u8_segment(_s, self.base_url) for _s in index_playlist.segments]:
+        for segment in [MpegSegment.convert_m3u8_segment(_s, self._base_url) for _s in self._index_playlist.segments]:
             # add segment to download buffer if it isn't completed
             if segment not in self._completed_segments:
                 _buffer.add(segment)
@@ -420,9 +419,10 @@ class Video(Downloader):
         if _buffer:
             download_error = []
             futures = []
+            _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
             # add orders to worker pool
             for segment in _buffer:
-                futures.append(self._worker_pool.submit(self._get_ts_segment, segment))
+                futures.append(_worker_pool.submit(self._get_ts_segment, segment))
 
             progress = Progress()
 
@@ -435,7 +435,7 @@ class Video(Downloader):
 
                 if not self._quiet:
                     progress.print_progress(
-                        len(self._completed_segments), len(index_playlist.segments))
+                        len(self._completed_segments), len(self._index_playlist.segments))
 
             if download_error:
                 raise VodPartDownloadError(download_error)
