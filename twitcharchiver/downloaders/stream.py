@@ -202,15 +202,16 @@ class Stream(Downloader):
         self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
 
         # channel-specific vars
+        # todo build output_dir froms stream name etc
         self.output_dir: Path = None
         self.channel: Channel = channel
-        self.stream: Vod = Vod()
+        self.vod: Vod = Vod()
 
         # perform setup
         self._do_setup()
 
     def __repr__(self):
-        return str({'channel': self.channel, 'index_uri': self._index_uri, 'stream': self.stream})
+        return str({'channel': self.channel, 'index_uri': self._index_uri, 'stream': self.vod})
 
     def start(self):
         """
@@ -259,24 +260,24 @@ class Stream(Downloader):
         Performs required setup prior to starting download.
         """
         self._log.debug('Fetching required stream information.')
-        self.stream = Vod.from_stream_json(self.channel.get_stream_info())
+        self.vod = Vod.from_stream_json(self.channel.get_stream_info())
 
-        if not self.stream:
+        if not self.vod:
             self._log.info('%s is offline.', self.channel.name)
             raise StreamOfflineError(self.channel)
 
         # ensure enough time has passed for VOD api to update before archiving. this is important as it changes
         # the way we archive if the stream is not being archived to a VOD.
-        self._log.debug('Current stream length: %s', self.stream.duration)
+        self._log.debug('Current stream length: %s', self.vod.duration)
 
         # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
         # meantime in case there is no vod and thus no way to retrieve them after the fact
-        if self.stream.duration < 120 and not self.stream.v_id:
-            self._buffer_stream(self.stream.duration)
+        if self.vod.duration < 120 and not self.vod.v_id:
+            self._buffer_stream(self.vod.duration)
 
         # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
-        self.stream.v_id = 0 or self.channel.get_broadcast_vod_id()
-        if not self.stream.v_id:
+        self.vod.v_id = 0 or self.channel.get_broadcast_vod_id()
+        if not self.vod.v_id:
             self._align_segments = False
 
         # if a paired VOD exists for the stream we can discard our previous buffer
@@ -285,7 +286,7 @@ class Stream(Downloader):
                 shutil.rmtree(Path(self.output_dir))
 
             # build and create output directory
-            self.output_dir = build_output_dir_name(self.stream.title, self.stream.created_at, self.stream.v_id)
+            self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
             Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
         # get existing parts to resume counting if archiving halted
@@ -298,7 +299,7 @@ class Stream(Downloader):
             _latest_segment = max(self._completed_segments, key=attrgetter('id'))
 
         # pass stream created to segment list to be used for determining part and segment ids
-        self._download_queue = StreamSegmentList(self.stream.created_at, self._align_segments, _latest_segment.id)
+        self._download_queue = StreamSegmentList(self.vod.created_at, self._align_segments, _latest_segment.id)
 
         # fetch index
         self._index_uri = self.channel.get_stream_index(self._quality)
@@ -315,7 +316,7 @@ class Stream(Downloader):
         self._log.debug('Stream began less than 120s ago, delaying archival start until VOD API updated.')
 
         # create temporary download directory
-        self.output_dir = build_output_dir_name(self.stream.title, self.stream.created_at)
+        self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at))
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
         # download new parts every 4s
@@ -389,7 +390,7 @@ class Stream(Downloader):
     def _download_segment(self, segment: StreamSegment):
         # generate buffer file path
         _temp_buffer_file = Path(tempfile.gettempdir(), 'twitch-archiver',
-                                 str(self.stream.s_id), str(f'{segment.id:05d}' + '.ts'))
+                                 str(self.vod.s_id), str(f'{segment.id:05d}' + '.ts'))
         _temp_buffer_file.parent.mkdir(parents=True, exist_ok=True)
 
         # begin retry loop for download
@@ -432,8 +433,3 @@ class Stream(Downloader):
         if self._download_queue.is_segment_present(self._download_queue.current_id):
             self._log.debug('Fetching final stream segment.', self.channel.name)
             self._download_segment(self._download_queue.get_segment_by_id(self._download_queue.current_id))
-
-    def delete_segments(self):
-        """
-        Deletes all downloaded segments.
-        """

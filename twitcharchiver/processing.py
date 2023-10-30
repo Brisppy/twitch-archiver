@@ -71,13 +71,13 @@ class Processing:
 
                 # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
                 # otherwise we add it to the download queue
-                if stream.stream.v_id:
-                    if stream.stream.v_id not in [v.v_id for v in channel_videos]:
-                        channel_videos.insert(0, Vod(stream.stream.v_id))
+                if stream.vod.v_id:
+                    if stream.vod.v_id not in [v.v_id for v in channel_videos]:
+                        channel_videos.insert(0, Vod(stream.vod.v_id))
 
                 # no paired VOD exists, so we archive the stream before moving onto VODs
                 elif self.archive_video and not self.archive_only:
-                    with DownloadHandler(ArchivedVod.convert_from_vod(stream.stream, video_archived=True)) as _dh:
+                    with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod, video_archived=True)) as _dh:
                         try:
                             stream.start()
 
