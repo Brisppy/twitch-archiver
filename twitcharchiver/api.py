@@ -90,7 +90,7 @@ class Api:
         :type d: str
         :param j: json to send with request
         :type j: dict
-        :param h: extra headers to send with request
+        :param h: override class headers to send with request
         :type h: dict
         :return: entire requests response
         """
@@ -99,10 +99,10 @@ class Api:
 
         try:
             if j is None:
-                _r = self._session.post(url, data=d, headers=self.add_headers(h), timeout=10)
+                _r = self._session.post(url, data=d, headers=h if h else self._headers, timeout=10)
 
             elif d is None:
-                _r = self._session.post(url, json=j, headers=self.add_headers(h), timeout=10)
+                _r = self._session.post(url, json=j, headers=h if h else self._headers, timeout=10)
 
         except requests.exceptions.RequestException as err:
             raise RequestError(url, err) from err
