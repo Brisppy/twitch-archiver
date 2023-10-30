@@ -16,8 +16,6 @@ from twitcharchiver.vod import Vod
 
 
 class Chat(Downloader):
-    _api = Api()
-
     def __init__(self, vod: Vod, parent_dir: Path = Path(os.getcwd()), quiet: bool = False):
         """
         Initialize class variables.
@@ -31,6 +29,7 @@ class Chat(Downloader):
         super().__init__(parent_dir, quiet)
 
         # setup api with required header
+        self._api = Api()
         self._api.add_headers({'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'})
 
         # vod-specific vars
