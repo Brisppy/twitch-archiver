@@ -19,7 +19,7 @@ class RealTime(Downloader):
     _api: Api = Api()
     _quality: str = ''
 
-    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), quality: str = 'best', quiet: bool = False, threads: int = 20):
+    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), archive_chat: bool = True, quality: str = 'best', quiet: bool = False, threads: int = 20):
         """
         Class constructor.
 
@@ -27,6 +27,8 @@ class RealTime(Downloader):
         :type vod: Vod
         :param parent_dir: path to parent directory for downloaded files
         :type parent_dir: str
+        :param archive_chat: boolean whether the chat logs should also be grabbed
+        :type archive_chat: bool
         :param quality: quality to download in the format [resolution]p[framerate], or either 'best' or 'worst'
         :type quality: str
         :param quiet: boolean whether to print progress
@@ -38,6 +40,8 @@ class RealTime(Downloader):
 
         self.vod = vod
 
+        self.archive_chat = archive_chat
+
         self.chat = Chat(vod, parent_dir, quiet)
         self.stream = Stream(vod.channel, parent_dir, quality, quiet)
         self.video = Video(vod, parent_dir, quality, quiet, threads)
@@ -46,10 +50,11 @@ class RealTime(Downloader):
         """
         Starts downloading VOD video / chat segments.
         """
-        # todo : add flag to enable / disable chat archival
         workers = [multiprocessing.Process(target=self.stream.start),
-                   multiprocessing.Process(target=self.video.start),
-                   multiprocessing.Process(target=self.chat.start)]
+                   multiprocessing.Process(target=self.video.start)]
+
+        if self.archive_chat:
+            workers.append(multiprocessing.Process(target=self.chat.start))
 
         for _w in workers:
             _w.start()
