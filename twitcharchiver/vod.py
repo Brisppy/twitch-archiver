@@ -183,7 +183,7 @@ class Vod:
             try:
                 # if stream live and vod start time matches
                 _stream_created_time = \
-                    datetime.strptime(_stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').timestamp()
+                    datetime.strptime(_stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
                 # if vod created within 10s of stream created time
                 if 10 >= self.created_at - _stream_created_time >= -10:
@@ -294,7 +294,8 @@ class Vod:
         :return: stream id
         :rtype: int
         """
-        if self.thumbnail_url != 'https://vod-secure.twitch.tv/_404/404_processing_%{width}x%{height}.png':
+        # check for processing thumbnail used by broadcasts
+        if '404_processing' not in self.thumbnail_url:
             # use index for end of list as users with '_' in their name will break this
             return int(self.thumbnail_url.split('/')[5].split('_')[-2])
 
