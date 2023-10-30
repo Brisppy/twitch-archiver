@@ -83,7 +83,7 @@ class StreamSegmentList:
         _segment_ids: set[int] = set()
         for _segment in self.segments:
             if len(self.segments[_segment].parts) == 5:
-                _segment_ids.add(self.segments[_segment].v_id)
+                _segment_ids.add(self.segments[_segment].id)
 
         return _segment_ids
 
