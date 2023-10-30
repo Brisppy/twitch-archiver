@@ -6,7 +6,7 @@ from pathlib import Path
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.exceptions import VodAlreadyCompleted, VodLockedError
 from twitcharchiver.database import Database, INSERT_VOD
-from twitcharchiver.vod import ArchivedVod
+from twitcharchiver.vod import ArchivedVod, Vod
 
 
 class Downloader:
@@ -24,6 +24,8 @@ class Downloader:
         """
         self.__setattr__('_parent_dir', parent_dir)
         self.__setattr__('_quiet', quiet)
+
+        self.vod = Vod()
 
     def start(self):
         return
@@ -76,7 +78,7 @@ class DownloadHandler:
         if self.remove_lock():
             self._log.debug('Failed to remove lock file.')
 
-        if isinstance(exc_val, Exception):
+        if isinstance(exc_val, BaseException):
             self._log.debug('Exception occurred inside DownloadHandler: %s', exc_val)
 
         else:
@@ -91,10 +93,10 @@ class DownloadHandler:
                 'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
                 {'stream_id': self.vod.s_id})]
 
-        if downloaded_vod:
-            return downloaded_vod[0]
+            if downloaded_vod:
+                return downloaded_vod[0]
 
-        return ArchivedVod()
+            return ArchivedVod()
 
     def database_vod_completed(self):
         """
