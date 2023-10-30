@@ -13,6 +13,7 @@ from twitcharchiver.configuration import Configuration
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import DownloadHandler
 from twitcharchiver.downloaders.chat import Chat
+from twitcharchiver.downloaders.realtime import RealTime
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
 from twitcharchiver.database import Database
@@ -38,6 +39,7 @@ class Processing:
         self._parent_dir = conf['directory']
         self.output_dir = self._parent_dir
         self.live_only = conf['live_only']
+        self.real_time = conf['real_time_archiver']
         self.pushbullet_key = conf['pushbullet_key']
         self.quality = conf['quality']
         self.quiet = conf['quiet']
@@ -135,22 +137,34 @@ class Processing:
         self.log.info('%s VOD(s) in download queue.', len(download_queue))
         self.log.debug('VOD queue: %s', download_queue)
 
-        _video_download_queue = []
-        _chat_download_queue = []
+        _video_download_queue: list = []
+        _chat_download_queue: list = []
+
+        # cache channels with associated broadcast VOD IDs
+        _channel_cache: dict[Channel: int] = {}
+
         # begin processing each available vod
         for _vod in download_queue:
-            # only check if VOD live if channel is live
-            if _vod.channel.is_live():
-                if _vod.is_live():
-                    # skip if we aren't after currently live streams
-                    if self.archive_only:
-                        self.log.info('Skipping VOD as it is live and no-stream argument provided.')
-                        continue
+            if _vod.channel not in _channel_cache:
+                _channel_cache[_vod.channel] = _vod.channel.get_broadcast_vod_id()
 
-                else:
-                    # skip if we are only after currently live streams, and stream_id is not live
-                    if self.live_only:
-                        continue
+            # check if current VOD ID matches associated broadcast VOD ID
+            # todo: move check to when we download so we dont check every VOD first
+            if _vod.v_id == _channel_cache[_vod.channel]:
+                # skip if we aren't after currently live streams
+                if self.archive_only:
+                    self.log.info('Skipping VOD as it is live and no-stream argument provided.')
+                    continue
+
+                # run real-time archiver if enabled and current stream is being archived to this VOD
+                if self.real_time:
+                    _real_time_archiver = RealTime(_vod, self.output_dir, self.quality, self.quiet)
+                    self._start_download(_real_time_archiver)
+                    continue
+
+            # skip if we are only after currently live streams, and stream_id is not live
+            elif self.live_only:
+                continue
 
             if not _vod.video_archived and self.archive_video:
                 _vod.video_archived = True
@@ -212,15 +226,10 @@ class Processing:
         # todo : set store_directory to STREAM_ONLY
         #      : make sure the duration and other parts are updated throughout
 
-        with DownloadHandler(ArchivedVod.convert_from_vod(stream.stream)) as _dh:
+        with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod)) as _dh:
             try:
-                _dh.create_lock()
-
                 stream.start()
-
-                _dh.remove_lock()
-
-                _dh.insert_into_database()
+                # todo combine stream parts
 
             except KeyboardInterrupt:
                 self.log.info('Termination signal received, halting stream downloader.')
