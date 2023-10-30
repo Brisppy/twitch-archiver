@@ -158,7 +158,7 @@ class Processing:
 
                 # run real-time archiver if enabled and current stream is being archived to this VOD
                 if self.real_time:
-                    _real_time_archiver = RealTime(_vod, self.output_dir, self.quality, self.quiet)
+                    _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.quiet)
                     self._start_download(_real_time_archiver)
                     continue
 
