@@ -137,7 +137,7 @@ optional arguments:
   -L LOG_FILE, --log-file LOG_FILE
                         Output logs to specified file.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
-                        Directory to store configuration, VOD database and lock files.
+                        Directory to store configuration and VOD database.
                         (default: $HOME/.config/twitch-archiver)
   -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
                         Pushbullet key for sending pushes on error. Enabled by supplying key.
