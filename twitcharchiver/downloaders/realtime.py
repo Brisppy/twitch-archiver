@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from twitcharchiver.api import Api
+from twitcharchiver.exceptions import VodMergeError
 from twitcharchiver.vod import Vod
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
@@ -60,6 +61,15 @@ class RealTime(Downloader):
 
         for _w in workers:
             _w.join()
+
+        self.merge()
+
+    def merge(self):
+        try:
+            self.video.merge()
+
+        except BaseException as e:
+            raise VodMergeError(e) from e
 
     def cleanup_temp_files(self):
         self.chat.cleanup_temp_files()
