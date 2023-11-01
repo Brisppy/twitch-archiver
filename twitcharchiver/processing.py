@@ -57,6 +57,8 @@ class Processing:
 
             channel = Channel(_channel_name)
             self.log.debug('Channel info: %s', channel)
+            # set output directory to subdir of channel name
+            self.output_dir = Path(self._parent_dir, channel.name)
 
             # retrieve available vods and extract required info
             channel_videos: list[Vod] = channel.get_channel_videos()
@@ -67,7 +69,7 @@ class Processing:
             channel_live = channel.is_live()
             if channel_live:
                 # fetch current stream info
-                stream: Stream = Stream(channel)
+                stream: Stream = Stream(channel, Vod(), self.output_dir, self.quality, self.quiet)
 
                 # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
                 # otherwise we add it to the download queue
@@ -123,8 +125,6 @@ class Processing:
                 self.log.info('No new VODs are available in the requested formats for %s.', channel.name)
                 continue
 
-            # set output directory to subdir of channel name
-            self.output_dir = Path(self._parent_dir, _channel_name)
             self.vod_downloader(download_queue)
 
     def vod_downloader(self, download_queue: list[ArchivedVod]):
@@ -149,7 +149,6 @@ class Processing:
                 _channel_cache[_vod.channel] = _vod.channel.get_broadcast_vod_id()
 
             # check if current VOD ID matches associated broadcast VOD ID
-            # todo: move check to when we download so we dont check every VOD first
             if _vod.v_id == _channel_cache[_vod.channel]:
                 # skip if we aren't after currently live streams
                 if self.archive_only:
@@ -158,7 +157,7 @@ class Processing:
 
                 # run real-time archiver if enabled and current stream is being archived to this VOD
                 if self.real_time:
-                    _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.quiet)
+                    _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.threads)
                     self._start_download(_real_time_archiver)
                     continue
 
@@ -168,7 +167,7 @@ class Processing:
 
             if not _vod.video_archived and self.archive_video:
                 _vod.video_archived = True
-                _video_download_queue.append(Video(_vod, self.output_dir, self.quality, self.quiet, self.threads))
+                _video_download_queue.append(Video(_vod, self.output_dir, self.quality, self.threads, self.quiet))
 
             if not _vod.chat_archived and self.archive_chat:
                 _vod.chat_archived = True
@@ -213,6 +212,7 @@ class Processing:
             send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
             sys.exit(1)
 
+    # todo: implement
     def get_stream_without_archive(self, channel: Channel, stream=None):
         """Archives a live stream without a paired VOD.
 
@@ -221,7 +221,7 @@ class Processing:
         :return: sanitized / formatted stream json
         """
         if not stream:
-            stream = Stream(channel)
+            stream = Stream(channel=channel)
 
         # todo : set store_directory to STREAM_ONLY
         #      : make sure the duration and other parts are updated throughout

@@ -34,8 +34,8 @@ class Video(Downloader):
     _quality: str = ''
     _s: requests.Session = requests.session()
 
-    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), quality: str = 'best', quiet: bool = False,
-                 threads: int = 20):
+    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), quality: str = 'best', threads: int = 20,
+                 quiet: bool = False):
         """
         Class used for downloading the video for a given Twitch VOD.
 
@@ -122,7 +122,7 @@ class Video(Downloader):
         finally:
             # kill download workers
             self._log.info('Shutting down workers...')
-            self._worker_pool.shutdown()
+            #todo find way to shutdown workers
 
     def refresh_playlist(self):
         self._prev_index_playlist = self._index_playlist
