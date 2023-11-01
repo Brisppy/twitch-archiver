@@ -384,7 +384,7 @@ class Video(Downloader):
                     self.refresh_playlist()
 
                     # if new segments found, download them
-                    if len(self._prev_index_playlist.segments < len(self._index_playlist.segments)):
+                    if len(self._prev_index_playlist.segments) < len(self._index_playlist.segments):
                         self._log.debug('New VOD parts found.')
                         self.download_m3u8_playlist()
                         # new segments downloaded - restart loop
