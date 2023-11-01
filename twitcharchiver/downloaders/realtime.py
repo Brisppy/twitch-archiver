@@ -19,7 +19,8 @@ class RealTime(Downloader):
     _api: Api = Api()
     _quality: str = ''
 
-    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), archive_chat: bool = True, quality: str = 'best', quiet: bool = False, threads: int = 20):
+    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), archive_chat: bool = True, quality: str = 'best',
+                 threads: int = 20):
         """
         Class constructor.
 
@@ -31,20 +32,18 @@ class RealTime(Downloader):
         :type archive_chat: bool
         :param quality: quality to download in the format [resolution]p[framerate], or either 'best' or 'worst'
         :type quality: str
-        :param quiet: boolean whether to print progress
-        :type quiet: bool
         :param threads: number of worker threads to use when downloading
         :type threads: int
         """
-        super().__init__(parent_dir, quiet)
+        super().__init__(parent_dir, True)
 
         self.vod = vod
 
         self.archive_chat = archive_chat
 
-        self.chat = Chat(vod, parent_dir, quiet)
-        self.stream = Stream(vod.channel, parent_dir, quality, quiet)
-        self.video = Video(vod, parent_dir, quality, quiet, threads)
+        self.chat = Chat(vod, parent_dir, True)
+        self.stream = Stream(vod.channel, vod, parent_dir, quality, True)
+        self.video = Video(vod, parent_dir, quality, threads, True)
 
     def start(self):
         """

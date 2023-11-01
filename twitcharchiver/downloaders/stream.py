@@ -113,7 +113,7 @@ class StreamSegment:
             Defines a part of a segment.
             """
             self.url: str = part.uri
-            self.timestamp: float = part.program_date_time.replace(tzinfo=None).timestamp()
+            self.timestamp: float = part.program_date_time.replace(tzinfo=timezone.utc).timestamp()
             self.duration: float = part.duration
             self.title = part.title
 
@@ -123,8 +123,7 @@ class StreamSegment:
         def __eq__(self, other):
             if isinstance(other, StreamSegment.Part):
                 return self.url == other.url
-            else:
-                return False
+            return False
 
         def __hash__(self):
             return hash(self.url)
@@ -170,13 +169,15 @@ class Stream(Downloader):
     """
     _quality: str = ''
 
-    def __init__(self, channel: Channel, parent_dir: Path = Path(os.getcwd()), quality: str = 'best',
+    def __init__(self, channel: Channel, vod: Vod = Vod(), parent_dir: Path = Path(os.getcwd()), quality: str = 'best',
                  quiet: bool = 'False'):
         """
         Class constructor.
 
         :param channel: Channel to be downloaded
         :type channel: Channel
+        :param vod: Optionally provided VOD if trying to sync VOD and stream segments and timestamps
+        :type vod: Vod
         :param parent_dir: Parent directory in which to create VOD directory and download to
         :type parent_dir: str
         :param quality: Quality of the stream to download in the format [resolution]p[framerate]
@@ -203,9 +204,9 @@ class Stream(Downloader):
 
         # channel-specific vars
         # todo build output_dir froms stream name etc
-        self.output_dir: Path = None
         self.channel: Channel = channel
-        self.vod: Vod = Vod()
+        self.output_dir: Path = None
+        self.vod: Vod = vod
 
         # perform setup
         self._do_setup()
@@ -259,12 +260,14 @@ class Stream(Downloader):
         """
         Performs required setup prior to starting download.
         """
-        self._log.debug('Fetching required stream information.')
-        self.vod = Vod.from_stream_json(self.channel.get_stream_info())
-
+        # generate VOD from channel stream information if not provided
         if not self.vod:
-            self._log.info('%s is offline.', self.channel.name)
-            raise StreamOfflineError(self.channel)
+            self._log.debug('Fetching required stream information.')
+            stream_vod = Vod.from_stream_json(self.channel.get_stream_info())
+            if not stream_vod:
+                self._log.info('%s is offline.', self.channel.name)
+                raise StreamOfflineError(self.channel)
+            self.vod = stream_vod
 
         # ensure enough time has passed for VOD api to update before archiving. this is important as it changes
         # the way we archive if the stream is not being archived to a VOD.
@@ -276,18 +279,22 @@ class Stream(Downloader):
             self._buffer_stream(self.vod.duration)
 
         # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
-        self.vod.v_id = 0 or self.channel.get_broadcast_vod_id()
         if not self.vod.v_id:
-            self._align_segments = False
+            broadcast_vod_id = self.channel.get_broadcast_vod_id()
+            if not broadcast_vod_id:
+                self._align_segments = False
+            else:
+                self.vod.v_id = broadcast_vod_id
 
         # if a paired VOD exists for the stream we can discard our previous buffer
         else:
             if self.output_dir:
                 shutil.rmtree(Path(self.output_dir))
 
-            # build and create output directory
-            self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
-            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+        # build and create output directory
+        self.output_dir = (
+            Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id)))
+        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
         # get existing parts to resume counting if archiving halted
         self._completed_segments.update([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
@@ -362,7 +369,7 @@ class Stream(Downloader):
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
             if _part.title != 'live':
-                self._log.debug('Blocking advertisement part %s.', _part)
+                self._log.debug('Ignoring advertisement segment %s.', _part)
                 continue
 
             # some streams have part lengths other than the default of 2.0. these cannot be aligned, and so we raise
