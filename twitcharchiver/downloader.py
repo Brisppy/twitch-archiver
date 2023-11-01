@@ -30,6 +30,9 @@ class Downloader:
     def start(self):
         return
 
+    def merge(self):
+        return
+
     def cleanup_temp_files(self):
         return
 

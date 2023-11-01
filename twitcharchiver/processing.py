@@ -83,6 +83,8 @@ class Processing:
                         try:
                             stream.start()
 
+                            stream.merge()
+
                         except BaseException as e:
                             self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, e)
 
@@ -190,6 +192,7 @@ class Processing:
         try:
             with DownloadHandler(_downloader.vod) as _dh:
                 _downloader.start()
+                _downloader.merge()
                 _downloader.cleanup_temp_files()
 
         except VodLockedError:
@@ -230,6 +233,10 @@ class Processing:
             try:
                 stream.start()
                 # todo combine stream parts
+
+                # blindly merge parts, verification isn't done because we dont have solid data to verify against, or
+                # any way to recover lost data.
+                stream.merge()
 
             except KeyboardInterrupt:
                 self.log.info('Termination signal received, halting stream downloader.')

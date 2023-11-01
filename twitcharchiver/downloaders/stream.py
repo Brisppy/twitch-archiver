@@ -18,9 +18,9 @@ import requests
 from twitcharchiver.vod import Vod
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.downloaders.video import MpegSegment
+from twitcharchiver.downloaders.video import MpegSegment, Merger
 from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamPartDuration, StreamDownloadError, \
-    StreamSegmentDownloadError, StreamFetchError, StreamOfflineError
+    StreamSegmentDownloadError, StreamFetchError, StreamOfflineError, VodMergeError
 from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
 
 
@@ -228,12 +228,26 @@ class Stream(Downloader):
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
             if time_since_date(self._last_part_announce) > 20:
                 self._get_final_segment()
-                return
+                break
 
             # sleep if processing time < 4s before checking for new segments
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
             if _loop_time < 4:
                 sleep(4 - _loop_time)
+
+    def merge(self):
+        """
+        Attempt to merge downloaded segments.
+        """
+        # pass completed segments as muted to ignore any corruptions present
+        merger = Merger(self.vod, self.output_dir, self._completed_segments, self._completed_segments, self._quiet)
+
+        # attempt to merge - no verification done as unsynced streams have no accurate duration to verifying against
+        try:
+            merger.merge()
+
+        except BaseException as e:
+            raise VodMergeError from e
 
     def single_download_pass(self):
         """
@@ -260,7 +274,9 @@ class Stream(Downloader):
         """
         Performs required setup prior to starting download.
         """
-        # generate VOD from channel stream information if not provided
+        # generate VOD from channel stream information if not provided -
+        # channel stream information can differ from video / VOD information making parallel archiving with the video
+        # downloader impossible, so we need the option to provide our own VOD to sync with.
         if not self.vod:
             self._log.debug('Fetching required stream information.')
             stream_vod = Vod.from_stream_json(self.channel.get_stream_info())
