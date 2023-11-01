@@ -457,7 +457,7 @@ class Vod:
             return Vod()
 
         _stream = Vod()
-        _stream._s_id = stream_json['stream']['id']
+        _stream.s_id = int(stream_json['stream']['id'])
 
         _stream.category = Category(stream_json['stream']['game'])
         _stream.created_at = (datetime.strptime(
