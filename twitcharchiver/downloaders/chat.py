@@ -169,11 +169,11 @@ class Chat(Downloader):
         for _comment in chat_log:
             # format comments with / without millisecond timestamp
             if '.' in _comment['createdAt']:
-                _created_time = \
-                    datetime.strptime(_comment['createdAt'], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc).timestamp()
+                _created_time = (datetime.strptime(_comment['createdAt'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                                 .replace(tzinfo=timezone.utc).timestamp())
             else:
-                _created_time = \
-                    datetime.strptime(_comment['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+                _created_time = (datetime.strptime(_comment['createdAt'], '%Y-%m-%dT%H:%M:%SZ')
+                                 .replace(tzinfo=timezone.utc).timestamp())
 
             _comment_time = f'{get_time_difference(self.vod.created_at, _created_time):.3f}'
 
@@ -213,7 +213,8 @@ class Chat(Downloader):
         """
         Exports a readable and a JSON-formatted chat log to the output directory.
         """
-        write_file_line_by_line(self.generate_readable_chat_log(self._chat_log), Path(self.output_dir, 'readable_chat.txt'))
+        write_file_line_by_line(self.generate_readable_chat_log(self._chat_log),
+                                Path(self.output_dir, 'readable_chat.txt'))
         write_json_file(self._chat_log, Path(self.output_dir, 'verbose_chat.json'))
 
     def get_message_count(self):

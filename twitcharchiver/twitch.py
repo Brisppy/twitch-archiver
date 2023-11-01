@@ -213,8 +213,8 @@ class MpegSegment(Segment):
         :return: segment generated from the provided m3u8 segment
         :rtype: MpegSegment
         """
-        return MpegSegment(int(re.sub(
-            r'.ts|-[a-zA-Z]*.ts', '', segment.uri)), segment.duration, f'{base_url}{segment.uri}', 'muted' in segment.uri)
+        return MpegSegment(int(re.sub(r'.ts|-[a-zA-Z]*.ts', '', segment.uri)), segment.duration,
+                           f'{base_url}{segment.uri}', 'muted' in segment.uri)
 
     def id_padded(self):
         """

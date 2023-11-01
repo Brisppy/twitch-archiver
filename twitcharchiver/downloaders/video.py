@@ -461,7 +461,8 @@ class Video(Downloader):
         #   files from storage avoiding any downtime downloading
 
         # create temporary file for downloading to
-        with open(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id), f'{segment.id}.ts'), 'wb') as _tmp_ts_file:
+        with (open(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id), f'{segment.id}.ts'), 'wb')
+              as _tmp_ts_file):
             for _ in range(6):
                 if _ > 4:
                     self._log.debug('Maximum retries for segment %s reached.', Path(_segment_path).stem)
