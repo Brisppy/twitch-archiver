@@ -21,7 +21,7 @@ from twitcharchiver.api import Api
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.twitch import MpegSegment
 from twitcharchiver.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
-    VodDownloadError, VodConvertError, CorruptPartError, VodMergeError
+    VodDownloadError, VodConvertError, CorruptPartError, VodMergeError, VodVerificationError
 from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get_hash, format_vod_chapters
 from twitcharchiver.vod import Vod
 
@@ -115,10 +115,16 @@ class Video(Downloader):
             #todo find way to shutdown workers
 
     def refresh_playlist(self):
+        """
+        Fetch new segments for video (if any).
+        """
         self._prev_index_playlist = self._index_playlist
         self._index_playlist = m3u8.loads(self.vod.get_index_playlist(self._index_url))
 
     def _download_loop(self):
+        """
+        Begin downloading segments, fetching new segments as they come out (if VOD live) until stream/VOD ends.
+        """
         self.refresh_playlist()
         self.download_m3u8_playlist()
 
@@ -152,6 +158,12 @@ class Video(Downloader):
 
     @staticmethod
     def _extract_base_url(index_url: str):
+        """
+        Extracts a url from which TS segment IDs are appended to generate the URL which segments are stored.
+
+        :param index_url: index url used to create base url
+        :return: basse url for TS segments
+        """
         _m = re.findall(r'(?<=\/)(index.*)', index_url)[0]
         return index_url.replace(_m, '')
 
@@ -261,6 +273,11 @@ class Video(Downloader):
         return ""
 
     def repair_vod_corruptions(self, corruption: list[MpegSegment]):
+        """
+        Repairs segments which have been declared as corrupt by VOD merger.
+
+        :param corruption: list of corrupt MpegSegments retrieved from CorruptVodError exception.
+        """
         # check vod still available
         # todo: test if this works, originally called get_index_playlist()
         if not self._index_url:
@@ -521,8 +538,9 @@ class Merger:
     def verify_length(self):
         """Verifies the length of the downloaded VOD.
 
-        :return: True if verification passed
+        :return: True if verification passes
         :rtype: bool
+        :raises VodVerificationError: if verification fails
         """
         self._log.debug('Verifying length of VOD file.')
 
@@ -537,23 +555,22 @@ class Merger:
                            shell=True, capture_output=True)
 
         if p.returncode:
-            self._log.error('VOD length verification exited with error. Command: %s.', p.args)
-            return False
+            raise VodVerificationError(f'VOD length verification exited with error. Command: {p.args}.')
 
         try:
             downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
 
         except Exception as e:
-            self._log.error('Failed to fetch downloaded VOD length. VOD may not have downloaded correctly. %s', str(e))
-            return False
+            raise VodVerificationError(
+                f'Failed to fetch downloaded VOD length. See log for details.') from e
 
         self._log.debug('Downloaded VOD length is %s. Expected length is %s.', downloaded_length, self.vod.duration)
 
         # pass verification if downloaded file is within 2s of expected length
         if 2 >= downloaded_length - self.vod.duration >= -2:
-            return True
+            return False
 
-        return False
+        return True
 
     def _write_thumbnail(self):
         """

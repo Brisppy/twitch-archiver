@@ -92,6 +92,13 @@ class VodMergeError(Exception):
         super().__init__(message)
 
 
+class VodVerificationError(Exception):
+    def __init__(self, error):
+        message = f'{error}'
+
+        super().__init__(message)
+
+
 class VodConvertError(Exception):
     def __init__(self, error):
         message = f'Video conversion failed. Error: {error}'
