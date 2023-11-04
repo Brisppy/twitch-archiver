@@ -5,19 +5,18 @@
 Logging class used by Twitch Archiver.
 """
 
-
 import sys
 import logging
+import logging.handlers
 
 class Logger:
     """
     Sets up logging for the script.
     """
     @staticmethod
-    def setup_logger(level, log_file=None):
+    def setup_logger(log_file=None):
         """Sets up logging module.
 
-        :param level: numeric log level
         :param log_file: location of log file if provided
         :return: python logging object
         """
@@ -31,13 +30,14 @@ class Logger:
 
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
-        console.setLevel(20 if not level else level)
         console.setFormatter(console_formatter)
-        logger.addHandler(console)
+        if not len(logger.handlers):
+            logger.addHandler(console)
 
         # if log file passed is provided, output to given file
         if log_file:
-            file = logging.FileHandler(log_file)
+            # use rotating file handler with max size of 100MB * 5
+            file = logging.handlers.RotatingFileHandler(log_file, maxBytes=100000000, backupCount=5)
             file.setLevel(logging.DEBUG)
             file.setFormatter(file_formatter)
             logger.addHandler(file)
