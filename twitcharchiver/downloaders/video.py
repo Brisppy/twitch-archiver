@@ -78,8 +78,11 @@ class Video(Downloader):
         Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)).mkdir(parents=True, exist_ok=True)
 
         # collect previously downloaded segments (if any)
-        self._completed_segments.update(set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                                             for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))]))
+        self._completed_segments = self.get_completed_segments()
+
+    def get_completed_segments(self):
+        return set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
+                                             for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))])
 
     def start(self):
         """
@@ -143,6 +146,10 @@ class Video(Downloader):
                 try:
                     # refresh mpegts segment playlist
                     self.refresh_playlist()
+
+                    # fetch downloaded files in-case being run in parallel with stream archiver so we dont try and
+                    # download anything already completed
+                    self._completed_segments = self.get_completed_segments()
 
                     # if new segments found, download them
                     if len(self._prev_index_playlist.segments) < len(self._index_playlist.segments):
