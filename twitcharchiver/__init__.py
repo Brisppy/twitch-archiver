@@ -129,7 +129,8 @@ def main():
     args.setup_args(parser.parse_args().__dict__)
 
     # setup logging
-    log = Logger.setup_logger(args.get('quiet') + args.get('debug'), args.get('log_file'))
+    log = Logger.setup_logger(args.get('log_file'))
+    log.setLevel(args.get('quiet') + args.get('debug'))
     log.debug('Debug logging enabled.')
 
     # debug only: output sanitized version of arguments
