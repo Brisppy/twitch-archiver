@@ -174,7 +174,6 @@ class Channel:
             index_url = self.get_stream_index()
 
         _stream_playlist = self._api.get_request(index_url).text
-        self._log.debug('Playlist for broadcast by %s: %s', self.name, _stream_playlist)
 
         return _stream_playlist
 
