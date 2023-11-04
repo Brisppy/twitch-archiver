@@ -160,7 +160,7 @@ class StreamSegment:
         return False
 
     def __hash__(self):
-        return hash(self.parts)
+        return hash(str(self.parts))
 
 
 class Stream(Downloader):
@@ -198,7 +198,7 @@ class Stream(Downloader):
         self._index_uri: str = ""
         self._incoming_part_buffer: list[StreamSegment.Part] = []
         self._download_queue: StreamSegmentList = None
-        self._completed_segments: set[MpegSegment] = set()
+        self._completed_segments: set[StreamSegment] = set()
         self._processed_parts: set[StreamSegment.Part] = set()
         self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
 
@@ -218,22 +218,26 @@ class Stream(Downloader):
         """
         Begins downloading the stream for the channel until stopped or stream ends.
         """
-        _start_timestamp: float = datetime.utcnow().timestamp()
+        # create output  dir if not already created
+        Path(self.output_dir, 'parts').mkdir(parents=True, exist_ok=True)
 
         # loop until stream ends
         while True:
+            _start_timestamp: float = datetime.utcnow().timestamp()
             self.single_download_pass()
+
+            # todo : add a second check, this keeps getting triggered
 
             # assume stream has ended once >20s has passed since the last segment was advertised
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
-            if time_since_date(self._last_part_announce) > 20:
+            if time_since_date(self._last_part_announce) > 20 and not self._download_queue.segments:
                 self._get_final_segment()
                 break
 
             # sleep if processing time < 4s before checking for new segments
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
-            if _loop_time < 4:
-                sleep(4 - _loop_time)
+            if _loop_time < 6:
+                sleep(6 - _loop_time)
 
     def merge(self):
         """
@@ -257,14 +261,19 @@ class Stream(Downloader):
         """
         try:
             self._fetch_advertised_parts()
-            self._build_download_queue()
-            self._download_queued_segments()
+
+            if self._incoming_part_buffer:
+                self._build_download_queue()
+                self._download_queued_segments()
 
         # stream offline
         except TwitchAPIErrorNotFound:
             self._log.info('%s is offline or stream ended.', self.channel.name)
             if self._download_queue:
                 self._get_final_segment()
+
+        except requests.ReadTimeout:
+            return
 
         # catch any other exception
         except BaseException as e:
@@ -310,11 +319,11 @@ class Stream(Downloader):
         # build and create output directory
         self.output_dir = (
             Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id)))
-        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
-        # get existing parts to resume counting if archiving halted
-        self._completed_segments.update([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                                         for p in glob(str(Path(self.output_dir, '*.ts')))])
+        if self.output_dir.exists():
+            # get existing parts to resume counting if archiving halted
+            self._completed_segments.update([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
+                                             for p in glob(str(Path(self.output_dir, '*.ts')))])
 
         _latest_segment = MpegSegment(-1, 0)
         if self._completed_segments:
@@ -356,7 +365,6 @@ class Stream(Downloader):
         sleep((120 - stream_length) % 4)
 
     def _fetch_advertised_parts(self):
-        _last_part_announce: float = datetime.now(timezone.utc).timestamp()
         # attempt to grab new parts from Twitch
         for _ in range(6):
             try:
@@ -441,7 +449,8 @@ class Stream(Downloader):
 
             # move finished ts file to destination storage
             try:
-                safe_move(Path(_temp_buffer_file), Path(self.output_dir, str(f'{segment.id:05d}' + '.ts')))
+                safe_move(Path(_temp_buffer_file), Path(self.output_dir, 'parts', str(f'{segment.id:05d}' + '.ts')))
+                self._completed_segments.add(segment)
                 self._log.debug('Stream segment: %s completed.', segment.id)
                 break
 

@@ -88,6 +88,11 @@ class Processing:
                         except BaseException as e:
                             self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, e)
 
+                # if stream has paired VOD, we can delete any downloaded files.
+                else:
+                    stream.delete_all_files()
+
+
             # move on if channel offline and `live-only` set
             elif self.live_only:
                 self.log.debug('%s is offline and `live-only` argument provided.', channel.name)

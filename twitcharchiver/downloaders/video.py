@@ -109,6 +109,9 @@ class Video(Downloader):
 
             self.vod.status = 'offline'
 
+        except KeyboardInterrupt:
+            pass
+
         except BaseException as e:
             raise VodDownloadError(e) from e
 
