@@ -137,7 +137,7 @@ class Processing:
         :type download_queue: list(ArchivedVod)
         """
         self.log.info('%s VOD(s) in download queue.', len(download_queue))
-        self.log.debug('VOD queue: %s', download_queue)
+        self.log.debug('VOD queue: %s', [v.v_id for v in download_queue])
 
         _video_download_queue: list = []
         _chat_download_queue: list = []

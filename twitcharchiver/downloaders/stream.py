@@ -360,8 +360,8 @@ class Stream(Downloader):
         # attempt to grab new parts from Twitch
         for _ in range(6):
             try:
-                if _ > 4:
-                    raise StreamFetchError(self.channel.name, 'Request time out while fetching new segments.')
+                if _ >= 5:
+                    raise StreamFetchError(self.channel.name, 'Request timed out while fetching new segments.')
 
                 # fetch advertised stream parts
                 self._log.debug('Fetching incoming stream parts.')
@@ -454,5 +454,5 @@ class Stream(Downloader):
         """
         # ensure final segment present
         if self._download_queue.is_segment_present(self._download_queue.current_id):
-            self._log.debug('Fetching final stream segment.', self.channel.name)
+            self._log.debug('Fetching final stream segment.')
             self._download_segment(self._download_queue.get_segment_by_id(self._download_queue.current_id))
