@@ -275,10 +275,14 @@ def safe_move(src_file, dst_file):
 
     if Path(src_file).exists():
         # remove source file if it matches destination file
-        if os.path.exists(dst_file) and os.path.samefile(src_file, dst_file):
+        dst_exists = os.path.exists(dst_file)
+        if dst_exists and os.path.samefile(src_file, dst_file):
             log.debug('%s already exists and matches %s.', dst_file, src_file)
             os.remove(src_file)
         else:
+            if dst_exists:
+                os.remove(dst_file)
+
             # generate temp file path and copy source file to it
             tmp_file = Path(Path(dst_file.parent), os.urandom(6).hex())
             shutil.copyfile(src_file, tmp_file)

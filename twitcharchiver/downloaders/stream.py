@@ -20,7 +20,7 @@ from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.video import MpegSegment, Merger
 from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamPartDuration, StreamDownloadError, \
-    StreamSegmentDownloadError, StreamFetchError, StreamOfflineError, VodMergeError
+    StreamSegmentDownloadError, StreamFetchError, StreamOfflineError, VodMergeError, RequestError
 from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
 
 
@@ -236,8 +236,8 @@ class Stream(Downloader):
 
             # sleep if processing time < 4s before checking for new segments
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
-            if _loop_time < 6:
-                sleep(6 - _loop_time)
+            if _loop_time < 4:
+                sleep(4 - _loop_time)
 
     def merge(self):
         """
@@ -271,9 +271,6 @@ class Stream(Downloader):
             self._log.info('%s is offline or stream ended.', self.channel.name)
             if self._download_queue:
                 self._get_final_segment()
-
-        except requests.ReadTimeout:
-            return
 
         # catch any other exception
         except BaseException as e:
@@ -383,8 +380,8 @@ class Stream(Downloader):
                 break
 
             # retry if request times out
-            except requests.exceptions.ConnectTimeout:
-                self._log.debug('Timed out attempting to fetch new stream segments, retrying. (Attempt %s)', _ + 1)
+            except RequestError as e:
+                self._log.debug('Error attempting to fetch new stream segments. (Attempt %s). Error: %s', _ + 1, e)
                 continue
 
     def _build_download_queue(self):
@@ -397,13 +394,13 @@ class Stream(Downloader):
                 continue
 
             # some streams have part lengths other than the default of 2.0. these cannot be aligned, and so we raise
-            # an error if we encounter more than one if we are attempting to align the segments. we check for >1
-            # instead of just 1 as the final part in the stream is often shorter than 2.0.
+            # an error if we encounter more than one if we are attempting to align the segments. we check for >2
+            # instead of just 1 as the final part (or two) in the stream is often shorter than 2.0.
             if self._align_segments and _part.duration != 2.0:
                 self._log.debug('Found part with unsupported duration (%s).', _part.duration)
                 _unsupported_parts.add(_part)
 
-            if len(_unsupported_parts) > 1:
+            if len(_unsupported_parts) > 2:
                 raise UnsupportedStreamPartDuration
 
             # add part to segment download queue
@@ -426,7 +423,7 @@ class Stream(Downloader):
 
         # begin retry loop for download
         for _ in range(6):
-            if _ > 4:
+            if _ >= 5:
                 self._log.error('Maximum attempts reached while downloading segment %s.', segment.id)
                 return
 
@@ -444,7 +441,7 @@ class Stream(Downloader):
                         for chunk in _r.iter_content(chunk_size=262144):
                             _tmp_file.write(chunk)
 
-                    except requests.exceptions.RequestException as e:
+                    except RequestError as e:
                         self._log.debug('Error downloading stream segment %s: %s', segment.id, str(e))
 
             # move finished ts file to destination storage
@@ -465,3 +462,6 @@ class Stream(Downloader):
         if self._download_queue.is_segment_present(self._download_queue.current_id):
             self._log.debug('Fetching final stream segment.')
             self._download_segment(self._download_queue.get_segment_by_id(self._download_queue.current_id))
+
+    def cleanup_temp_files(self):
+        Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)).rmdir()
