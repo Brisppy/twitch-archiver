@@ -37,7 +37,7 @@ class Logger:
         # if log file passed is provided, output to given file
         if log_file:
             # use rotating file handler with max size of 100MB * 5
-            file = logging.handlers.RotatingFileHandler(log_file, maxBytes=100000000, backupCount=5)
+            file = logging.handlers.RotatingFileHandler(log_file, maxBytes=100000000, backupCount=5, encoding='utf8')
             file.setLevel(logging.DEBUG)
             file.setFormatter(file_formatter)
             logger.addHandler(file)
