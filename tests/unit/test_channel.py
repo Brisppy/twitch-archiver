@@ -24,7 +24,7 @@ class TestChannel(unittest.TestCase):
         self.assertIsNotNone(self.channel_a.get_stream_info())
 
     def test_get_broadcast_vod_id(self):
-        self.assertIsNotNone(self.channel_a.get_broadcast_vod_id())
+        self.assertIsNotNone(self.channel_a.broadcast_v_id)
 
     def test_get_stream_index(self):
         self.assertIsNotNone(self.channel_a.get_stream_index())

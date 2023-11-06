@@ -263,7 +263,7 @@ class Vod:
     @property
     def channel(self):
         """
-        Only fetch and store channel for the VOD if it is used.
+        Fetch, store and return channel for the VOD if it is used.
         """
         if not self._channel:
             self._channel = self._get_channel()
@@ -277,7 +277,7 @@ class Vod:
     @property
     def s_id(self):
         """
-        Only fetch and store stream_id for the VOD if it is used.
+        Fetch, store and return stream_id for the VOD if it is used.
         """
         if not self._s_id:
             self._s_id = self._get_stream_id()

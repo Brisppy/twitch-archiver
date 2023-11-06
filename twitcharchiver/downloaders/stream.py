@@ -302,7 +302,8 @@ class Stream(Downloader):
 
         # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
         if not self.vod.v_id:
-            broadcast_vod_id = self.channel.get_broadcast_vod_id()
+            # todo: if a previous broadcast has a vod id, but the current one doesn't, what does the api return?
+            broadcast_vod_id = self.channel.broadcast_v_id
             if not broadcast_vod_id:
                 self._align_segments = False
             else:
