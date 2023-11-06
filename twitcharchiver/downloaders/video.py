@@ -109,16 +109,12 @@ class Video(Downloader):
 
             self.vod.status = 'offline'
 
-        except KeyboardInterrupt:
-            pass
+        # pass user termination up
+        except KeyboardInterrupt as e:
+            raise KeyboardInterrupt from e
 
         except BaseException as e:
             raise VodDownloadError(e) from e
-
-        finally:
-            # kill download workers
-            self._log.info('Shutting down workers...')
-            #todo find way to shutdown workers
 
     def refresh_playlist(self):
         """
@@ -194,28 +190,32 @@ class Video(Downloader):
                 self._muted_segments.add(segment)
 
         if _buffer:
+            _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
             download_error = []
             futures = []
-            _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
-            # add orders to worker pool
-            for segment in _buffer:
-                futures.append(_worker_pool.submit(self._get_ts_segment, segment))
+            try:
+                # add orders to worker pool
+                for segment in _buffer:
+                    futures.append(_worker_pool.submit(self._get_ts_segment, segment))
 
-            progress = Progress()
+                progress = Progress()
 
-            # complete orders in worker pool
-            for future in futures:
-                if future.result():
-                    # append any returned errors
-                    download_error.append(future.result())
-                    continue
+                # complete orders in worker pool
+                for future in futures:
+                    if future.result():
+                        # append any returned errors
+                        download_error.append(future.result())
+                        continue
 
-                if not self._quiet:
-                    progress.print_progress(
-                        len(self._completed_segments), len(self._index_playlist.segments))
+                    if not self._quiet:
+                        progress.print_progress(
+                            len(self._completed_segments), len(self._index_playlist.segments))
 
-            if download_error:
-                raise VodPartDownloadError(download_error)
+                if download_error:
+                    raise VodPartDownloadError(download_error)
+
+            finally:
+                _worker_pool.shutdown()
 
     def _get_ts_segment(self, segment: MpegSegment):
         """Retrieves a specific ts file.
