@@ -48,14 +48,12 @@ class Processing:
         # create signal handler for graceful removal of lock files
         signal.signal(signal.SIGTERM, signal.default_int_handler)
 
-    def get_channel(self, channels):
+    def get_channel(self, channels: list[Channel]):
         """
         Download all vods from a specified channel or list of channels.
         """
-        for _channel_name in channels:
-            self.log.info("Now archiving channel '%s'.", _channel_name)
-
-            channel = Channel(_channel_name)
+        for channel in channels:
+            self.log.info("Now archiving channel '%s'.", channel.name)
             self.log.debug('Channel info: %s', channel)
             # set output directory to subdir of channel name
             self.output_dir = Path(self._parent_dir, channel.name)
