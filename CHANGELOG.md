@@ -1,4 +1,18 @@
+**(2023-11-XX) Version 4.0.0**
+
+This update has been a long time coming, pretty much all of the processing code was refactored to follow better, more modern coding standards. This was primarily to make it eaiser to find and fix bugs, and to develop new features.
+In addition to this, some new features have also been implemented.
+
+**Additions:**
+ * Added support for inputting a list of VOD IDs or channels has been added. Simply add `-f | --from-file` in conjunction with `-c` or `-v` and the corresponding value(s) will be interpreted as a file path.
+ * Added parallel chat archiving to allow multiple chat logs to be downloaded simultaneously (https://github.com/Brisppy/twitch-archiver/issues/22).
+
+**Changes and Fixes:**
+ * Refactored entire codebase to follow object-oriented practices.
+ * The `-w | --watch-only` flag outputs much less and uses significantly fewer requests. 
+
 **(2023-08-31) Version 3.0.7**
+
 **Changes and Fixes:**
  * Increased the start delay for newly live channels.
 
