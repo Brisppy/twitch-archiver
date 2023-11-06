@@ -226,11 +226,9 @@ class Stream(Downloader):
             _start_timestamp: float = datetime.utcnow().timestamp()
             self.single_download_pass()
 
-            # todo : add a second check, this keeps getting triggered
-
             # assume stream has ended once >20s has passed since the last segment was advertised
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
-            if time_since_date(self._last_part_announce) > 20 and not self._download_queue.segments:
+            if time_since_date(self._last_part_announce) > 20:
                 self._get_final_segment()
                 break
 
@@ -370,14 +368,14 @@ class Stream(Downloader):
                     raise StreamFetchError(self.channel.name, 'Request timed out while fetching new segments.')
 
                 # fetch advertised stream parts
-                self._log.debug('Fetching incoming stream parts.')
-                for _part in [StreamSegment.Part(_p) for _p in
-                              m3u8.loads(self.channel.get_stream_playlist(self._index_uri)).segments]:
-                    # add new parts to part buffer and update last announcement timestamp
+                announced_parts = m3u8.loads(self.channel.get_stream_playlist(self._index_uri)).segments
+                self._last_part_announce = announced_parts[-1].program_date_time.replace(tzinfo=timezone.utc).timestamp()
+
+                for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
+                    # add new parts to part buffer
                     if _part not in self._processed_parts:
                         self._processed_parts.add(_part)
                         self._incoming_part_buffer.append(_part)
-                        self._last_part_announce = datetime.now(timezone.utc).timestamp()
                 break
 
             # retry if request times out
@@ -386,7 +384,6 @@ class Stream(Downloader):
                 continue
 
     def _build_download_queue(self):
-        self._log.debug('Building download queue.')
         _unsupported_parts = set()
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
@@ -412,7 +409,6 @@ class Stream(Downloader):
         self._incoming_part_buffer = []
 
     def _download_queued_segments(self):
-        self._log.debug('Processing download queue.')
         for _segment_id in self._download_queue.get_completed_segment_ids():
             self._download_segment(self._download_queue.pop_segment(_segment_id))
 
