@@ -318,11 +318,22 @@ class Video(Downloader):
             for segment in corruption:
                 segment_fp = str(f'{segment.id:05d}' + '.ts')
 
-                # compare hashes
-                if get_hash(Path(self.output_dir, 'parts', segment_fp)) == \
-                        get_hash(Path(self.output_dir, 'parts', segment_fp + '.corrupt')):
-                    self._log.debug("Re-downloaded .ts segment %s matches corrupt one, "
-                                    "assuming corruption is on Twitch's end and ignoring.", segment.id)
+                # compare hash of redownloaded segment and corrupt one
+                try:
+                    if get_hash(Path(self.output_dir, 'parts', segment_fp)) == \
+                            get_hash(Path(self.output_dir, 'parts', segment_fp + '.corrupt')):
+                        self._log.debug("Re-downloaded .ts segment %s matches corrupt one, "
+                                        "assuming corruption is on Twitch's end and ignoring.", segment.id)
+                        segment.muted = True
+                        self._muted_segments.add(segment)
+
+                # occasionally the last few pieces of a stream may not be archived to the VOD and so wont be
+                # re-downloaded. instead we just assume the corrupt segment is OK.
+                except FileNotFoundError:
+                    self._log.debug("Segment %s could not be re-downloaded - it may no longer be available so the "
+                                    "potentially corrupt segment will be used.")
+                    shutil.move(Path(self.output_dir, 'parts', segment_fp + '.corrupt'),
+                                Path(self.output_dir, 'parts', segment_fp))
                     segment.muted = True
                     self._muted_segments.add(segment)
 
