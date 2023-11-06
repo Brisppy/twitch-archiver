@@ -37,6 +37,7 @@ from pathlib import Path
 from time import sleep
 
 from twitcharchiver.arguments import Arguments
+from twitcharchiver.channel import Channel
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.logger import Logger
 from twitcharchiver.processing import Processing
@@ -44,7 +45,7 @@ from twitcharchiver.utils import getenv, check_update_available, get_latest_vers
 
 __version__ = '4.0.0'
 
-from twitcharchiver.vod import Vod
+from twitcharchiver.vod import Vod, ArchivedVod
 
 
 def main():
@@ -164,21 +165,22 @@ def main():
 
     process = Processing()
 
-    while True:
-        if args.get('channel') is not None:
-            process.get_channel(args.get('channel'))
+    if args.get('channel') is not None:
+        channels = [Channel(c) for c in args.get('channel')]
 
-        if args.get('watch'):
-            sleep(10)
+        while True:
+            process.get_channel(channels)
 
-        else:
-            break
+            if args.get('watch'):
+                sleep(10)
 
-    vods = args.get('vod_id')
-    download_queue = []
-    if args.get('vod_id') is not None:
-        for vod_id in vods:
-            download_queue.append(Vod(vod_id))
+            else:
+                break
+
+    elif args.get('vod_id') is not None:
+        vods = [ArchivedVod.convert_from_vod(Vod(v)) for v in args.get('vod_id')]
+
+        process.vod_downloader(vods)
 
 
 if __name__ == '__main__':
