@@ -22,9 +22,10 @@ class Channel:
         self._api: Api = Api()
         self._log = logging.getLogger()
 
-        self.id: int = 0
+        self.id: int = int()
         self.name: str = channel_name
         self.stream: dict = {}
+        self._broadcast_v_id = int()
 
         if owner:
             self._parse_dict(owner)
@@ -107,7 +108,7 @@ class Channel:
         self._log.debug('No broadcast info found for %s', self.name)
         return {}
 
-    def get_broadcast_vod_id(self):
+    def _get_broadcast_v_id(self):
         """
         Fetches the paired VOD ID for the currently live broadcast.
 
@@ -126,6 +127,16 @@ class Channel:
 
         self._log.debug('No data returned by ChannelVideoLength API for %s.', self.name)
         return int()
+
+    @property
+    def broadcast_v_id(self):
+        """
+        Fetch, store and return most recent broadcast VOD ID.
+        """
+        if not self._broadcast_v_id:
+            self._broadcast_v_id = self._get_broadcast_v_id()
+
+        return self._broadcast_v_id
 
     def get_stream_index(self, quality: str = 'chunked'):
         """
