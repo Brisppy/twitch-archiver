@@ -82,7 +82,7 @@ class Video(Downloader):
 
     def get_completed_segments(self):
         return set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                                             for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))])
+                    for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))])
 
     def start(self):
         """
@@ -138,6 +138,7 @@ class Video(Downloader):
                     self._log.debug('10m has passed since VOD duration changed - assuming it is no longer live.')
                     return
 
+                # todo : find a way to confirm the VOD is offline so we dont needs to wait 10 minutes
                 # if VOD is live check for new parts every 60s
                 self._log.debug('Waiting 60s to see if VOD changes.')
                 sleep(60)
@@ -289,7 +290,6 @@ class Video(Downloader):
         :param corruption: list of corrupt MpegSegments retrieved from CorruptVodError exception.
         """
         # check vod still available
-        # todo: test if this works, originally called get_index_playlist()
         if not self._index_url:
             raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
                                    "unable to re-download the missing segments. Either re-download "
@@ -455,11 +455,11 @@ class Merger:
             with subprocess.Popen(f'ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i '
                                   f'"{str(Path(self._output_dir, "parts", "segments.txt"))}"'
                                   f' -c copy "{str(Path(self._output_dir, "merged.ts"))}"',
-                                  shell=True, stderr=subprocess.PIPE, universal_newlines=True) as _p:
+                                  shell=True, stderr=subprocess.PIPE, universal_newlines=True, encoding='cp437') as _p:
                 # get progress from ffmpeg output and print progress bar
                 if not self._quiet:
                     for _line in _p.stderr:
-                        if 'time=' in _line:
+                        if 'time=' in _line.rstrip():
                             # extract current timestamp from output
                             _cur_time = re.search('(?<=time=).*(?= bitrate=)', _line).group(0).split(':')
                             _cur_time = \
@@ -491,11 +491,12 @@ class Merger:
         _ffmpeg_cmd += f'-c:a copy -c:v copy "{Path(self._output_dir, "vod.mp4")}"'
 
         # convert merged .ts file to .mp4
-        with subprocess.Popen(_ffmpeg_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True) as _p:
+        with subprocess.Popen(_ffmpeg_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True,
+                              encoding='cp437') as _p:
             # get progress from ffmpeg output and catch corrupt segments
             _ffmpeg_log = ''
             for line in _p.stderr:
-                _ffmpeg_log += line
+                _ffmpeg_log += line.rstrip()
                 if 'time=' in line:
                     # extract current timestamp from output
                     _cur_time = re.search(r'(?<=time=).*(?= bitrate=)', line).group(0).split(':')
@@ -538,10 +539,10 @@ class Merger:
     def _get_dts_offset(self):
         with subprocess.Popen(f'ffprobe -v quiet -print_format json -show_format -show_streams '
                               f'"{Path(self._output_dir, "parts", "00000.ts")}"', shell=True,
-                              stdout=subprocess.PIPE, universal_newlines=True) as _p:
+                              stdout=subprocess.PIPE, universal_newlines=True, encoding='cp437') as _p:
             _ts_file_data = ''
             for _line in _p.stdout:
-                _ts_file_data += _line
+                _ts_file_data += _line.rstrip()
 
             return float(json.loads(_ts_file_data)['format']['start_time']) * 90000
 
@@ -562,13 +563,13 @@ class Merger:
         # retrieve vod file duration
         p = subprocess.run(f'ffprobe -v quiet -i "{Path(self._output_dir, "vod.mp4")}" '
                            f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
-                           shell=True, capture_output=True)
+                           shell=True, capture_output=True, encoding='cp437')
 
         if p.returncode:
             raise VodVerificationError(f'VOD length verification exited with error. Command: {p.args}.')
 
         try:
-            downloaded_length = int(float(p.stdout.decode('ascii').rstrip()))
+            downloaded_length = int(float(p.stdout.rstrip()))
 
         except Exception as e:
             raise VodVerificationError(
