@@ -17,7 +17,7 @@ from twitcharchiver.downloaders.realtime import RealTime
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
 from twitcharchiver.database import Database
-from twitcharchiver.exceptions import RequestError, VodDownloadError, VodMergeError, VodLockedError
+from twitcharchiver.exceptions import RequestError, VodDownloadError, VodMergeError, VodLockedError, VodAlreadyCompleted
 from twitcharchiver.utils import send_push
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -45,6 +45,10 @@ class Processing:
         self.quiet = conf['quiet']
         self.threads = conf['threads']
 
+        # perform database setup
+        with Database(Path(self.config_dir, 'vods.db')) as db:
+            db.setup()
+
         # create signal handler for graceful removal of lock files
         signal.signal(signal.SIGTERM, signal.default_int_handler)
 
@@ -60,9 +64,6 @@ class Processing:
 
             # retrieve available vods and extract required info
             channel_videos: list[Vod] = channel.get_channel_videos()
-
-            with Database(Path(self.config_dir, 'vods.db')) as db:
-                db.setup()
 
             channel_live = channel.is_live()
             if channel_live:
@@ -80,16 +81,10 @@ class Processing:
                     with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod, video_archived=True)) as _dh:
                         try:
                             stream.start()
-
                             stream.merge()
 
                         except BaseException as e:
                             self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, e)
-
-                # if stream has paired VOD, we can delete any downloaded files.
-                else:
-                    stream.delete_all_files()
-
 
             # move on if channel offline and `live-only` set
             elif self.live_only:
@@ -113,7 +108,7 @@ class Processing:
                 _vod.channel = channel
 
                 # add any vods not already archived
-                if _vod not in downloaded_vods:
+                if _vod.v_id not in [v.v_id for v in downloaded_vods]:
                     download_queue.append(ArchivedVod.convert_from_vod(_vod))
 
                 # if VOD already downloaded, add it to the queue if formats are missing
@@ -128,9 +123,9 @@ class Processing:
             # exit if vod queue empty
             if not download_queue:
                 self.log.info('No new VODs are available in the requested formats for %s.', channel.name)
-                continue
 
-            self.vod_downloader(download_queue)
+            else:
+                self.vod_downloader(download_queue)
 
     def vod_downloader(self, download_queue: list[ArchivedVod]):
         """
@@ -199,6 +194,9 @@ class Processing:
                 _downloader.start()
                 _downloader.merge()
                 _downloader.cleanup_temp_files()
+
+        except VodAlreadyCompleted:
+            return
 
         except VodLockedError:
             return
