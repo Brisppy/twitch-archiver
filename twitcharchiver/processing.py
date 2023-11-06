@@ -208,13 +208,13 @@ class Processing:
 
         # catch halting errors
         except (RequestError, VodDownloadError, VodMergeError) as e:
-            self.log.error('Error downloading VOD %s.', _downloader.vod, exc_info=True)
+            self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
             send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
             sys.exit(1)
 
         # catch unhandled exceptions
         except BaseException as e:
-            self.log.error('Error downloading VOD %s.', _downloader.vod, exc_info=True)
+            self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
             send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
             sys.exit(1)
 

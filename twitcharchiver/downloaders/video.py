@@ -297,16 +297,16 @@ class Video(Downloader):
                                    f"using FFmpeg. Corrupt parts:\n{str(corruption)}")
 
         # rename corrupt segments
-        for part in corruption:
-            # convert part number to segment file
-            part_fp = str(f'{part.id:05d}' + '.ts')
+        for segment in corruption:
+            # convert segment number to segment file
+            segment_fp = str(f'{segment.id:05d}' + '.ts')
 
             # rename part
-            shutil.move(Path(self.output_dir, 'parts', part_fp),
-                        Path(self.output_dir, 'parts', part_fp + '.corrupt'))
+            shutil.move(Path(self.output_dir, 'parts', segment_fp),
+                        Path(self.output_dir, 'parts', segment_fp + '.corrupt'))
 
             # remove from completed segments
-            self._completed_segments.remove(part)
+            self._completed_segments.remove(segment)
 
         # download and combine vod again
         try:
@@ -315,16 +315,16 @@ class Video(Downloader):
 
             # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes
             # so we can work out if a segment is corrupt on twitch's end or ours
-            for part in corruption:
-                part_fp = str(f'{part.id:05d}' + '.ts')
+            for segment in corruption:
+                segment_fp = str(f'{segment.id:05d}' + '.ts')
 
                 # compare hashes
-                if get_hash(Path(self.output_dir, 'parts', part_fp)) == \
-                        get_hash(Path(self.output_dir, 'parts', part_fp + '.corrupt')):
+                if get_hash(Path(self.output_dir, 'parts', segment_fp)) == \
+                        get_hash(Path(self.output_dir, 'parts', segment_fp + '.corrupt')):
                     self._log.debug("Re-downloaded .ts segment %s matches corrupt one, "
-                                    "assuming corruption is on Twitch's end and ignoring.", part.id)
-                    part.muted = True
-                    self._muted_segments.add(part)
+                                    "assuming corruption is on Twitch's end and ignoring.", segment.id)
+                    segment.muted = True
+                    self._muted_segments.add(segment)
 
         except CorruptPartError as e:
             raise VodDownloadError(
