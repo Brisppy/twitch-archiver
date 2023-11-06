@@ -299,11 +299,14 @@ class Vod:
             # use index for end of list as users with '_' in their name will break this
             return int(self.thumbnail_url.split('/')[5].split('_')[-2])
 
+        return int(self._get_seek_url().split('/')[3].split('_')[-2])
+
+    def _get_seek_url(self):
         _r = self._api.gql_request('VideoPlayer_VODSeekbarPreviewVideo',
                                    '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
                                    {'includePrivate': False, 'videoID': str(self.v_id)})
 
-        return int(_r.json()[0]['data']['video']['seekPreviewsURL'].split('/')[3].split('_')[-2])
+        return _r.json()[0]['data']['video']['seekPreviewsURL']
 
     def get_index_url(self, quality: str = 'best'):
         """Retrieves an index of m3u8 streams for a given VOD.
@@ -343,9 +346,15 @@ class Vod:
         except TwitchAPIErrorForbidden:
             self._log.debug('VOD %s is subscriber-only. Generating index URL.', self.v_id)
             # retrieve cloudfront storage location from VOD thumbnail
-            _cf_info = self.thumbnail_url.split('/')
-            _cf_domain = _cf_info[4]
-            _vod_uid = _cf_info[5]
+            if '404_processing' not in self.thumbnail_url:
+                _cf_info = self.thumbnail_url.split('/')
+                _cf_domain = _cf_info[4]
+                _vod_uid = _cf_info[5]
+
+            else:
+                _cf_info = self._get_seek_url().split('/')
+                _cf_domain = _cf_info[2].split('.')[0]
+                _vod_uid = _cf_info[3]
 
             # parse user-provided quality
             if quality == 'best':
