@@ -146,25 +146,27 @@ class Processing:
         _chat_download_queue: list = []
 
         # cache channels with associated broadcast VOD IDs
-        _channel_cache: dict[Channel: int] = {}
+        _channel_cache: list[Channel] = []
 
         # begin processing each available vod
         for _vod in download_queue:
             if _vod.channel not in _channel_cache:
-                _channel_cache[_vod.channel] = _vod.channel.get_broadcast_vod_id()
+                _channel_cache.append(_vod.channel)
 
-            # check if current VOD ID matches associated broadcast VOD ID
-            if _vod.v_id == _channel_cache[_vod.channel]:
-                # skip if we aren't after currently live streams
-                if self.archive_only:
-                    self.log.info('Skipping VOD as it is live and no-stream argument provided.')
-                    continue
+            _channel_index = _channel_cache.index(_vod.channel)
+            if _channel_cache[_channel_index].is_live():
+                # check if current VOD ID matches associated broadcast VOD ID
+                if _channel_cache[_channel_index].broadcast_v_id == _vod.v_id:
+                    # skip if we aren't after currently live streams
+                    if self.archive_only:
+                        self.log.info('Skipping VOD as it is live and no-stream argument provided.')
+                        continue
 
-                # run real-time archiver if enabled and current stream is being archived to this VOD
-                if self.real_time:
-                    _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.threads)
-                    self._start_download(_real_time_archiver)
-                    continue
+                    # run real-time archiver if enabled and current stream is being archived to this VOD
+                    if self.real_time:
+                        _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.threads)
+                        self._start_download(_real_time_archiver)
+                        continue
 
             # skip if we are only after currently live streams, and stream_id is not live
             elif self.live_only:
