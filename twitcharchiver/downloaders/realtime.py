@@ -1,5 +1,5 @@
-import multiprocessing
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from twitcharchiver.api import Api
@@ -50,17 +50,13 @@ class RealTime(Downloader):
         """
         Starts downloading VOD video / chat segments.
         """
-        workers = [multiprocessing.Process(target=self.stream.start),
-                   multiprocessing.Process(target=self.video.start)]
-
+        _worker_pool = ThreadPoolExecutor(max_workers=3)
+        _futures = [_worker_pool.submit(self.video.start), _worker_pool.submit(self.stream.start)]
         if self.archive_chat:
-            workers.append(multiprocessing.Process(target=self.chat.start))
+            _futures.append(_worker_pool.submit(self.chat.start))
 
-        for _w in workers:
-            _w.start()
-
-        for _w in workers:
-            _w.join()
+        for _f in _futures:
+            _f.result()
 
         self.merge()
 
