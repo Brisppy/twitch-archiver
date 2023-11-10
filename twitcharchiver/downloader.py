@@ -3,7 +3,6 @@ import tempfile
 
 from pathlib import Path
 
-from twitcharchiver.logger import Logger
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.exceptions import VodAlreadyCompleted, VodLockedError
 from twitcharchiver.database import Database, INSERT_VOD
@@ -11,8 +10,7 @@ from twitcharchiver.vod import ArchivedVod, Vod
 
 
 class Downloader:
-    _log = Logger.setup_logger()
-
+    _log = logging.getLogger()
     def __init__(self, parent_dir: Path, quiet: bool):
         """
         Class Constructor.
