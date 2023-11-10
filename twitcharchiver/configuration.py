@@ -99,6 +99,10 @@ class Configuration:
         return cls.__conf[name]
 
     @classmethod
+    def import_conf(cls, conf_dict):
+        cls.__conf = conf_dict
+
+    @classmethod
     def get_sanitized(cls, name=None):
         """Retrieves a specified attribute, sanitizing secrets.
 
