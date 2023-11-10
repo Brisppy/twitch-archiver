@@ -327,6 +327,9 @@ class Video(Downloader):
                         segment.muted = True
                         self._muted_segments.add(segment)
 
+                    else:
+                        self._log.error('Re-downloaded .ts segment %s does not match corrupt one.')
+
                 # occasionally the last few pieces of a stream may not be archived to the VOD and so wont be
                 # re-downloaded. instead we just assume the corrupt segment is OK.
                 except FileNotFoundError:
