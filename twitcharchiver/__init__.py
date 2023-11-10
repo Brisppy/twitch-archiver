@@ -119,8 +119,8 @@ def main():
     parser.add_argument('-p', '--pushbullet-key', action='store',
                         help='Pushbullet key for sending pushes on error. Enabled by supplying key.',
                         default=getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", default_val=''))
-    loglevel.add_argument('-Q', '--quiet', action='store_const', help='Disable all log output.', const=50, default=0)
-    loglevel.add_argument('-D', '--debug', action='store_const', help='Enable debug logs.', const=10, default=0)
+    loglevel.add_argument('-Q', '--quiet', action='store_true', help='Disable all log output.')
+    loglevel.add_argument('-D', '--debug', action='store_true', help='Enable debug logs.')
     parser.add_argument('--version', action='version', version=f'Twitch Archiver v{__version__}',
                         help='Show version number and exit.')
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
@@ -130,8 +130,7 @@ def main():
     args.setup_args(parser.parse_args().__dict__)
 
     # setup logging
-    log = Logger.setup_logger(args.get('log_file'))
-    log.setLevel(args.get('quiet') + args.get('debug'))
+    log = Logger.setup_logger(quiet=args.get('quiet'), debug=args.get('debug'), log_filepath=args.get('log_file'))
     log.debug('Debug logging enabled.')
 
     # debug only: output sanitized version of arguments

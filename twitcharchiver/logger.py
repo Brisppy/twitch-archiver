@@ -8,25 +8,21 @@ Logging class used by Twitch Archiver.
 import sys
 import logging
 import logging.handlers
+from pathlib import Path
+
 
 class Logger:
     """
     Sets up logging for the script.
     """
     @staticmethod
-    def setup_logger(log_file=None):
+    def setup_logger(quiet: bool = False, debug: bool = False, log_filepath: str = ""):
         """Sets up logging module.
 
-        :param log_file: location of log file if provided
         :return: python logging object
         """
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
-
-        # set up time, date, log format
-        console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
-        file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s',
-                                           '%Y-%m-%d %H:%M:%S')
 
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
@@ -34,13 +30,14 @@ class Logger:
         if not len(logger.handlers):
             logger.addHandler(console)
 
-        # if log file passed is provided, output to given file
-        if log_file:
-            # use rotating file handler with max size of 100MB * 5
-            file = logging.handlers.RotatingFileHandler(log_file, maxBytes=100000000, backupCount=5, encoding='utf8')
-            file.setLevel(logging.DEBUG)
-            file.setFormatter(file_formatter)
-            logger.addHandler(file)
+        # setup debugging / quiet / file logging
+        if quiet:
+            logger = Logger._setup_quiet(logger)
+        elif debug:
+            logger = Logger._setup_debugging(logger)
+
+        if log_filepath:
+            logger = Logger._setup_file(logger, log_filepath)
 
         # supress other messages
         logging.getLogger('requests').setLevel(logging.WARNING)
@@ -48,3 +45,38 @@ class Logger:
         logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
 
         return logger
+
+    @staticmethod
+    def _setup_file(logger, log_filepath: str):
+        """
+        Sets up file logging with given logger and filepath.
+
+        :param logger: logging object to enable file output on
+        :param log_filepath: path to desired log file
+        :return: logging object
+        """
+        Path(log_filepath).parent.mkdir(parents=True, exist_ok=True)
+
+        # use rotating file handler with max size of 100MB * 5
+        file = logging.handlers.RotatingFileHandler(Path(log_filepath), maxBytes=100000000, backupCount=5, encoding='utf8')
+        file.setLevel(logging.DEBUG)
+        file.setFormatter(file_formatter)
+        logger.addHandler(file)
+
+        return logger
+
+    @staticmethod
+    def _setup_debugging(logger):
+        logger.setLevel(logging.DEBUG)
+        logger.handlers[0].setFormatter(file_formatter)
+
+        return logger
+
+    @staticmethod
+    def _setup_quiet(logger):
+        logger.setLevel(50)
+
+        return logger
+
+console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
+file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s','%Y-%m-%d %H:%M:%S')
