@@ -229,6 +229,7 @@ class Stream(Downloader):
             # assume stream has ended once >20s has passed since the last segment was advertised
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
             if time_since_date(self._last_part_announce) > 20:
+                self._log.debug('Assuming stream has ended as 20 seconds passed since last segment announced.')
                 self._get_final_segment()
                 break
 

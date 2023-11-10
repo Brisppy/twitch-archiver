@@ -114,7 +114,7 @@ class CorruptPartError(Exception):
         """
         self.parts = parts
 
-        message = f'Corrupt parts found when converting VOD file. Parts: {parts}'
+        message = f'Corrupt parts found when converting VOD file. Delete VOD and re-download if issue persists. Parts: {[p.id for p in parts]}'
 
         super().__init__(message)
 
