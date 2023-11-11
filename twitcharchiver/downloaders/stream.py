@@ -392,7 +392,7 @@ class Stream(Downloader):
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
             if _part.title != 'live':
-                self._log.debug('Ignoring advertisement segment %s.', _part)
+                self._log.debug('Ignoring advertisement part %s.', _part)
                 continue
 
             # some streams have part lengths other than the default of 2.0. these cannot be aligned, and so we raise

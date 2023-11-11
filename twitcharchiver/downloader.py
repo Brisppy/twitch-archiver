@@ -10,7 +10,6 @@ from twitcharchiver.vod import ArchivedVod, Vod
 
 
 class Downloader:
-    _log = logging.getLogger()
     def __init__(self, parent_dir: Path, quiet: bool):
         """
         Class Constructor.
@@ -22,6 +21,8 @@ class Downloader:
         self._quiet: bool = quiet
 
         self.vod = Vod()
+
+        self._log = logging.getLogger()
 
     def start(self):
         return

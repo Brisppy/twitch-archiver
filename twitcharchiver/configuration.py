@@ -17,7 +17,7 @@ class Configuration:
         'pushbullet_key': '',
     }
 
-    log = logging.getLogger()
+    _log = logging.getLogger()
 
     def generate_config(self, args):
         """Generates the required configuration from provided arguments, overwriting loaded settings.
@@ -25,7 +25,7 @@ class Configuration:
         :param args: dict of arguments to generate config from
         :type args: dict
         """
-        self.log.debug('Generating config from provided arguments.')
+        self._log.debug('Generating config from provided arguments.')
 
         # overwrite configuration with passed args (if set) as they have precedence
         for argument in args:
@@ -42,10 +42,10 @@ class Configuration:
         """
         # create conf file if it doesn't exist
         if not os.path.isfile(conf_file):
-            self.log.debug('Config file not found - creating one now.')
+            self._log.debug('Config file not found - creating one now.')
             self.create_config_file(conf_file)
 
-        self.log.debug('Loading config from file.')
+        self._log.debug('Loading config from file.')
 
         config = configparser.ConfigParser()
         config.read(conf_file)
@@ -59,17 +59,17 @@ class Configuration:
 
         :param conf_file: path to configuration file
         """
-        self.log.debug('Creating directories for configuration file.')
+        self._log.debug('Creating directories for configuration file.')
         os.makedirs(conf_file.parent, exist_ok=True)
 
         config = configparser.ConfigParser()
         config.add_section('settings')
-        self.log.debug('Current config: %s', self.get())
+        self._log.debug('Current config: %s', self.get())
 
         for setting in self.__conf:
             config.set('settings', setting, self.get(setting))
 
-        self.log.debug('Writing config to %s', conf_file)
+        self._log.debug('Writing config to %s', conf_file)
 
         with open(conf_file, 'w', encoding='utf8') as f:
             config.write(f)
@@ -125,7 +125,7 @@ class Configuration:
         """
         Saves the running configuration to the configuration ini.
         """
-        self.log.debug('Saving config variable(s) to ini file.')
+        self._log.debug('Saving config variable(s) to ini file.')
 
         # import saved config
         config = configparser.ConfigParser()
