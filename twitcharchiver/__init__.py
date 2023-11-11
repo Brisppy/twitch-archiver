@@ -110,7 +110,7 @@ def main():
                         help="Enable real-time stream archiver.\n"
                              "Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.",
                         default=getenv('TWITCH_ARCHIVER_REAL_TIME_ARCHIVER', False, True))
-    parser.add_argument('-L', '--log-file', action='store', help='Output logs to specified file.', type=Path,
+    parser.add_argument('-L', '--log-dir', action='store', help='Output logs to specified directory.', type=Path,
                         default=getenv("TWITCH_ARCHIVER_LOG_FILE", False))
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
                         help='Directory to store configuration and VOD database.\n(default: %(default)s)',
@@ -130,7 +130,7 @@ def main():
     args.setup_args(parser.parse_args().__dict__)
 
     # setup logging
-    log = Logger.setup_logger(quiet=args.get('quiet'), debug=args.get('debug'), log_filepath=args.get('log_file'))
+    log = Logger.setup_logger(args.get('quiet'), args.get('debug'), args.get('log_dir'))
     log.debug('Debug logging enabled.')
 
     # debug only: output sanitized version of arguments

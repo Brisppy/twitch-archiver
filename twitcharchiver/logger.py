@@ -4,11 +4,15 @@
 """
 Logging class used by Twitch Archiver.
 """
-
+import multiprocessing
 import sys
 import logging
 import logging.handlers
+
 from pathlib import Path
+
+console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
+file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s','%Y-%m-%d %H:%M:%S')
 
 
 class Logger:
@@ -16,13 +20,13 @@ class Logger:
     Sets up logging for the script.
     """
     @staticmethod
-    def setup_logger(quiet: bool = False, debug: bool = False, log_filepath: str = ""):
+    def setup_logger(quiet: bool = False, debug: bool = False, logging_dir: str = ""):
         """Sets up logging module.
 
         :return: python logging object
         """
         logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
 
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
@@ -32,33 +36,33 @@ class Logger:
 
         # setup debugging / quiet / file logging
         if quiet:
-            logger = Logger._setup_quiet(logger)
+            logger = Logger.setup_quiet(logger)
         elif debug:
-            logger = Logger._setup_debugging(logger)
+            logger = Logger.setup_debugging(logger)
 
-        if log_filepath:
-            logger = Logger._setup_file(logger, log_filepath)
+        if logging_dir:
+            logger = Logger.setup_file(logger, logging_dir)
 
-        # supress other messages
-        logging.getLogger('requests').setLevel(logging.WARNING)
-        logging.getLogger('urllib3').setLevel(logging.WARNING)
-        logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
+        Logger.suppress_unnecessary()
 
         return logger
 
     @staticmethod
-    def _setup_file(logger, log_filepath: str):
+    def setup_file(logger, logging_dir: str):
         """
         Sets up file logging with given logger and filepath.
 
         :param logger: logging object to enable file output on
-        :param log_filepath: path to desired log file
+        :param logging_dir: directory to store log file(s)
         :return: logging object
         """
-        Path(log_filepath).parent.mkdir(parents=True, exist_ok=True)
+        if Path(logging_dir).is_file():
+            raise FileExistsError('Error configuring logging, file exists in place of log directory.')
+
+        Path(logging_dir).parent.mkdir(parents=True, exist_ok=True)
 
         # use rotating file handler with max size of 100MB * 5
-        file = logging.handlers.RotatingFileHandler(Path(log_filepath), maxBytes=100000000, backupCount=5, encoding='utf8')
+        file = logging.handlers.RotatingFileHandler(Path(logging_dir, 'debug.log'), maxBytes=100000000, backupCount=5, encoding='utf8')
         file.setLevel(logging.DEBUG)
         file.setFormatter(file_formatter)
         logger.addHandler(file)
@@ -66,17 +70,88 @@ class Logger:
         return logger
 
     @staticmethod
-    def _setup_debugging(logger):
+    def setup_debugging(logger):
         logger.setLevel(logging.DEBUG)
-        logger.handlers[0].setFormatter(file_formatter)
 
         return logger
 
     @staticmethod
-    def _setup_quiet(logger):
+    def setup_quiet(logger):
         logger.setLevel(50)
 
         return logger
 
-console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
-file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s','%Y-%m-%d %H:%M:%S')
+    @staticmethod
+    def suppress_unnecessary():
+        # supress other messages
+        logging.getLogger('requests').setLevel(logging.WARNING)
+        logging.getLogger('urllib3').setLevel(logging.WARNING)
+        logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
+
+
+# logging handler used with realtime archiver
+# reference:
+#   https://stackoverflow.com/a/60831737
+class ProcessLogger(multiprocessing.Process):
+    _global_process_logger = None
+
+    def __init__(self):
+        super().__init__()
+        self.queue = multiprocessing.Queue(-1)
+
+    @classmethod
+    def get_global_logger(cls):
+        if cls._global_process_logger is not None:
+            return cls._global_process_logger
+        raise Exception("No global process logger exists.")
+
+    @classmethod
+    def create_global_logger(cls):
+        cls._global_process_logger = ProcessLogger()
+        return cls._global_process_logger
+
+    @staticmethod
+    def configure():
+        root = Logger.setup_logger()
+        # limit to 5x 100MB log files
+        h = logging.handlers.RotatingFileHandler('realtime.log', 'a', 100*1024**2, 5)
+        h.setFormatter(file_formatter)
+        root.addHandler(h)
+
+    def stop(self):
+        self.queue.put_nowait(None)
+
+    def run(self):
+        self.configure()
+        while True:
+            try:
+                record = self.queue.get()
+                if record is None:
+                    break
+                logger = logging.getLogger(record.name)
+                logger.handle(record)
+            except Exception:
+                import sys, traceback
+                print('Whoops! Problem:', file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+
+
+def configure_new_process(log_process_queue):
+    h = logging.handlers.QueueHandler(log_process_queue)
+    root = logging.getLogger()
+    root.addHandler(h)
+    # grab level from main logger
+    root.setLevel(root.handlers[0].level)
+    Logger.suppress_unnecessary()
+
+
+class ProcessWithLogging(multiprocessing.Process):
+    def __init__(self, target):
+        super().__init__()
+        self.target = target
+        log_process = ProcessLogger.get_global_logger()
+        self.log_process_queue = log_process.queue
+
+    def run(self):
+        configure_new_process(self.log_process_queue)
+        self.target()

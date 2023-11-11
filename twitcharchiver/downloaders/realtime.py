@@ -1,15 +1,17 @@
 import os
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from twitcharchiver import Configuration
 from twitcharchiver.api import Api
 from twitcharchiver.exceptions import VodMergeError
+from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
 from twitcharchiver.vod import Vod
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-
 
 class RealTime(Downloader):
     """
@@ -50,15 +52,46 @@ class RealTime(Downloader):
         """
         Starts downloading VOD video / chat segments.
         """
+        # log files are stored in either the provided log directory or %TEMP%/STREAM_ID
+        # we change to this directory as the multiprocessing logger has difficulties with passing
+        # variables into it
+        logging_dir = Path(tempfile.gettempdir(), str(self.vod.s_id))
+        conf = Configuration.get()
+        if conf['log_dir']:
+            logging_dir = Path(conf['log_dir'])
+
+        Path(logging_dir).mkdir(exist_ok=True, parents=True)
+        os.chdir(logging_dir)
+
+        process_logger = ProcessLogger.create_global_logger()
+        process_logger.start()
+
         _worker_pool = ThreadPoolExecutor(max_workers=3)
-        _futures = [_worker_pool.submit(self.video.start), _worker_pool.submit(self.stream.start)]
-        if self.archive_chat:
-            _futures.append(_worker_pool.submit(self.chat.start))
+        try:
+            workers = [ProcessWithLogging(self.stream.start),
+                       ProcessWithLogging(self.video.start)]
 
-        for _f in _futures:
-            _f.result()
+            if self.archive_chat:
+                workers.append(ProcessWithLogging(self.chat.start))
 
-        self.merge()
+            for _w in workers:
+                _w.start()
+
+            for _w in workers:
+                _w.join()
+
+            process_logger.stop()
+            process_logger.join()
+
+        except KeyboardInterrupt:
+            self._log.info('User requested stop, shutting down workers...')
+            _worker_pool.shutdown(wait=False)
+            process_logger.stop()
+            process_logger.join()
+            raise KeyboardInterrupt
+
+        finally:
+            _worker_pool.shutdown(wait=False)
 
     def merge(self):
         try:
