@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timezone
 
 from pathlib import Path
+from time import sleep
 
 from twitcharchiver.api import Api
 from twitcharchiver.downloader import Downloader
@@ -68,17 +69,28 @@ class Chat(Downloader):
         :return: list of dictionaries containing chat message data
         :rtype: list[dict]
         """
-        # begin downloader from offset if previous log found
-        if self._chat_log:
-            self._download_loop(self._chat_log[-1]['contentOffsetSeconds'])
+        # use while loop for archiving live VODs
+        while True:
+            _start_timestamp: float = datetime.utcnow().timestamp()
+            # begin downloader from offset if previous log found
+            if self._chat_log:
+                self._download(self._chat_log[-1]['contentOffsetSeconds'])
 
-        else:
-            self._download_loop()
+            else:
+                self._download()
+
+            if not self.vod.is_live():
+                break
+
+            # sleep if processing time < 60s before fetching new messages
+            _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
+            if _loop_time < 60:
+                sleep(60 - _loop_time)
 
         # export logs
         self.export_chat_logs()
 
-    def _download_loop(self, offset: int = 0):
+    def _download(self, offset: int = 0):
         """
         Downloads the chat log in its entirety.
 
@@ -92,9 +104,7 @@ class Chat(Downloader):
         _initial_segment, _cursor = self._get_chat_segment(offset=offset)
         self._chat_log.extend(_initial_segment)
 
-        # todo : loop until stream has ended
-
-        while True:
+        while self.vod.is_live():
             if not _cursor:
                 break
 
