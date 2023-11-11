@@ -59,7 +59,7 @@ class Logger:
         if Path(logging_dir).is_file():
             raise FileExistsError('Error configuring logging, file exists in place of log directory.')
 
-        Path(logging_dir).parent.mkdir(parents=True, exist_ok=True)
+        Path(logging_dir).mkdir(parents=True, exist_ok=True)
 
         # use rotating file handler with max size of 100MB * 5
         file = logging.handlers.RotatingFileHandler(Path(logging_dir, 'debug.log'), maxBytes=100000000, backupCount=5, encoding='utf8')
@@ -114,7 +114,7 @@ class ProcessLogger(multiprocessing.Process):
     def configure():
         root = Logger.setup_logger()
         # limit to 5x 100MB log files
-        h = logging.handlers.RotatingFileHandler('realtime.log', 'a', 100*1024**2, 5)
+        h = logging.handlers.RotatingFileHandler('realtime.log', 'a', 100*1024**2, 5, encoding='utf8')
         h.setFormatter(file_formatter)
         root.addHandler(h)
 
