@@ -110,8 +110,8 @@ class Video(Downloader):
             self.vod.status = 'offline'
 
         # pass user termination up
-        except KeyboardInterrupt as e:
-            raise KeyboardInterrupt from e
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
 
         except BaseException as e:
             raise VodDownloadError(e) from e
@@ -215,8 +215,13 @@ class Video(Downloader):
                 if download_error:
                     raise VodPartDownloadError(download_error)
 
+            except KeyboardInterrupt:
+                self._log.debug('M3U8 playlist downloader caught interrupt, shutting down workers...')
+                _worker_pool.shutdown(wait=False, cancel_futures=True)
+                raise KeyboardInterrupt
+
             finally:
-                _worker_pool.shutdown()
+                _worker_pool.shutdown(wait=False, cancel_futures=True)
 
     def _get_ts_segment(self, segment: MpegSegment):
         """Retrieves a specific ts file.
@@ -231,7 +236,7 @@ class Video(Downloader):
 
         # don't bother if piece already downloaded
         if os.path.exists(_segment_path):
-            return ""
+            return
 
         # files are downloaded to $TMP, then moved to final destination
         # takes 3:32 to download an hour long VOD to NAS, compared to 5:00 without using $TMP as download cache
@@ -243,8 +248,7 @@ class Video(Downloader):
               as _tmp_ts_file):
             for _ in range(6):
                 if _ > 4:
-                    self._log.debug('Maximum retries for segment %s reached.', Path(_segment_path).stem)
-                    return f'Maximum retries for segment {Path(_segment_path).stem} reached.'
+                    raise VodPartDownloadError(f'Maximum retries for segment {segment.id} reached.') from e
 
                 try:
                     _r = self._s.get(segment.url, stream=True, timeout=10)
@@ -273,15 +277,14 @@ class Video(Downloader):
             safe_move(_tmp_ts_file.name, _segment_path)
             self._log.debug('Segment %s completed and moved to %s.', Path(_segment_path).stem, _segment_path)
 
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+
         except FileNotFoundError as e:
             raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {segment.url}') from e
 
         except BaseException as e:
-            self._log.error('Exception encountered while moving downloaded MPEG-TS segment %s.', segment.url,
-                            exc_info=True)
-            return str(e)
-
-        return ""
+            raise VodPartDownloadError(f'Exception encountered while moving downloaded MPEG-TS segment {segment.id}.') from e
 
     def repair_vod_corruptions(self, corruption: list[MpegSegment]):
         """

@@ -271,6 +271,9 @@ class Stream(Downloader):
             if self._download_queue:
                 self._get_final_segment()
 
+        except KeyboardInterrupt as e:
+            raise KeyboardInterrupt from e
+
         # catch any other exception
         except BaseException as e:
             raise StreamDownloadError(self.channel.name, e) from e
