@@ -88,7 +88,7 @@ class Processing:
 
             # move on if channel offline and `live-only` set
             elif self.live_only:
-                self.log.debug('%s is offline and `live-only` argument provided.', channel.name)
+                self.log.info('%s is offline and `live-only` argument provided.', channel.name)
                 continue
 
             self.log.debug('Available VODs: %s', [v.v_id for v in channel_videos])
@@ -148,7 +148,11 @@ class Processing:
             if _vod.channel not in _channel_cache:
                 _channel_cache.append(_vod.channel)
 
+            if self.live_only and not _vod.is_live():
+                continue
+
             _channel_index = _channel_cache.index(_vod.channel)
+            # if channel is live
             if _channel_cache[_channel_index].is_live():
                 # check if current VOD ID matches associated broadcast VOD ID
                 if _channel_cache[_channel_index].broadcast_v_id == _vod.v_id:
@@ -162,10 +166,6 @@ class Processing:
                         _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.threads)
                         self._start_download(_real_time_archiver)
                         continue
-
-            # skip if we are only after currently live streams, and stream_id is not live
-            elif self.live_only:
-                continue
 
             if not _vod.video_archived and self.archive_video:
                 _vod.video_archived = True
@@ -235,7 +235,6 @@ class Processing:
         with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod)) as _dh:
             try:
                 stream.start()
-                # todo combine stream parts
 
                 # blindly merge parts, verification isn't done because we dont have solid data to verify against, or
                 # any way to recover lost data.

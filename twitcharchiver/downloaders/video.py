@@ -203,10 +203,9 @@ class Video(Downloader):
 
                 # complete orders in worker pool
                 for future in futures:
-                    if future.result():
+                    if future.exception():
                         # append any returned errors
-                        download_error.append(future.result())
-                        continue
+                        download_error.append(future.exception())
 
                     if not self._quiet:
                         progress.print_progress(

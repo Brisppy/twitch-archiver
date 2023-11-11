@@ -92,6 +92,8 @@ class Chat(Downloader):
         _initial_segment, _cursor = self._get_chat_segment(offset=offset)
         self._chat_log.extend(_initial_segment)
 
+        # todo : loop until stream has ended
+
         while True:
             if not _cursor:
                 break
