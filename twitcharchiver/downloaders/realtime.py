@@ -1,6 +1,7 @@
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Queue
 from pathlib import Path
 
 from twitcharchiver import Configuration
@@ -41,12 +42,12 @@ class RealTime(Downloader):
         super().__init__(parent_dir, True)
 
         self.vod = vod
-
+        self.parent_dir = parent_dir
         self.archive_chat = archive_chat
+        self.quality = quality
+        self.threads = threads
 
-        self.chat = Chat(vod, parent_dir, True)
-        self.stream = Stream(vod.channel, vod, parent_dir, quality, True)
-        self.video = Video(vod, parent_dir, quality, threads, True)
+        self.video = None
 
     def start(self):
         """
@@ -60,6 +61,13 @@ class RealTime(Downloader):
         if conf['log_dir']:
             logging_dir = Path(conf['log_dir'])
 
+        _q = Queue()
+
+        # create downloaders
+        chat = Chat(self.vod, self.parent_dir, True)
+        stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
+        video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
+
         Path(logging_dir).mkdir(exist_ok=True, parents=True)
         os.chdir(logging_dir)
 
@@ -68,29 +76,30 @@ class RealTime(Downloader):
 
         _worker_pool = ThreadPoolExecutor(max_workers=3)
         try:
-            workers = [ProcessWithLogging(self.stream.start),
-                       ProcessWithLogging(self.video.start)]
+            workers = [ProcessWithLogging(stream.start),
+                       ProcessWithLogging(video.start, [_q])]
 
             if self.archive_chat:
-                workers.append(ProcessWithLogging(self.chat.start))
+                workers.append(ProcessWithLogging(chat.start))
 
             for _w in workers:
                 _w.start()
 
+            # get returned video downloader
+            self.video: Video = _q.get()
+
             for _w in workers:
                 _w.join()
 
-            process_logger.stop()
-            process_logger.join()
-
-        except KeyboardInterrupt:
+        except KeyboardInterrupt as e:
             self._log.info('User requested stop, shutting down workers...')
-            _worker_pool.shutdown(wait=False)
-            process_logger.stop()
-            process_logger.join()
-            raise KeyboardInterrupt
+            raise KeyboardInterrupt from e
 
         finally:
+            _q.close()
+            _q.join_thread()
+            process_logger.stop()
+            process_logger.join()
             _worker_pool.shutdown(wait=False)
 
     def merge(self):

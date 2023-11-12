@@ -146,12 +146,15 @@ def configure_new_process(log_process_queue):
 
 
 class ProcessWithLogging(multiprocessing.Process):
-    def __init__(self, target):
+    def __init__(self, target, args=[], kwargs={}, log_process=None):
         super().__init__()
         self.target = target
-        log_process = ProcessLogger.get_global_logger()
+        self.args = args
+        self.kwargs = kwargs
+        if log_process is None:
+            log_process = ProcessLogger.get_global_logger()
         self.log_process_queue = log_process.queue
 
     def run(self):
         configure_new_process(self.log_process_queue)
-        self.target()
+        self.target(*self.args, **self.kwargs)
