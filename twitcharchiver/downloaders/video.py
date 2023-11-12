@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from glob import glob
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -36,7 +35,7 @@ class Video(Downloader):
     _s: requests.Session = requests.session()
 
     def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), quality: str = 'best', threads: int = 20,
-                 quiet: bool = False):
+                 quiet: bool = False, shared_q=None):
         """
         Class used for downloading the video for a given Twitch VOD.
 
@@ -82,9 +81,9 @@ class Video(Downloader):
 
     def get_completed_segments(self):
         return set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                    for p in glob(str(Path(self.output_dir, 'parts', '*.ts')))])
+                    for p in list(Path(self.output_dir, 'parts').glob('*.ts'))])
 
-    def start(self):
+    def start(self, _q=None):
         """
         Starts downloading VOD video segments.
         """
@@ -101,6 +100,10 @@ class Video(Downloader):
 
             # begin download
             self._download_loop()
+
+            # put self into mp queue if provided
+            if _q:
+                _q.put(self, block=False)
 
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.warning('HTTP code 403 or 404 encountered, VOD %s was likely deleted.', self.vod.v_id)
