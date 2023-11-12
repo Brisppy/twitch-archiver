@@ -47,6 +47,8 @@ class RealTime(Downloader):
         self.quality = quality
         self.threads = threads
 
+        self.chat = None
+        self.stream = None
         self.video = None
 
     def start(self):
@@ -64,9 +66,9 @@ class RealTime(Downloader):
         _q = Queue()
 
         # create downloaders
-        chat = Chat(self.vod, self.parent_dir, True)
-        stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
-        video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
+        self.chat = Chat(self.vod, self.parent_dir, True)
+        self.stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
+        self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 
         Path(logging_dir).mkdir(exist_ok=True, parents=True)
         os.chdir(logging_dir)
@@ -76,11 +78,11 @@ class RealTime(Downloader):
 
         _worker_pool = ThreadPoolExecutor(max_workers=3)
         try:
-            workers = [ProcessWithLogging(stream.start),
-                       ProcessWithLogging(video.start, [_q])]
+            workers = [ProcessWithLogging(self.stream.start),
+                       ProcessWithLogging(self.video.start, [_q])]
 
             if self.archive_chat:
-                workers.append(ProcessWithLogging(chat.start))
+                workers.append(ProcessWithLogging(self.chat.start))
 
             for _w in workers:
                 _w.start()
