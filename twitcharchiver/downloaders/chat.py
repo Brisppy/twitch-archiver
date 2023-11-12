@@ -87,6 +87,9 @@ class Chat(Downloader):
             if _loop_time < 60:
                 sleep(60 - _loop_time)
 
+        # logging
+        self._log.info('Found %s chat messages.', len(self._chat_log))
+
         # export logs
         self.export_chat_logs()
 
@@ -104,11 +107,12 @@ class Chat(Downloader):
         _initial_segment, _cursor = self._get_chat_segment(offset=offset)
         self._chat_log.extend(_initial_segment)
 
-        while self.vod.is_live():
+        while True:
             if not _cursor:
                 break
 
             try:
+                self._log.debug('Fetching chat segments at cursor: %s.', _cursor)
                 # grab next chat segment along with cursor for next segment
                 _segment, _cursor = self._get_chat_segment(cursor=_cursor)
                 self._chat_log.extend(_segment)
@@ -120,8 +124,6 @@ class Chat(Downloader):
 
             except TwitchAPIErrorNotFound:
                 break
-
-        self._log.info('Found %s messages.', len(self._chat_log))
 
     def _get_chat_segment(self, offset: int = 0, cursor: str = ""):
         """
