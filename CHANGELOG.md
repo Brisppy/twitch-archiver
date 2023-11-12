@@ -1,7 +1,9 @@
 **(2023-11-XX) Version 4.0.0**
 
-This update has been a long time coming, pretty much all of the processing code was refactored to follow better, more modern coding standards. This was primarily to make it eaiser to find and fix bugs, and to develop new features.
+This update has been a long time coming, pretty much all the central processing code was refactored to follow better, more modern coding standards. This was primarily to make it eaiser to find and fix bugs, and to develop new features.
 In addition to this, some new features have also been implemented.
+
+TLDR: expect everything faster and better polished, and any features will be far easier and faster to implement. 
 
 **Additions:**
  * Added support for inputting a list of VOD IDs or channels has been added. Simply add `-f | --from-file` in conjunction with `-c` or `-v` and the corresponding value(s) will be interpreted as a file path.
@@ -9,7 +11,8 @@ In addition to this, some new features have also been implemented.
 
 **Changes and Fixes:**
  * Refactored entire codebase to follow object-oriented practices.
- * The `-w | --watch-only` flag outputs much less and uses significantly fewer requests. 
+ * The `-w | --watch-only` flag outputs much less and uses significantly fewer requests.
+ * The `-L | --log-file` flag has been replaced with  `-L | --log-dir`, where a directory is supplied in which log files will be placed rather than a file.
 
 **(2023-08-31) Version 3.0.7**
 
