@@ -203,7 +203,6 @@ class Stream(Downloader):
         self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
 
         # channel-specific vars
-        # todo build output_dir froms stream name etc
         self.channel: Channel = channel
         self.output_dir: Path = None
         self.vod: Vod = vod
@@ -334,7 +333,10 @@ class Stream(Downloader):
         self._download_queue = StreamSegmentList(self.vod.created_at, self._align_segments, _latest_segment.id)
 
         # fetch index
-        self._index_uri = self.channel.get_stream_index(self._quality)
+        try:
+            self._index_uri = self.channel.get_stream_index(self._quality)
+        except TwitchAPIErrorNotFound:
+            raise StreamOfflineError
 
     def _buffer_stream(self, stream_length: int):
         """
