@@ -40,7 +40,7 @@ class TestVod(unittest.TestCase):
         self.assertEqual(expected, str(self.vod_a.get_muted_segments()))
 
     def test_get_vod_owner(self):
-        self.assertEqual("{'id': '9072112', 'name': 'Reckful'}", str(self.vod_a.channel))
+        self.assertEqual("{'id': 9072112, 'name': 'Reckful', 'stream': None}", str(self.vod_a.channel))
 
     def test_get_stream_id(self):
         self.assertEqual(38359115104, int(self.vod_a.s_id))

@@ -33,8 +33,8 @@ class Vod:
         self._log = logging.getLogger()
         self._api: Api = Api()
 
-        self.v_id: int = vod_id
-        self._s_id: int = stream_id
+        self.v_id: int = int(vod_id)
+        self._s_id: int = int(stream_id)
         self.category: Category = Category()
         self.created_at: float = 0
         self.description: str = ""
