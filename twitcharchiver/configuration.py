@@ -20,7 +20,8 @@ class Configuration:
     _log = logging.getLogger()
 
     def generate_config(self, args):
-        """Generates the required configuration from provided arguments, overwriting loaded settings.
+        """
+        Generates the required configuration from provided arguments, overwriting loaded settings.
 
         :param args: dict of arguments to generate config from
         :type args: dict
@@ -29,14 +30,15 @@ class Configuration:
 
         # overwrite configuration with passed args (if set) as they have precedence
         for argument in args:
-            # dont copy value if it is empty and config value set
+            # don't copy value if it is empty and config value set
             if args.get(argument) == '' and self.get(argument):
                 continue
 
             self.set(argument, args.get(argument))
 
     def load_config(self, conf_file):
-        """Loads the settings stored in the configuration ini file.
+        """
+        Loads the settings stored in the configuration ini file.
 
         :param conf_file: path to configuration file
         """
@@ -55,7 +57,8 @@ class Configuration:
             self.set(setting, config['settings'][setting])
 
     def create_config_file(self, conf_file):
-        """Creates a configuration file for the storing of settings.\n
+        """
+        Creates a configuration file for the storing of settings.\n
 
         :param conf_file: path to configuration file
         """
@@ -71,12 +74,13 @@ class Configuration:
 
         self._log.debug('Writing config to %s', conf_file)
 
-        with open(conf_file, 'w', encoding='utf8') as f:
-            config.write(f)
+        with open(conf_file, 'w', encoding='utf8') as _f:
+            config.write(_f)
 
     @classmethod
     def set(cls, name, value):
-        """Set a specified attribute.
+        """
+        Set a specified attribute.
 
         :param name:  name of attribute to change
         :param value: value to set attribute to
@@ -85,7 +89,8 @@ class Configuration:
 
     @classmethod
     def get(cls, name=None):
-        """Retrieve a specified attribute.
+        """
+        Retrieve a specified attribute.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
         :return: requested value(s), None if value cannot be found
@@ -99,12 +104,19 @@ class Configuration:
         return cls.__conf[name]
 
     @classmethod
-    def import_conf(cls, conf_dict):
+    def import_conf(cls, conf_dict: dict):
+        """
+        Imports config keys and values from a provided dict.
+
+        :param conf_dict: dictionary of values to import
+        :type conf_dict: dict
+        """
         cls.__conf = conf_dict
 
     @classmethod
     def get_sanitized(cls, name=None):
-        """Retrieves a specified attribute, sanitizing secrets.
+        """
+        Retrieves a specified attribute, sanitizing secrets.
 
         :param name: name of attribute to retrieve value of - 'None' returns all attributes
         :return: requested value(s)
@@ -138,13 +150,13 @@ class Configuration:
                 config.set('settings', setting, str(Configuration.get(setting)))
 
             # save to disk
-            with open(conf_file, 'w', encoding='utf8') as f:
-                config.write(f)
+            with open(conf_file, 'w', encoding='utf8') as _f:
+                config.write(_f)
 
         # overwrite one var
         else:
             config.set('settings', name, str(Configuration.get(name)))
 
             # save to disk
-            with open(conf_file, 'w', encoding='utf8') as f:
-                config.write(f)
+            with open(conf_file, 'w', encoding='utf8') as _f:
+                config.write(_f)

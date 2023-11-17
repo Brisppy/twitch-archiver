@@ -1,6 +1,7 @@
 """
 Class for retrieving and storing a Twitch VOD and its associated information.
 """
+
 import logging
 import re
 from datetime import datetime, timezone
@@ -65,14 +66,28 @@ class Vod:
         return False
 
     def __repr__(self):
+        """
+        Return self as string.
+
+        :return: str containing VOD values
+        :rtype: str
+        """
         return str(self.to_dict())
 
     def __bool__(self):
+        """
+        Check if VOD has been initalized (vod id or stream id exists).
+
+        :return: True if initialization complete
+        :rtype: bool
+        """
         return bool(self.v_id or self._s_id)
 
     def _setup(self, vod_id: int):
         """
         Sets the VOD ID and retrieves its information.
+
+        :param vod_id: VOD ID of VOD
         """
         self.v_id = vod_id
         self._fetch_metadata()
@@ -81,7 +96,7 @@ class Vod:
         """
         Parses a provided dictionary of VOD information retrieve from Twitch.
 
-        :param vod_info: Dict of values related to the VOD retrieved from Twitch
+        :param vod_info: dict of values related to the VOD retrieved from Twitch
         """
         self._log.debug('Parsing provided metadata for VOD %s: %s', vod_info['id'], vod_info)
 
@@ -141,13 +156,15 @@ class Vod:
         Returns useful VOD variables.
 
         :return: dict of VOD attributes
+        :rtype: dict
         """
         return {'vod_id': self.v_id, 'stream_id': self._s_id, 'title': self.title, 'description': self.description,
                 'created_at': self.created_at, 'published_at': self.published_at, 'thumbnail_url': self.thumbnail_url,
                 'duration': self.duration}
 
     def get_category(self):
-        """Retrieves Twitch category for a specified VOD.
+        """
+        Retrieves Twitch category for a specified VOD.
 
         :return: name of category / game
         :rtype: Category
@@ -182,8 +199,8 @@ class Vod:
         if _stream_info['stream']:
             try:
                 # if stream live and vod start time matches
-                _stream_created_time = \
-                    datetime.strptime(_stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+                _stream_created_time = datetime.strptime(
+                    _stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
                 # if vod created within 10s of stream created time
                 if 10 >= self.created_at - _stream_created_time >= -10:
@@ -202,7 +219,8 @@ class Vod:
         return False
 
     def get_chapters(self):
-        """Retrieves the chapters for a given Twitch VOD.
+        """
+        Retrieves the chapters for a given Twitch VOD.
 
         :return: Retrieves any chapters for the VOD, or a single chapter with the VOD category otherwise.
         :rtype: Chapters
@@ -227,7 +245,8 @@ class Vod:
         return _chapters
 
     def get_muted_segments(self):
-        """Retrieves any muted segments for the VOD.
+        """
+        Retrieves any muted segments for the VOD.
 
         :return: muted segments
         :rtype: list[MpegSegment]
@@ -247,7 +266,8 @@ class Vod:
         return []
 
     def _get_channel(self):
-        """Retrieves the channel which a given VOD belongs to
+        """
+        Retrieves the channel which a given VOD belongs to
 
         :return: Channel containing `id` and `name` of VOD owner
         :rtype: Channel
@@ -264,6 +284,9 @@ class Vod:
     def channel(self):
         """
         Fetch, store and return channel for the VOD if it is used.
+
+        :return: channel attribute
+        :rtype: Channel
         """
         if not self._channel:
             self._channel = self._get_channel()
@@ -271,7 +294,12 @@ class Vod:
         return self._channel
 
     @channel.setter
-    def channel(self, value):
+    def channel(self, value: Channel):
+        """
+        Sets the channel attribute.
+
+        :param value: channel to set
+        """
         self._channel = value
 
     @property
@@ -286,10 +314,16 @@ class Vod:
 
     @s_id.setter
     def s_id(self, value):
+        """
+        Sets the stream_id attribute.
+
+        :param value: stream ID of VOD
+        """
         self._s_id = value
 
     def _get_stream_id(self):
-        """Retrieves the associated stream ID for the VOD
+        """
+        Retrieves the associated stream ID for the VOD
 
         :return: stream id
         :rtype: int
@@ -302,17 +336,24 @@ class Vod:
         return int(self._get_seek_url().split('/')[3].split('_')[-2])
 
     def _get_seek_url(self):
+        """
+        Retrieves the seek preview URL for the VOD.
+
+        :return: seek preview URL
+        :rtype: str
+        """
         _r = self._api.gql_request('VideoPlayer_VODSeekbarPreviewVideo',
                                    '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
                                    {'includePrivate': False, 'videoID': str(self.v_id)})
 
         return _r.json()[0]['data']['video']['seekPreviewsURL']
 
-    def get_index_url(self, quality: str = 'best'):
-        """Retrieves an index of m3u8 streams for a given VOD.
+    def get_index_url(self, quality='best'):
+        """
+        Retrieves an index of m3u8 streams for a given VOD.
 
-        :param quality: desired quality in the format [resolution]p[framerate] or 'best', 'worst'
-        :type quality: str
+        :param quality: desired quality in the format [resolution, framerate] or 'best', 'worst'
+        :type quality: list[int, int] or str
         :return: url of m3u8 playlist
         :rtype: str
         """
@@ -408,6 +449,11 @@ class Vod:
     def get_index_playlist(self, index_url: str = ""):
         """
         Retrieves the playlist for a given VOD index along with updating the VOD duration.
+
+        :param index_url: url for playlist (fetches it if not provided)
+        :type index_url: str
+        :return: playlist of video segments
+        :rtype str:
         """
         if index_url == "":
             index_url = self.get_index_url()
@@ -425,8 +471,11 @@ class Vod:
         """Finds the index of a user defined quality from a list of available stream qualities.
 
         :param desired_quality: desired quality to search for - best, worst or [resolution, framerate]
+        :type desired_quality: list[int, int] or str
         :param available_qualities: list of available qualities as [[resolution, framerate], ...]
-        :return: list index of desired quality if found
+        :type available_qualities: list[list[int, int]]
+        :return: index of desired quality in list if found
+        :rtype: int
         """
         _log = logging.getLogger()
 
@@ -452,12 +501,11 @@ class Vod:
             return 0
 
     @staticmethod
-    def from_stream_json(stream_json):
+    def from_stream_json(stream_json: dict):
         """
         Generates a Vod object from a given stream JSON provided by Twitch when fetching channel data.
 
         :param stream_json: Dict of stream variables
-        :type stream_json: dict
         :return: Vod containing stream information
         :rtype: Vod
         """
@@ -483,13 +531,27 @@ class ArchivedVod(Vod):
     Defines an archive of a VOD. Used for tracking the status of previously archived VODs.
     """
     def __init__(self, chat_archived: bool = False, video_archived: bool = False):
+        """
+        Class constructor.
+
+        :param chat_archived: if chat has been archived
+        :param video_archived: if video has been archived
+        """
         super().__init__()
         self.chat_archived: bool = chat_archived
         self.video_archived: bool = video_archived
 
     def __eq__(self, other):
+        """
+        Compare two ArchivedVods based on stream_id or vod_id, and the formats they have been archived in.
+
+        :param other: VOD to compare against
+        :type other: ArchivedVod
+        :return: True if VODs match
+        :rtype: bool
+        """
         if isinstance(other, self.__class__):
-            return self.v_id == other.v_id and self.chat_archived == other.chat_archived \
+            return (self.s_id == other.s_id or self.v_id == other.v_id) and self.chat_archived == other.chat_archived \
                 and self.video_archived == other.video_archived
         return False
 
@@ -523,16 +585,17 @@ class ArchivedVod(Vod):
                 'chat_archived': self.chat_archived, 'video_archived': self.video_archived}
 
     @staticmethod
-    def import_from_db(args):
+    def import_from_db(args: tuple):
         """
         Creates a new ArchivedVod with values from the provided database return. We can't fetch this from Twitch as
         they delete the records when the VOD expires or is manually deleted.
 
         :param args: {vod_id, stream_id, created_at, chat_archived, video_archived}
-        :type args: tuple
+        :return: VOD based on provided values
+        :rtype: ArchivedVod
         """
         if len(args) != 5:
-            return
+            return None
 
         _archived_vod = ArchivedVod(args[3], args[4])
         _archived_vod.v_id = args[0]
@@ -555,7 +618,8 @@ class ArchivedVod(Vod):
         Converts an existing VOD into an ArchivedVod.
 
         :param vod: VOD to create ArchivedVod from
-        :type vod: Vod
+        :param chat_archived: True if chat archived
+        :param video_archived: True if video archived
         :return: ArchivedVod created from Vod
         :rtype: ArchivedVod
         """

@@ -8,11 +8,13 @@ import multiprocessing
 import sys
 import logging
 import logging.handlers
+import traceback
 
 from pathlib import Path
 
 console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
-file_formatter = logging.Formatter('%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s','%Y-%m-%d %H:%M:%S')
+file_formatter = logging.Formatter(
+    '%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s', '%Y-%m-%d %H:%M:%S')
 
 
 class Logger:
@@ -31,7 +33,7 @@ class Logger:
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
         console.setFormatter(console_formatter)
-        if not len(logger.handlers):
+        if len(logger.handlers) < 1:
             logger.addHandler(console)
 
         # setup debugging / quiet / file logging
@@ -62,7 +64,8 @@ class Logger:
         Path(logging_dir).mkdir(parents=True, exist_ok=True)
 
         # use rotating file handler with max size of 100MB * 5
-        file = logging.handlers.RotatingFileHandler(Path(logging_dir, 'debug.log'), maxBytes=100000000, backupCount=5, encoding='utf8')
+        file = logging.handlers.RotatingFileHandler(
+            Path(logging_dir, 'debug.log'), maxBytes=100000000, backupCount=5, encoding='utf8')
         file.setLevel(logging.DEBUG)
         file.setFormatter(file_formatter)
         logger.addHandler(file)
@@ -131,8 +134,7 @@ class ProcessLogger(multiprocessing.Process):
                 logger = logging.getLogger(record.name)
                 logger.handle(record)
             except Exception:
-                import sys, traceback
-                print('Whoops! Problem:', file=sys.stderr)
+                print('Multiprocess logger error:', file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
 
 
@@ -146,8 +148,10 @@ def configure_new_process(log_process_queue):
 
 
 class ProcessWithLogging(multiprocessing.Process):
-    def __init__(self, target, args=[], kwargs={}, log_process=None):
+    def __init__(self, target, args=None, kwargs=None, log_process=None):
         super().__init__()
+        if args is None:
+            args = []
         self.target = target
         self.args = args
         self.kwargs = kwargs

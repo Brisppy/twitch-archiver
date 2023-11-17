@@ -9,7 +9,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from pathlib import Path
 
-from twitcharchiver.configuration import Configuration
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import DownloadHandler
 from twitcharchiver.downloaders.chat import Chat
@@ -26,28 +25,31 @@ class Processing:
     """
     Primary processing loops for downloading content.
     """
-    def __init__(self):
-
+    def __init__(self, conf):
+        """
+        Class constructor.
+        """
         self.log = logging.getLogger()
-        conf = Configuration.get()
+        self.quiet: bool = conf['quiet']
 
-        self.archive_chat = conf['chat']
-        self.archive_video = conf['video']
-        self.archive_only = conf['archive_only']
-        self.config_dir = conf['config_dir']
+        self.archive_chat: bool = conf['chat']
+        self.archive_video: bool = conf['video']
+        self.archive_only: bool = conf['archive_only']
+        self.live_only: bool = conf['live_only']
+        self.real_time: bool = conf['real_time_archiver']
+
+        self.config_dir: str = conf['config_dir']
         # store parent dir for creation of channel subdirectories stored in output_dir
-        self._parent_dir = conf['directory']
-        self.output_dir = self._parent_dir
-        self.live_only = conf['live_only']
-        self.real_time = conf['real_time_archiver']
-        self.pushbullet_key = conf['pushbullet_key']
-        self.quality = conf['quality']
-        self.quiet = conf['quiet']
-        self.threads = conf['threads']
+        self._parent_dir: str = conf['directory']
+        self.output_dir: Path = Path(self._parent_dir)
+
+        self.pushbullet_key: str = conf['pushbullet_key']
+        self.quality: str = conf['quality']
+        self.threads: int = conf['threads']
 
         # perform database setup
-        with Database(Path(self.config_dir, 'vods.db')) as db:
-            db.setup()
+        with Database(Path(self.config_dir, 'vods.db')) as _db:
+            _db.setup()
 
         # create signal handler for graceful removal of lock files
         signal.signal(signal.SIGTERM, signal.default_int_handler)
@@ -55,6 +57,8 @@ class Processing:
     def get_channel(self, channels: list[Channel]):
         """
         Download all vods from a specified channel or list of channels.
+
+        :param channels: list of channels to download based on processing configuration
         """
         for channel in channels:
             self.log.info("Now archiving channel '%s'.", channel.name)
@@ -83,8 +87,8 @@ class Processing:
                             stream.start()
                             stream.merge()
 
-                        except BaseException as e:
-                            self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, e)
+                        except BaseException as exc:
+                            self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, exc)
 
             # move on if channel offline and `live-only` set
             elif self.live_only:
@@ -94,9 +98,9 @@ class Processing:
             self.log.debug('Available VODs: %s', [v.v_id for v in channel_videos])
 
             # retrieve downloaded vods
-            with Database(Path(self.config_dir, 'vods.db')) as db:
+            with Database(Path(self.config_dir, 'vods.db')) as _db:
                 # dict containing stream_id: (vod_id, video_downloaded, chat_downloaded)
-                downloaded_vods: list[ArchivedVod] = [ArchivedVod.import_from_db(v) for v in db.execute_query(
+                downloaded_vods: list[ArchivedVod] = [ArchivedVod.import_from_db(v) for v in _db.execute_query(
                     'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods '
                     'WHERE user_id IS ?', {'user_id': channel.id})]
             self.log.debug('Downloaded VODs: %s', [v.v_id for v in downloaded_vods])
@@ -131,8 +135,7 @@ class Processing:
         """
         Downloads a given list of VODs according to the settings stored inside the class.
 
-        :param download_queue: List of ArchivedVod objects
-        :type download_queue: list(ArchivedVod)
+        :param download_queue: list of ArchivedVod objects
         """
         self.log.info('%s VOD(s) in download queue.', len(download_queue))
         self.log.debug('VOD queue: %s', [v.v_id for v in download_queue])
@@ -163,7 +166,8 @@ class Processing:
 
                     # run real-time archiver if enabled and current stream is being archived to this VOD
                     if self.real_time:
-                        _real_time_archiver = RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.threads)
+                        _real_time_archiver = \
+                            RealTime(_vod, self.output_dir, self.archive_chat, self.quality, self.threads)
                         self._start_download(_real_time_archiver)
                         continue
 
@@ -207,19 +211,19 @@ class Processing:
             sys.exit(0)
 
         # catch halting errors
-        except (RequestError, VodDownloadError, VodMergeError) as e:
+        except (RequestError, VodDownloadError, VodMergeError) as exc:
             self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
-            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
+            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
             sys.exit(1)
 
         # catch unhandled exceptions
-        except BaseException as e:
+        except BaseException as exc:
             self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
-            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(e))
+            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
             sys.exit(1)
 
-    # todo: implement
-    def get_stream_without_archive(self, channel: Channel, stream=None):
+    # todo : implement
+    def get_stream_without_archive(self, channel: Channel, stream: dict = None):
         """Archives a live stream without a paired VOD.
 
         :param channel: channel to fetch stream for
@@ -229,8 +233,7 @@ class Processing:
         if not stream:
             stream = Stream(channel=channel)
 
-        # todo : set store_directory to STREAM_ONLY
-        #      : make sure the duration and other parts are updated throughout
+        # todo : make sure the duration and other parts are updated throughout
 
         with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod)) as _dh:
             try:
@@ -245,15 +248,15 @@ class Processing:
                 _dh.remove_lock()
                 sys.exit(0)
 
-            except (RequestError, VodMergeError) as e:
+            except (RequestError, VodMergeError) as exc:
                 self.log.error('Exception encountered while downloading or merging stream.\n{e}', exc_info=True)
                 send_push(self.pushbullet_key,
-                          f'Error downloading live-only stream by {stream.channel.name}.', str(e))
+                          f'Error downloading live-only stream by {stream.channel.name}.', str(exc))
 
-            except BaseException as e:
+            except BaseException as exc:
                 self.log.error('Exception encountered while downloading or merging stream.\n{e}', exc_info=True)
                 send_push(self.pushbullet_key,
-                          f'Error downloading live-only stream by {stream.channel.name}.', str(e))
+                          f'Error downloading live-only stream by {stream.channel.name}.', str(exc))
 
             finally:
                 _dh.remove_lock()

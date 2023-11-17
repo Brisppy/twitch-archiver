@@ -10,25 +10,24 @@ import m3u8
 class Category:
     """
     A category is used to describe what a Twitch stream is currently streaming. This class stores information
-    relating to categories.
+    relating to 'categories'.
     """
-    def __init__(self, game=None):
+    def __init__(self, game: dict = None):
         """
         Class constructor.
 
         :param game: dictionary of game information retrieved from Twitch
-        :type game: dict
         """
         if game is None:
             game = {'id': 0, 'name': ""}
 
-        self.id = game['id']
-        self.name = game['name']
+        self.id: int = game['id']
+        self.name: str = game['name']
 
-        self.slug = None
-        self.thumbnail_url = None
-        self.display_name = None
-        self.type = None
+        self.slug: str = ""
+        self.thumbnail_url: str = ""
+        self.display_name: str = ""
+        self.type: str = ""
 
         for _k in game.keys():
             if _k == 'slug':
@@ -41,17 +40,33 @@ class Category:
                 self.type = game[_k]
 
     def __repr__(self):
+        """
+        Create str from Category.
+
+        :return: Category as a string
+        :rtype: str
+        """
         return str({'id': self.id, 'name': self.name})
 
     def __eq__(self, other):
+        """
+        Compares two Category instances.
+
+        :param other: Category to compare against
+        :type other: Category
+        :return: True if they match
+        :rtype: bool
+        """
         if isinstance(other, self.__class__):
             return bool(self.id == other.id)
+        return False
 
     def to_dict(self):
         """
         Generates and returns a dictionary of relevant category information.
 
         :return: dict of values which make up a category.
+        :rtype: dict
         """
         return {'id': self.id, 'slug': self.slug, 'thumbnail_url': self.thumbnail_url, 'name': self.name,
                 'display_name': self.display_name, 'type': self.type}
@@ -67,22 +82,39 @@ class Chapters:
         Class constructor.
 
         :param moments: moments list retrieved from Twitch API
-        :type moments: list[dict]
         """
-        self._moments = []
+        self._moments: Chapters.Moment = Chapters.Moment()
 
         if moments:
             self._moments = [self.Moment(m) for m in moments]
 
     def __bool__(self):
+        """
+        Check if Chapter initialized.
+
+        :return: True if Chapter initialized
+        :rtype: bool
+        """
         return bool(self._moments)
 
     def __repr__(self):
-        return str([m for m in self._moments])
+        """
+        Convert Chapter to string.
+
+        :return: string of Chapter moments
+        :rtype: str
+        """
+        return str(list(self._moments))
 
     def __iter__(self):
-        for m in self._moments:
-            yield m
+        """
+        Iterate through Chapter Moments.
+
+        :return: Moments as iterable:
+        :rtype: collections.Iterable[Moment]
+        """
+        for _m in self._moments:
+            yield _m
 
     def insert_moment(self, moment):
         """
@@ -100,9 +132,7 @@ class Chapters:
         are included with a VOD - this happens when only one category spans its entire length.
 
         :param category: A VOD category retrieved from the Twitch API.
-        :type category: Category
         :param duration: length in seconds of the VOD
-        :type duration: int
         :return: A Chapter containing a moment of the category spanning the entire VOD length
         :rtype: Chapters
         """
@@ -127,14 +157,14 @@ class Chapters:
             """
             Class constructor.
 
-            :param moment:
+            :param moment: dict of values retrieved from Twitch
             """
 
-            self.id = None
-            self.segment = None
-            self.type = None
-            self.description = None
-            self.category = None
+            self.id: int = int()
+            self.segment: Segment = Segment()
+            self.type: str = ""
+            self.description: str = ""
+            self.category: Category = Category()
 
             if moment:
                 self.id = moment['id']
@@ -147,6 +177,12 @@ class Chapters:
                     self.category = Category(moment['game'])
 
         def __repr__(self):
+            """
+            Returns Moment as a string.
+
+            :return: str of Moment attributes.
+            :rtype: str
+            """
             return str({'description': self.description, 'type': self.type, 'segment': self.segment})
 
 
@@ -154,16 +190,23 @@ class Segment:
     """
     A segment of a video is a portion of it described with a position from the start, and a duration.
     """
-    def __init__(self, position: float, duration: float):
+    def __init__(self, position: float = 0.0, duration: float = 0.0):
         """
+        Class constructor.
 
-        :param position:
-        :param duration:
+        :param position: start position of segment in seconds
+        :param duration: length of segment in seconds
         """
         self.position: float = position
         self.duration: float = duration
 
     def __repr__(self):
+        """
+        Returns Segment as a string.
+
+        :return: Segment attributes as string.
+        :rtype: str
+        """
         return str({'position': self.position, 'duration': self.duration})
 
 
@@ -174,15 +217,16 @@ class MpegSegment(Segment):
     """
     def __init__(self, segment_id: int() = 0, duration: int = 0, url: str = "", muted: bool = False):
         """
+        Class constructor.
 
         :param segment_id:
         :param duration:
         :param url:
         :param muted:
         """
-        self.muted = muted
-        self.id = segment_id
-        self.url = url
+        self.muted: bool = muted
+        self.id: int = segment_id
+        self.url: str = url
         super().__init__(self.id * 10, duration)
 
     def __repr__(self):
@@ -208,7 +252,7 @@ class MpegSegment(Segment):
 
         :param segment: m3u8.Segment
         :type segment:
-        :param base_url: url directory where segments (00000.ts, 000001.ts, etc) are located online
+        :param base_url: url directory where segments (00000.ts, 000001.ts, ...) are located online
         :type base_url: str
         :return: segment generated from the provided m3u8 segment
         :rtype: MpegSegment

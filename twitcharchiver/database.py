@@ -32,10 +32,13 @@ class Database:
             self.cursor = self.connection.cursor()
             self.log.debug('Connection to SQLite DB successful.')
 
-        except Error as e:
-            raise DatabaseError(f'Connection to SQLite DB failed: {e}') from e
+        except Error as exc:
+            raise DatabaseError(f'Connection to SQLite DB failed: {exc}') from exc
 
     def setup(self):
+        """
+        Creates or updates database as needed.
+        """
         # check db version
         version = self.execute_query('pragma user_version')[0][0]
 
@@ -71,16 +74,16 @@ class Database:
         self.log.debug("Setting up vods table if it doesn't already exist.")
 
         if version == 2:
-            with Database(self.database_path) as db:
-                [db.execute_query(query) for query in version_2_to_3_upgrade]
+            with Database(self.database_path) as _db:
+                [_db.execute_query(query) for query in version_2_to_3_upgrade]
 
         if version == 3:
-            with Database(self.database_path) as db:
-                [db.execute_query(query) for query in version_3_to_4_upgrade]
+            with Database(self.database_path) as _db:
+                [_db.execute_query(query) for query in version_3_to_4_upgrade]
 
         if version == 4:
-            with Database(self.database_path) as db:
-                [db.execute_query(query) for query in version_4_to_5_upgrade]
+            with Database(self.database_path) as _db:
+                [_db.execute_query(query) for query in version_4_to_5_upgrade]
 
     # reference:
     #   https://codereview.stackexchange.com/questions/182700/python-class-to-manage-a-table-in-sqlite
@@ -114,8 +117,8 @@ class Database:
                 self.log.debug('Values: %s', values)
                 _r = self.cursor.execute(command, list(values.values())).fetchall()
 
-        except Exception as e:
-            raise DatabaseQueryError(str(e)) from e
+        except Exception as exc:
+            raise DatabaseQueryError(str(exc)) from exc
 
         return _r
 

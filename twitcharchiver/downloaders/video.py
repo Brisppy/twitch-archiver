@@ -35,7 +35,7 @@ class Video(Downloader):
     _s: requests.Session = requests.session()
 
     def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), quality: str = 'best', threads: int = 20,
-                 quiet: bool = False, shared_q=None):
+                 quiet: bool = False):
         """
         Class used for downloading the video for a given Twitch VOD.
 
@@ -77,15 +77,27 @@ class Video(Downloader):
         Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)).mkdir(parents=True, exist_ok=True)
 
         # collect previously downloaded segments (if any)
-        self._completed_segments = self.get_completed_segments()
+        self._completed_segments = self.get_completed_segments(self.output_dir)
 
-    def get_completed_segments(self):
+    @staticmethod
+    def get_completed_segments(directory):
+        """
+        Fetches all segments which have been downloaded to the output directory.
+
+        :param directory: directory containing *.ts files
+        :type directory: str or Path
+        :return: list of segments inside directory
+        :rtype: list[MpegSegment]
+        """
         return set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                    for p in list(Path(self.output_dir, 'parts').glob('*.ts'))])
+                    for p in list(Path(directory, 'parts').glob('*.ts'))])
 
     def start(self, _q=None):
         """
-        Starts downloading VOD video segments.
+        Begin downloading video segments for given VOD until all parts downloaded and stream has ended (if live).
+
+        :param _q: multiprocessing queue used for returning the class after completion
+        :type _q: multiprocessing.Queue
         """
         try:
             # delay archival start for new vods (started less than 5m ago)
@@ -113,11 +125,11 @@ class Video(Downloader):
             self.vod.status = 'offline'
 
         # pass user termination up
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
+        except KeyboardInterrupt as exc:
+            raise KeyboardInterrupt from exc
 
-        except BaseException as e:
-            raise VodDownloadError(e) from e
+        except BaseException as exc:
+            raise VodDownloadError(exc) from exc
 
     def refresh_playlist(self):
         """
@@ -150,9 +162,9 @@ class Video(Downloader):
                     # refresh mpegts segment playlist
                     self.refresh_playlist()
 
-                    # fetch downloaded files in-case being run in parallel with stream archiver so we dont try and
+                    # fetch downloaded files in-case being run in parallel with stream archiver so we don't try and
                     # download anything already completed
-                    self._completed_segments = self.get_completed_segments()
+                    self._completed_segments = self.get_completed_segments(self.output_dir)
 
                     # if new segments found, download them
                     if len(self._prev_index_playlist.segments) < len(self._index_playlist.segments):
@@ -169,10 +181,10 @@ class Video(Downloader):
     @staticmethod
     def _extract_base_url(index_url: str):
         """
-        Extracts a url from which TS segment IDs are appended to generate the URL which segments are stored.
+        Extracts a URL from which TS segment IDs are appended to generate the URL which segments are stored.
 
         :param index_url: index url used to create base url
-        :return: basse url for TS segments
+        :return: base url for TS segments
         """
         _m = re.findall(r'(?<=\/)(index.*)', index_url)[0]
         return index_url.replace(_m, '')
@@ -217,10 +229,10 @@ class Video(Downloader):
                 if download_error:
                     raise VodPartDownloadError(download_error)
 
-            except KeyboardInterrupt:
+            except KeyboardInterrupt as exc:
                 self._log.debug('M3U8 playlist downloader caught interrupt, shutting down workers...')
                 _worker_pool.shutdown(wait=False, cancel_futures=True)
-                raise KeyboardInterrupt
+                raise KeyboardInterrupt from exc
 
             finally:
                 _worker_pool.shutdown(wait=False, cancel_futures=True)
@@ -250,7 +262,7 @@ class Video(Downloader):
               as _tmp_ts_file):
             for _ in range(6):
                 if _ > 4:
-                    raise VodPartDownloadError(f'Maximum retries for segment {segment.id} reached.') from e
+                    raise VodPartDownloadError(f'Maximum retries for segment {segment.id} reached.')
 
                 try:
                     _r = self._s.get(segment.url, stream=True, timeout=10)
@@ -269,9 +281,9 @@ class Video(Downloader):
 
                     break
 
-                except requests.exceptions.RequestException as e:
+                except requests.exceptions.RequestException as exc:
                     self._log.debug('Segment %s download failed (Attempt %s). Error: %s)',
-                                    Path(_segment_path).stem, _ + 1, str(e))
+                                    Path(_segment_path).stem, _ + 1, str(exc))
                     continue
 
         try:
@@ -279,14 +291,15 @@ class Video(Downloader):
             safe_move(_tmp_ts_file.name, _segment_path)
             self._log.debug('Segment %s completed and moved to %s.', Path(_segment_path).stem, _segment_path)
 
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
+        except KeyboardInterrupt as exc:
+            raise KeyboardInterrupt from exc
 
-        except FileNotFoundError as e:
-            raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {segment.url}') from e
+        except FileNotFoundError as exc:
+            raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {segment.url}') from exc
 
-        except BaseException as e:
-            raise VodPartDownloadError(f'Exception encountered while moving downloaded MPEG-TS segment {segment.id}.') from e
+        except BaseException as exc:
+            raise VodPartDownloadError(
+                f'Exception encountered while moving downloaded MPEG-TS segment {segment.id}.') from exc
 
     def repair_vod_corruptions(self, corruption: list[MpegSegment]):
         """
@@ -296,10 +309,9 @@ class Video(Downloader):
         """
         # check vod still available
         if not self._index_url:
-            raise VodDownloadError("Corrupt segments were found while converting VOD and TA was "
-                                   "unable to re-download the missing segments. Either re-download "
-                                   "the VOD if it is still available, or manually convert 'merged.ts' "
-                                   f"using FFmpeg. Corrupt parts:\n{str(corruption)}")
+            raise VodDownloadError("Corrupt segments were found while converting VOD and TA was unable to re-download "
+                                   "the missing segments. Either re-download the VOD if it is still available, or "
+                                   "manually convert 'merged.ts' using FFmpeg. Corrupt parts:\n{str(corruption)}")
 
         # rename corrupt segments
         for segment in corruption:
@@ -318,7 +330,7 @@ class Video(Downloader):
             self.refresh_playlist()
             self.download_m3u8_playlist()
 
-            # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes
+            # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes,
             # so we can work out if a segment is corrupt on twitch's end or ours
             for segment in corruption:
                 segment_fp = str(f'{segment.id:05d}' + '.ts')
@@ -335,7 +347,7 @@ class Video(Downloader):
                     else:
                         self._log.error('Re-downloaded .ts segment %s does not match corrupt one.')
 
-                # occasionally the last few pieces of a stream may not be archived to the VOD and so wont be
+                # occasionally the last few pieces of a stream may not be archived to the VOD and so won't be
                 # re-downloaded. instead we just assume the corrupt segment is OK.
                 except FileNotFoundError:
                     self._log.debug("Segment %s could not be re-downloaded - it may no longer be available so the "
@@ -345,15 +357,15 @@ class Video(Downloader):
                     segment.muted = True
                     self._muted_segments.add(segment)
 
-        except CorruptPartError as e:
+        except CorruptPartError as exc:
             raise VodDownloadError(
                 "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
                 "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
-                f"'parts' folder if issue persists.\n{str(corruption)}") from e
+                f"'parts' folder if issue persists.\n{str(corruption)}") from exc
 
     def merge(self):
         """
-        Attempt to merge downloaded VOD parts, verify them, then cleanup temp files.
+        Attempt to merge downloaded VOD parts and verify them.
         """
         merger = Merger(self.vod, self.output_dir, self._completed_segments, self._muted_segments, self._quiet)
 
@@ -362,18 +374,16 @@ class Video(Downloader):
             merger.merge()
 
             # verify length and clean up
-            if merger.verify_length():
-                return
+            merger.verify_length()
 
         # corrupt part(s) encountered - redownload them and reattempt merge
-        except CorruptPartError as c:
-            self.repair_vod_corruptions(c.parts)
+        except CorruptPartError as _c:
+            self.repair_vod_corruptions(_c.parts)
             merger.merge()
-            if merger.verify_length():
-                merger.cleanup_temp_files()
+            merger.verify_length()
 
-        except BaseException as e:
-            raise VodMergeError(e) from e
+        except BaseException as exc:
+            raise VodMergeError(exc) from exc
 
     def cleanup_temp_files(self):
         """
@@ -383,6 +393,9 @@ class Video(Downloader):
 
 
 class Merger:
+    """
+    Class used for merging downloaded .ts segments into a single file and performing verification.
+    """
     _log = logging.getLogger()
     _api = Api()
 
@@ -418,8 +431,7 @@ class Merger:
         self._convert_vod()
 
         self._log.info('Verifying length of downloaded VOD.')
-        if not self.verify_length():
-            raise VodMergeError('VOD failed length verification, see log for details.')
+        self.verify_length()
 
     def _write_chapters(self):
         # retrieve vod chapters
@@ -433,8 +445,8 @@ class Merger:
             with open(Path(self._output_dir, 'parts', 'chapters.txt'), 'w', encoding='utf8') as chapters_file:
                 chapters_file.write(str(format_vod_chapters(vod_chapters)))
 
-        except BaseException as e:
-            self._log.error('Failed to retrieve or insert chapters into VOD file. %s', e)
+        except BaseException as exc:
+            self._log.error('Failed to retrieve or insert chapters into VOD file. %s', exc)
 
     def _combine_vod_parts(self):
         """
@@ -529,9 +541,9 @@ class Merger:
                         _dts_timestamp = int(re.search(r'(?<=dts = ).*(?=\).)', line).group(0))
 
                     # Catch corrupt parts without timestamp, shows up as 'NOPTS'
-                    except ValueError as e:
+                    except ValueError as exc:
                         raise VodConvertError("Corrupt packet encountered at unknown timestamp while converting VOD. "
-                                              "Delete 'parts' folder and re-download VOD.") from e
+                                              "Delete 'parts' folder and re-download VOD.") from exc
 
                     _corrupt_part = MpegSegment(floor((_dts_timestamp - _dts_offset) / 90000 / 10), 10)
 
@@ -580,19 +592,18 @@ class Merger:
             return True
 
         # retrieve vod file duration
-        p = subprocess.run(f'ffprobe -v quiet -i "{Path(self._output_dir, "vod.mp4")}" '
-                           f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
-                           shell=True, capture_output=True, encoding='cp437')
+        _p = subprocess.run(f'ffprobe -v quiet -i "{Path(self._output_dir, "vod.mp4")}" '
+                            f'-show_entries format=duration -of default=noprint_wrappers=1:nokey=1',
+                            shell=True, capture_output=True, encoding='cp437')
 
-        if p.returncode:
-            raise VodVerificationError(f'VOD length verification exited with error. Command: {p.args}.')
+        if _p.returncode:
+            raise VodVerificationError(f'VOD length verification exited with error. Command: {_p.args}.')
 
         try:
-            downloaded_length = int(float(p.stdout.rstrip()))
+            downloaded_length = int(float(_p.stdout.rstrip()))
 
-        except Exception as e:
-            raise VodVerificationError(
-                f'Failed to fetch downloaded VOD length. See log for details.') from e
+        except Exception as exc:
+            raise VodVerificationError('Failed to fetch downloaded VOD length. See log for details.') from exc
 
         self._log.debug('Downloaded VOD length is %s. Expected length is %s.', downloaded_length, self.vod.duration)
 
@@ -612,8 +623,8 @@ class Merger:
             with open(Path(self._output_dir, 'thumbnail.jpg'), 'wb') as thumbnail_file:
                 thumbnail_file.write(thumbnail.content)
 
-        except BaseException as e:
-            self._log.error('Failed to grab thumbnail for VOD. Error: %s', str(e))
+        except BaseException as exc:
+            self._log.error('Failed to grab thumbnail for VOD. Error: %s', str(exc))
 
     def get_completed_parts(self):
         """

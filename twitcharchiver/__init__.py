@@ -58,17 +58,17 @@ def main():
     A fast, platform-independent Python script for downloading past and present Twitch VODs and chat logs.
 
     requires one of:
-        -c CHANNEL, --channel CHANNEL
-                Channel(s) to download, comma separated if multiple provided.
-        -v VOD_ID, --vod-id VOD_ID
-                VOD ID(s) to download, comma separated if multiple provided.
+        -c CHANNEL, --channel CHANNEL / URL
+                Channel(s) to download, separated with commas or a file path with `-f | --file` arg.
+        -v VOD, --vod VOD_ID / URL
+                VOD ID(s) to download, separated with commas or a file path with `-f | --file` arg.
                 
     Both the video and chat logs are grabbed if neither are specified.
     """), formatter_class=argparse.RawTextHelpFormatter)
     mode = parser.add_mutually_exclusive_group(
         required=not (('--show-config' in sys.argv) or
                       (
-                      (getenv("TWITCH_ARCHIVER_CHANNEL")) is not None) or
+                              (getenv("TWITCH_ARCHIVER_CHANNEL")) is not None) or
                       (getenv("TWITCH_ARCHIVER_VOD_ID") is not None)
                       ))
     stream = parser.add_mutually_exclusive_group(required=False)
@@ -76,10 +76,10 @@ def main():
     mode.add_argument('-c', '--channel', type=str, action='store',
                       help='A single twitch channel to download, or multiple comma-separated channels.',
                       default=getenv("TWITCH_ARCHIVER_CHANNEL"))
-    mode.add_argument('-v', '--vod-id', type=str, action='store',
+    mode.add_argument('-v', '--vod', '--vod-id', type=str, action='store',
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
                       default=getenv("TWITCH_ARCHIVER_VOD_ID"))
-    parser.add_argument('-f', '--from-file', action='store_true',
+    parser.add_argument('-f', '--file', action='store_true',
                         help='Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a\n'
                              'path to a file.', default=False)
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.',
@@ -162,7 +162,7 @@ def main():
     # create temp dir for downloads and lock files
     Path(tempfile.gettempdir(), 'twitch-archiver').mkdir(exist_ok=True)
 
-    process = Processing()
+    process = Processing(Configuration.get())
 
     if args.get('channel') is not None:
         channels = [Channel(c) for c in args.get('channel')]
