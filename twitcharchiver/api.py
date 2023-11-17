@@ -30,32 +30,34 @@ class Api:
         self.close()
 
     def close(self):
+        """
+        Cleanly shutdown requests session.
+        """
         self._session.close()
 
     def add_headers(self, headers: dict):
         """
         Adds desired headers to all calls.
+
         :param headers: dictionary of header values to add
-        :type headers: dict
         :return: updated headers
-        :rtype:: dict
+        :rtype: dict
         """
         self._headers.update(headers)
         return self._headers
 
     def get_request(self, url: str, p: dict = None):
-        """Wrapper for get requests for catching exceptions and status code issues.\n
+        """
+        Wrapper for get requests for catching exceptions and status code issues.\n
 
-            :param url: http/s endpoint to send request to
-            :type url: str
-            :param p: parameter(s) to pass with request
-            :type p: dict
-            :return: entire requests response
-            :raises requestError: on requests module error
-            :raises twitchAPIErrorBadRequest: on http code 400
-            :raises twitchAPIErrorForbidden: on http code 403
-            :raises twitchAPIErrorNotFound: on http code 404
-            :raises twitchAPIError: on any http code other than 400, 403, 404 or 200
+        :param url: http/s endpoint to send request to
+        :param p: parameter(s) to pass with request
+        :return: entire requests response
+        :raises requestError: on requests module error
+        :raises twitchAPIErrorBadRequest: on http code 400
+        :raises twitchAPIErrorForbidden: on http code 403
+        :raises twitchAPIErrorNotFound: on http code 404
+        :raises twitchAPIError: on any http code other than 400, 403, 404 or 200
         """
         try:
             if p is None:
@@ -81,8 +83,9 @@ class Api:
 
         return _r
 
-    def post_request(self, url: str, d: dict = None, j: dict = None, h: dict = {}):
-        """Wrapper for post requests for catching exceptions and status code issues.
+    def post_request(self, url: str, d: dict = None, j: dict = None, h: dict = None):
+        """
+        Wrapper for post requests for catching exceptions and status code issues.
 
         :param url: http/s endpoint to send request to
         :type url: str
@@ -104,24 +107,23 @@ class Api:
             elif d is None:
                 _r = self._session.post(url, json=j, headers=h if h else self._headers, timeout=10)
 
+            if _r.status_code != 200:
+                raise TwitchAPIError(_r)
+
+            return _r
+
         except requests.exceptions.RequestException as err:
             raise RequestError(url, err) from err
 
-        if _r.status_code != 200:
-            raise TwitchAPIError(_r)
-
-        return _r
-
     def gql_request(self, operation: str, query_hash: str, variables: dict):
-        """Post a gql query.
+        """
+        Post a gql query and returns the response.
 
         :param operation: name of operation
-        :type operation: str
         :param query_hash: hash of operation
-        :type query_hash: str
         :param variables: dict of variable to post with request
-        :type variables: dict
         :return: entire request response
+        :rtype: requests.Response
         """
         # Uses default client header
         _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}

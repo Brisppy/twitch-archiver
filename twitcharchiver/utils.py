@@ -43,10 +43,16 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
 
 
 def format_timestamp(timestamp: float):
+    """
+    Formats a given UTC timestamp to the YYYY-MM-DD_HH-MM-SS format.
+
+    :param timestamp: UTC timestamp to convert
+    :return: timestamp in YYYY-MM-DD_HH-MM-SS format
+    """
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d_%H-%M-%S")
 
 
-def export_json(vod_json):
+def export_json(vod_json: dict):
     """Exports all VOD information to a file.
 
     :param vod_json: dict of vod parameters retrieved from twitch
@@ -55,7 +61,7 @@ def export_json(vod_json):
         json_out_file.write(json.dumps(vod_json))
 
 
-def import_json(vod_json):
+def import_json(vod_json: dict):
     """Imports all VOD information from a file.
 
     :param vod_json: dict of vod parameters retrieved from twitch
@@ -80,7 +86,7 @@ def to_ranges(iterable):
         yield group[0][1], group[-1][1]
 
 
-def sanitize_text(string):
+def sanitize_text(string: str):
     """Sanitize a given string removing unwanted characters which aren't allowed in directories, file names.
 
     :param string: string of characters to sanitize
@@ -118,7 +124,7 @@ def convert_to_seconds(duration):
     if len(duration) == 3:
         return (int(duration[0]) * 3600) + (int(duration[1]) * 60) + int(duration[2])
 
-    return
+    return int()
 
 
 def convert_to_hms(seconds):
@@ -180,16 +186,18 @@ def get_latest_version():
 # reference:
 #   https://stackoverflow.com/a/11887825
 def version_tuple(v):
-    """Convert
+    """
+    Convert dotted version number to tuple for comparison.
 
-    :param v:
-    :return:
+    :param v: dotted version number
+    :return: tuple of version numbers
     """
     return tuple(map(int, (v.split("."))))
 
 
 def check_update_available(local_version, remote_version):
-    """Compares two software versions.
+    """
+    Compares two software versions.
 
     :param local_version: local version in use
     :param remote_version: remote version to compare against
@@ -212,8 +220,10 @@ def check_update_available(local_version, remote_version):
     return False
 
 
+# todo : needs to be re implemented
 def send_push(pushbullet_key, title, body=''):
-    """Sends a push to an account based on a given pushbullet key.
+    """
+    Sends a push to an account based on a given pushbullet key.
 
     :param pushbullet_key: key for destination pushbullet account. 'False' to not send.
     :param title: title to send with push

@@ -10,6 +10,9 @@ from twitcharchiver.api import Api
 
 
 class Channel:
+    """
+    Class for storing and retrieving data for a single Twitch channel / user.
+    """
     def __init__(self, channel_name: str = "", owner: dict = None):
         """
         Initialize class variables.
@@ -49,11 +52,19 @@ class Channel:
         return bool(self.id)
 
     def get_info(self):
+        """
+        Returns a dict of important channel information.
+
+        :return: dict of channel id, name and stream info.
+        :rtype: dict
+        """
         return {'id': self.id, 'name': self.name, 'stream': self.stream}
 
     def _parse_dict(self, owner: dict):
         """
         Parses information from 'owner' object returned from Twitch.
+
+        :param owner: channel owner object retrieved from Twitch
         """
         self.id = int(owner['id'])
         self.name = owner['displayName']
@@ -62,6 +73,9 @@ class Channel:
     def _fetch_metadata(self):
         """
         Fetches metadata from Twitch regarding the channel.
+
+        :return: retrieved user data
+        :rtype dict
         """
         _r = self._api.gql_request('ChannelShell', '580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe',
                                    {"login": f"{self.name.lower()}"})
@@ -77,6 +91,9 @@ class Channel:
     def is_live(self):
         """
         Checks if the channel is currently live.
+
+        :return: True if channel live
+        :rtype: bool
         """
         return self.stream is not None
 
@@ -132,6 +149,8 @@ class Channel:
     def broadcast_v_id(self):
         """
         Fetch, store and return most recent broadcast VOD ID.
+
+
         """
         if not self._broadcast_v_id:
             self._broadcast_v_id = self._get_broadcast_v_id()

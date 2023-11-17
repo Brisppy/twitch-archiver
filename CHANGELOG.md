@@ -3,15 +3,17 @@
 This update has been a long time coming, pretty much all the central processing code was refactored to follow better, more modern coding standards. This was primarily to make it eaiser to find and fix bugs, and to develop new features.
 In addition to this, some new features have also been implemented.
 
-TLDR: expect everything faster and better polished, and any features will be far easier and faster to implement. 
+TLDR: expect everything faster and better polished, and any new features will be far easier to implement. 
 
 **Additions:**
- * Added support for inputting a list of VOD IDs or channels has been added. Simply add `-f | --from-file` in conjunction with `-c` or `-v` and the corresponding value(s) will be interpreted as a file path.
+ * Added support for inputting a list of VOD IDs or channels has been added. Simply add `-f | --file` in conjunction with `-c | --channel` or `-v | --vod` and the corresponding value(s) will be interpreted as a file path.
  * Added parallel chat archiving to allow multiple chat logs to be downloaded simultaneously (https://github.com/Brisppy/twitch-archiver/issues/22).
 
 **Changes and Fixes:**
+ * Moved all API requests to the GQL API, neither the `client-id` or `client-secret` are now required for archiving.
  * Refactored entire codebase to follow object-oriented practices.
- * The `-w | --watch-only` flag outputs much less and uses significantly fewer requests.
+ * Add `--vod` as substitute for the `--vod-id` argument.
+ * The `-w | --watch-only` mode is much lighter, using significantly fewer requests.
  * The `-L | --log-file` flag has been replaced with  `-L | --log-dir`, where a directory is supplied in which log files will be placed rather than a file.
 
 **(2023-08-31) Version 3.0.7**

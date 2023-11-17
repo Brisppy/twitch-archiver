@@ -17,7 +17,8 @@ class Arguments:
 
     @classmethod
     def setup_args(cls, args):
-        """Sets up and formats provided arguments.
+        """
+        Sets up and formats provided arguments.
 
         :param args: arguments object to create parameters from
         """
@@ -63,7 +64,8 @@ class Arguments:
 
     @classmethod
     def set(cls, name, value):
-        """Set a specified class attribute.
+        """
+        Set a specified class attribute.
 
         :param name: name of attribute to change
         :param value: value to set attribute to
@@ -72,7 +74,8 @@ class Arguments:
 
     @classmethod
     def get(cls, name=None):
-        """Retrieve a specified attribute.
+        """
+        Retrieve a specified attribute.
 
         :param name: name of attribute to retrieve value of or none to return all
         :return: value of requested attribute, or all attributes if none provided
@@ -99,7 +102,7 @@ class Arguments:
         if cls.get('from_file'):
             collected: list = []
             for arg in cls.get(arg_name).split(','):
-                # convert list to Path() variables and store for further proocessing
+                # convert list to Path() variables and store for further processing
                 collected.extend(Arguments.load_file_line_by_line(Path(arg)))
 
             cls.set(arg_name, ','.join(collected))
@@ -129,10 +132,14 @@ class Arguments:
     def load_file_line_by_line(cls, file_path: Path):
         """
         Loads a given file line by line into the provided configuration variable.
+
+        :return: list containing all file lines
+        :rtype: list[str]
         """
         try:
             with open(Path(file_path), 'r') as _fp:
                 return [line.rstrip() for line in _fp]
 
-        except BaseException as e:
-            cls._log.error('Failed to read from provided input file. %s', e)
+        except BaseException as exc:
+            cls._log.error('Failed to read from provided input file. %s', exc)
+            return None

@@ -17,6 +17,9 @@ from twitcharchiver.vod import Vod
 
 
 class Chat(Downloader):
+    """
+    Class which handles the downloading, updating and importing of chat logs and the subsequent fomatting and archival.
+    """
     def __init__(self, vod: Vod, parent_dir: Path = Path(os.getcwd()), quiet: bool = False):
         """
         Initialize class variables.
@@ -24,7 +27,6 @@ class Chat(Downloader):
         :param vod: VOD to be downloaded
         :param parent_dir: path to parent directory for downloaded files
         :param quiet: boolean whether to print progress
-
         """
         # init downloader
         super().__init__(parent_dir, quiet)
@@ -44,6 +46,12 @@ class Chat(Downloader):
         self._chat_log: list = self.load_from_file()
 
     def load_from_file(self):
+        """
+        Loads and returns the chat log stored in the output directory.
+
+        :return: list of chat messages
+        :rtype: list
+        """
         try:
             with open(Path(self.output_dir, 'verbose_chat.json'), 'r', encoding='utf8') as chat_file:
                 self._log.debug('Loading chat log from file.')
@@ -54,9 +62,8 @@ class Chat(Downloader):
                 self._log.debug('Ignoring chat log loaded from file as it is incompatible.')
                 return []
 
-            else:
-                self._log.debug('Chat log found for VOD %s.', self.vod)
-                return chat_log
+            self._log.debug('Chat log found for VOD %s.', self.vod)
+            return chat_log
 
         except FileNotFoundError:
             return []
@@ -149,14 +156,8 @@ class Chat(Downloader):
             {'persistedQuery': {'version': 1,
                                 'sha256Hash': "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a"}}
 
-        for _ in range(6):
+        for _ in range(5):
             try:
-                if _ >= 5:
-                    self._log.error(
-                        'Maximum attempts reached while downloading chat segment at cursor or offset: %s, %s.',
-                        cursor, offset)
-                    raise ChatDownloadError
-
                 _r = self._api.post_request('https://gql.twitch.tv/gql', j=_p).json()
                 _comments = _r[0]['data']['video']['comments']
 
@@ -171,6 +172,11 @@ class Chat(Downloader):
 
             except RequestError:
                 continue
+
+        self._log.error(
+            'Maximum attempts reached while downloading chat segment at cursor or offset: %s, %s.',
+            cursor, offset)
+        raise ChatDownloadError
 
     def generate_readable_chat_log(self, chat_log: list):
         """
@@ -232,4 +238,9 @@ class Chat(Downloader):
         write_json_file(self._chat_log, Path(self.output_dir, 'verbose_chat.json'))
 
     def get_message_count(self):
+        """
+        Fetches the total number of retrieved chat messages.
+
+        :return:
+        """
         return len(self._chat_log)

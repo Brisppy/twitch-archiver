@@ -14,6 +14,7 @@ from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
 
+
 class RealTime(Downloader):
     """
     Class used for downloading currently live broadcasts, using parallel download functions to grab both the stream
@@ -52,9 +53,6 @@ class RealTime(Downloader):
         self.video = None
 
     def start(self):
-        """
-        Starts downloading VOD video / chat segments.
-        """
         # log files are stored in either the provided log directory or %TEMP%/STREAM_ID
         # we change to this directory as the multiprocessing logger has difficulties with passing
         # variables into it

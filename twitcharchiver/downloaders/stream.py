@@ -6,7 +6,6 @@ import shutil
 import tempfile
 
 from datetime import datetime, timezone
-from glob import glob
 from math import floor
 from operator import attrgetter
 from pathlib import Path
@@ -18,7 +17,7 @@ import requests
 from twitcharchiver.vod import Vod
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.downloaders.video import MpegSegment, Merger
+from twitcharchiver.downloaders.video import MpegSegment, Merger, Video
 from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamPartDuration, StreamDownloadError, \
     StreamSegmentDownloadError, StreamFetchError, StreamOfflineError, VodMergeError, RequestError
 from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
@@ -35,6 +34,12 @@ class StreamSegmentList:
         self.stream_created_at = stream_created_at
 
     def add_part(self, part):
+        """
+        Adds a given part to the appropriate StreamSegment.
+
+        :param part: part to add
+        :type part: StreamSegment.Part
+        """
         # generate part id from timestamp if we are aligning segments
         if self._align_segments:
             _parent_segment_id = self._get_id_for_part(part)
@@ -58,10 +63,24 @@ class StreamSegmentList:
         self.segments[_parent_segment_id].add_part(part)
 
     def _get_id_for_part(self, part):
+        """
+        Retrieves the ID for a given part based on it's and the stream's timestamps.
+
+        :param part: Part to retrieve ID for.
+        :type part: StreamSegment.Part
+        :return: ID of part
+        :rtype: int
+        """
         # maths for determining the id of a given part based on its timestamp and the stream creation time
         return floor((4 + (part.timestamp - self.stream_created_at)) / 10)
 
     def is_segment_present(self, segment_id: int):
+        """
+        Checks if a stream segment ID exists in the StreamSegmentList.
+
+        :param segment_id: ID of segment to look for
+        :return: True if segment ID present
+        """
         return segment_id in self.segments.keys()
 
     def get_segment_by_id(self, segment_id: int):
@@ -78,7 +97,7 @@ class StreamSegmentList:
         """
         Gathers and returns the ids of all segments with 5 parts.
 
-        :return:
+        :return: set[int]
         """
         _segment_ids: set[int] = set()
         for _segment in self.segments:
@@ -99,15 +118,25 @@ class StreamSegmentList:
 
 
 class StreamSegment:
+    """
+    Defines a video segment made up of 5 'Parts', these parts are retrieved from the Twitch API during a livestream.
+    In *most* circumstances, each part is 2 seconds long, and can be combined into a 10s 'Segment'. These segments can
+    then be matched directly with Segments which make up a Twitch VOD.
+    """
     def __init__(self, segment_id: int):
         """
         Defines a video segment made up of 5 StreamSegment parts.
+
+        :param segment_id: ID of segment
         """
         self.parts: list[StreamSegment.Part] = []
         self.id: int = segment_id
         self.duration: float = 0
 
     class Part:
+        """
+        A Part advertised by Twitch and later combined into a segment.
+        """
         def __init__(self, part):
             """
             Defines a part of a segment.
@@ -141,7 +170,7 @@ class StreamSegment:
         """
         Checks if the segment had five parts.
 
-        :return: True if segment is full
+        :return: True if segment is complete (contains 5 parts)
         :rtype: bool
         """
         if len(self.parts) == 5:
@@ -168,7 +197,6 @@ class Stream(Downloader):
     Class which handles the downloading of video files for a given Twitch stream.
     """
     _quality: str = ''
-
     def __init__(self, channel: Channel, vod: Vod = Vod(), parent_dir: Path = Path(os.getcwd()), quality: str = 'best',
                  quiet: bool = 'False'):
         """
@@ -248,8 +276,8 @@ class Stream(Downloader):
         try:
             merger.merge()
 
-        except BaseException as e:
-            raise VodMergeError from e
+        except BaseException as exc:
+            raise VodMergeError from exc
 
     def single_download_pass(self):
         """
@@ -270,12 +298,12 @@ class Stream(Downloader):
             if self._download_queue:
                 self._get_final_segment()
 
-        except KeyboardInterrupt as e:
-            raise KeyboardInterrupt from e
+        except KeyboardInterrupt as exc:
+            raise KeyboardInterrupt from exc
 
         # catch any other exception
-        except BaseException as e:
-            raise StreamDownloadError(self.channel.name, e) from e
+        except BaseException as exc:
+            raise StreamDownloadError(self.channel.name, exc) from exc
 
     def _do_setup(self):
         """
@@ -322,7 +350,7 @@ class Stream(Downloader):
         if self.output_dir.exists():
             # get existing parts to resume counting if archiving halted
             self._completed_segments.update([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                                             for p in glob(str(Path(self.output_dir, '*.ts')))])
+                                             for p in Video.get_completed_segments(self.output_dir)])
 
         _latest_segment = MpegSegment(-1, 0)
         if self._completed_segments:
@@ -336,7 +364,7 @@ class Stream(Downloader):
         try:
             self._index_uri = self.channel.get_stream_index(self._quality)
         except TwitchAPIErrorNotFound:
-            raise StreamOfflineError
+            raise StreamOfflineError(self.channel)
 
     def _buffer_stream(self, stream_length: int):
         """
@@ -344,8 +372,6 @@ class Stream(Downloader):
         attempt to fetch VOD information.
 
         :param stream_length: time in seconds stream has been live
-        :type stream_length: int
-        :return:
         """
         self._log.debug('Stream began less than 120s ago, delaying archival start until VOD API updated.')
 
@@ -367,6 +393,9 @@ class Stream(Downloader):
         sleep((120 - stream_length) % 4)
 
     def _fetch_advertised_parts(self):
+        """
+        Fetch parts being advertised by Twitch for stream.
+        """
         # attempt to grab new parts from Twitch
         for _ in range(6):
             try:
@@ -375,7 +404,8 @@ class Stream(Downloader):
 
                 # fetch advertised stream parts
                 announced_parts = m3u8.loads(self.channel.get_stream_playlist(self._index_uri)).segments
-                self._last_part_announce = announced_parts[-1].program_date_time.replace(tzinfo=timezone.utc).timestamp()
+                self._last_part_announce = \
+                    announced_parts[-1].program_date_time.replace(tzinfo=timezone.utc).timestamp()
 
                 for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
                     # add new parts to part buffer
@@ -385,11 +415,14 @@ class Stream(Downloader):
                 break
 
             # retry if request times out
-            except RequestError as e:
-                self._log.debug('Error attempting to fetch new stream segments. (Attempt %s). Error: %s', _ + 1, e)
+            except RequestError as exc:
+                self._log.debug('Error attempting to fetch new stream segments. (Attempt %s). Error: %s', _ + 1, exc)
                 continue
 
     def _build_download_queue(self):
+        """
+        Creates queue of segments being downloaded using the incoming part buffer and already processed segments.
+        """
         _unsupported_parts = set()
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
@@ -415,10 +448,18 @@ class Stream(Downloader):
         self._incoming_part_buffer = []
 
     def _download_queued_segments(self):
+        """
+        Downloads all queued segments.
+        """
         for _segment_id in self._download_queue.get_completed_segment_ids():
             self._download_segment(self._download_queue.pop_segment(_segment_id))
 
     def _download_segment(self, segment: StreamSegment):
+        """
+        Downloads a given segment.
+
+        :param segment: StreamSegment to download.
+        """
         # generate buffer file path
         _temp_buffer_file = Path(tempfile.gettempdir(), 'twitch-archiver',
                                  str(self.vod.s_id), str(f'{segment.id:05d}' + '.ts'))
@@ -444,8 +485,8 @@ class Stream(Downloader):
                         for chunk in _r.iter_content(chunk_size=262144):
                             _tmp_file.write(chunk)
 
-                    except RequestError as e:
-                        self._log.debug('Error downloading stream segment %s: %s', segment.id, str(e))
+                    except RequestError as exc:
+                        self._log.debug('Error downloading stream segment %s: %s', segment.id, str(exc))
 
             # move finished ts file to destination storage
             try:
@@ -454,12 +495,12 @@ class Stream(Downloader):
                 self._log.debug('Stream segment: %s completed.', segment.id)
                 break
 
-            except BaseException as e:
-                raise StreamSegmentDownloadError(segment.id, self.channel.name, e) from e
+            except BaseException as exc:
+                raise StreamSegmentDownloadError(segment.id, self.channel.name, exc) from exc
 
     def _get_final_segment(self):
         """
-        Downloads and stores the final stream segment.
+        Downloads the final stream segment.
         """
         # ensure final segment present
         if self._download_queue.is_segment_present(self._download_queue.current_id):
@@ -467,4 +508,7 @@ class Stream(Downloader):
             self._download_segment(self._download_queue.get_segment_by_id(self._download_queue.current_id))
 
     def cleanup_temp_files(self):
+        """
+        Deletes all temporary files and directories.
+        """
         Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)).rmdir()
