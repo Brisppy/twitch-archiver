@@ -69,7 +69,7 @@ def main():
         required=not (('--show-config' in sys.argv) or
                       (
                               (getenv("TWITCH_ARCHIVER_CHANNEL")) is not None) or
-                      (getenv("TWITCH_ARCHIVER_VOD_ID") is not None)
+                      (getenv("TWITCH_ARCHIVER_VOD") is not None)
                       ))
     stream = parser.add_mutually_exclusive_group(required=False)
     loglevel = parser.add_mutually_exclusive_group(required=False)
@@ -78,7 +78,7 @@ def main():
                       default=getenv("TWITCH_ARCHIVER_CHANNEL"))
     mode.add_argument('-v', '--vod', '--vod-id', type=str, action='store',
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
-                      default=getenv("TWITCH_ARCHIVER_VOD_ID"))
+                      default=getenv("TWITCH_ARCHIVER_VOD"))
     parser.add_argument('-f', '--file', action='store_true',
                         help='Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a\n'
                              'path to a file.', default=False)
@@ -176,8 +176,8 @@ def main():
             else:
                 break
 
-    elif args.get('vod_id') is not None:
-        vods = [ArchivedVod.convert_from_vod(Vod(v)) for v in args.get('vod_id')]
+    elif args.get('vod') is not None:
+        vods = [ArchivedVod.convert_from_vod(Vod(v)) for v in args.get('vod')]
 
         process.vod_downloader(vods)
 
