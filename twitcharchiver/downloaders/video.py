@@ -53,31 +53,22 @@ class Video(Downloader):
         # set quality
         self.__setattr__('_quality', quality)
 
-        # buffers and progress tracking
-        self._completed_segments: set[MpegSegment] = set()
-        self._muted_segments: set[MpegSegment] = set()
-
         # vod-specific vars
         self.vod: Vod = vod
         self.output_dir = Path(self._parent_dir,
                                build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
+
+        # buffers and progress tracking
+        # collect previously downloaded segments (if any)
+        self._completed_segments = self.get_completed_segments(self.output_dir)
+        self._muted_segments: set[MpegSegment] = set()
+
 
         # video segment containers and required params
         self._index_url: str = ""
         self._base_url: str = ""
         self._index_playlist: m3u8 = None
         self._prev_index_playlist: m3u8 = None
-
-        # perform various setup tasks
-        self._do_setup()
-
-    def _do_setup(self):
-        # create output dir and temporary buffer dir
-        Path(self.output_dir, 'parts').mkdir(parents=True, exist_ok=True)
-        Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)).mkdir(parents=True, exist_ok=True)
-
-        # collect previously downloaded segments (if any)
-        self._completed_segments = self.get_completed_segments(self.output_dir)
 
     @staticmethod
     def get_completed_segments(directory):
@@ -89,8 +80,8 @@ class Video(Downloader):
         :return: list of segments inside directory
         :rtype: list[MpegSegment]
         """
-        return set([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                    for p in list(Path(directory, 'parts').glob('*.ts'))])
+        return {MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
+                for p in list(Path(directory, 'parts').glob('*.ts'))}
 
     def start(self, _q=None):
         """
@@ -100,6 +91,10 @@ class Video(Downloader):
         :type _q: multiprocessing.Queue
         """
         try:
+            # create output directories
+            Path(self.output_dir, 'parts').mkdir(parents=True, exist_ok=True)
+            Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)).mkdir(parents=True, exist_ok=True)
+
             # delay archival start for new vods (started less than 5m ago)
             _time_since_start = self.vod.time_since_live()
             if _time_since_start < 300:
@@ -372,9 +367,6 @@ class Video(Downloader):
         # attempt to merge
         try:
             merger.merge()
-
-            # verify length and clean up
-            merger.verify_length()
 
         # corrupt part(s) encountered - redownload them and reattempt merge
         except CorruptPartError as _c:
