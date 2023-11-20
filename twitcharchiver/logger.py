@@ -152,6 +152,8 @@ class ProcessWithLogging(multiprocessing.Process):
         super().__init__()
         if args is None:
             args = []
+        if kwargs is None:
+            kwargs = {}
         self.target = target
         self.args = args
         self.kwargs = kwargs
