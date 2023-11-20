@@ -35,7 +35,7 @@ class Arguments:
 
         # validate mutual exclusivity of arguments passed via CLI and environment variables
         # required as values set via environment variables bypass argparse mutex handling
-        for mutex_args in (("vod_id", "channel"), ("live_only", "archive_only")):
+        for mutex_args in (("vod", "channel"), ("live_only", "archive_only")):
             mutex_arg_0, mutex_arg_1 = cls.get(mutex_args[0]), cls.get(mutex_args[1])
             # check if both mutex args have been set
             if mutex_arg_0 and mutex_arg_1:
@@ -48,8 +48,8 @@ class Arguments:
             cls.set('video', True)
 
         # generate list from comma-separated VODs
-        if cls.get('vod_id'):
-            cls.extract_vods_and_channels('vod_id')
+        if cls.get('vod'):
+            cls.extract_vods_and_channels('vod')
 
         # generate list from comma-separated channels
         elif cls.get('channel'):
@@ -99,7 +99,7 @@ class Arguments:
         parsed_args: list = []
 
         # extract vods ids if file being passed
-        if cls.get('from_file'):
+        if cls.get('file'):
             collected: list = []
             for arg in cls.get(arg_name).split(','):
                 # convert list to Path() variables and store for further processing
