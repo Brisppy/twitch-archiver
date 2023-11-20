@@ -326,32 +326,30 @@ class Stream(Downloader):
 
         # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
         # meantime in case there is no vod and thus no way to retrieve them after the fact
-        if self.vod.duration < 120 and not self.vod.v_id:
-            self._buffer_stream(self.vod.duration)
-
-        # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
         if not self.vod.v_id:
+            if self.vod.duration < 120:
+                self._buffer_stream(self.vod.duration)
+
+            # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
             # todo: if a previous broadcast has a vod id, but the current one doesn't, what does the api return?
             broadcast_vod_id = self.channel.broadcast_v_id
             if not broadcast_vod_id:
                 self._align_segments = False
             else:
                 self.vod.v_id = broadcast_vod_id
-
-        # if a paired VOD exists for the stream we can discard our previous buffer
-        else:
-            if self.output_dir:
+                # if a paired VOD exists for the stream we can discard our temporary buffer
                 shutil.rmtree(Path(self.output_dir))
 
-        # build and create output directory
+        # build and create actual output directory
         self.output_dir = (
             Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id)))
 
         if self.output_dir.exists():
             # get existing parts to resume counting if archiving halted
-            self._completed_segments.update([MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                                             for p in Video.get_completed_segments(self.output_dir)])
+            self._completed_segments = {MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
+                                        for p in list(Path(self.output_dir, 'parts').glob('*.ts'))}
 
+        # start at '-1', the first part will then be '0'
         _latest_segment = MpegSegment(-1, 0)
         if self._completed_segments:
             # set start segment for download queue
@@ -363,8 +361,8 @@ class Stream(Downloader):
         # fetch index
         try:
             self._index_uri = self.channel.get_stream_index(self._quality)
-        except TwitchAPIErrorNotFound:
-            raise StreamOfflineError(self.channel)
+        except TwitchAPIErrorNotFound as exc:
+            raise StreamOfflineError(self.channel) from exc
 
     def _buffer_stream(self, stream_length: int):
         """
@@ -511,4 +509,8 @@ class Stream(Downloader):
         """
         Deletes all temporary files and directories.
         """
-        Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)).rmdir()
+        try:
+            shutil.rmtree(Path(self.output_dir, 'parts'))
+            shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)))
+        except FileNotFoundError:
+            pass
