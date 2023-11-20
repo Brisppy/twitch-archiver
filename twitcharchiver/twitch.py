@@ -83,7 +83,7 @@ class Chapters:
 
         :param moments: moments list retrieved from Twitch API
         """
-        self._moments: Chapters.Moment = Chapters.Moment()
+        self._moments: list[Chapters.Moment] = []
 
         if moments:
             self._moments = [self.Moment(m) for m in moments]
@@ -104,7 +104,7 @@ class Chapters:
         :return: string of Chapter moments
         :rtype: str
         """
-        return str(list(self._moments))
+        return str(self._moments)
 
     def __iter__(self):
         """
@@ -184,6 +184,9 @@ class Chapters:
             :rtype: str
             """
             return str({'description': self.description, 'type': self.type, 'segment': self.segment})
+
+        def __bool__(self):
+            return bool(self.id)
 
 
 class Segment:
