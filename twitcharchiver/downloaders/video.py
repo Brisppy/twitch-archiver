@@ -372,7 +372,6 @@ class Video(Downloader):
         except CorruptPartError as _c:
             self.repair_vod_corruptions(_c.parts)
             merger.merge()
-            merger.verify_length()
 
         except BaseException as exc:
             raise VodMergeError(exc) from exc
@@ -424,6 +423,8 @@ class Merger:
 
         self._log.info('Verifying length of downloaded VOD.')
         self.verify_length()
+
+        self.cleanup_temp_files()
 
     def _write_chapters(self):
         # retrieve vod chapters
