@@ -380,7 +380,10 @@ class Video(Downloader):
         """
         Deletes temporary and transitional files used for archiving VOD video.
         """
-        shutil.rmtree(Path(self.output_dir, 'parts'))
+        try:
+            shutil.rmtree(Path(self.output_dir, 'parts'))
+        except FileNotFoundError:
+            pass
 
 
 class Merger:
