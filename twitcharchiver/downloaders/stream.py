@@ -338,7 +338,8 @@ class Stream(Downloader):
             else:
                 self.vod.v_id = broadcast_vod_id
                 # if a paired VOD exists for the stream we can discard our temporary buffer
-                shutil.rmtree(Path(self.output_dir))
+                if self.output_dir and Path(self.output_dir).exists():
+                    shutil.rmtree(Path(self.output_dir))
 
         # build and create actual output directory
         self.output_dir = (
@@ -511,6 +512,9 @@ class Stream(Downloader):
         """
         try:
             shutil.rmtree(Path(self.output_dir, 'parts'))
+        except FileNotFoundError:
+            pass
+        try:
             shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)))
         except FileNotFoundError:
             pass
