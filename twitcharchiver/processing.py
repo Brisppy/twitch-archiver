@@ -82,13 +82,7 @@ class Processing:
 
                 # no paired VOD exists, so we archive the stream before moving onto VODs
                 elif self.archive_video and not self.archive_only:
-                    with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod, video_archived=True)) as _dh:
-                        try:
-                            stream.start()
-                            stream.merge()
-
-                        except BaseException as exc:
-                            self.log.error('Error downloading live-only stream by %s. Error: %s', channel.name, exc)
+                    self._start_download(stream)
 
             # move on if channel offline and `live-only` set
             elif self.live_only:
@@ -221,42 +215,3 @@ class Processing:
             self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
             send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
             sys.exit(1)
-
-    # todo : implement
-    def get_stream_without_archive(self, channel: Channel, stream: dict = None):
-        """Archives a live stream without a paired VOD.
-
-        :param channel: channel to fetch stream for
-        :param stream: optionally provided stream method if existing buffer needs to be kept
-        :return: sanitized / formatted stream json
-        """
-        if not stream:
-            stream = Stream(channel=channel)
-
-        # todo : make sure the duration and other parts are updated throughout
-
-        with DownloadHandler(ArchivedVod.convert_from_vod(stream.vod)) as _dh:
-            try:
-                stream.start()
-
-                # blindly merge parts, verification isn't done because we dont have solid data to verify against, or
-                # any way to recover lost data.
-                stream.merge()
-
-            except KeyboardInterrupt:
-                self.log.info('Termination signal received, halting stream downloader.')
-                _dh.remove_lock()
-                sys.exit(0)
-
-            except (RequestError, VodMergeError) as exc:
-                self.log.error('Exception encountered while downloading or merging stream.\n{e}', exc_info=True)
-                send_push(self.pushbullet_key,
-                          f'Error downloading live-only stream by {stream.channel.name}.', str(exc))
-
-            except BaseException as exc:
-                self.log.error('Exception encountered while downloading or merging stream.\n{e}', exc_info=True)
-                send_push(self.pushbullet_key,
-                          f'Error downloading live-only stream by {stream.channel.name}.', str(exc))
-
-            finally:
-                _dh.remove_lock()
