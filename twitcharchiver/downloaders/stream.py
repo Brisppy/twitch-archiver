@@ -14,7 +14,7 @@ from time import sleep
 import m3u8
 import requests
 
-from twitcharchiver.vod import Vod
+from twitcharchiver.vod import Vod, ArchivedVod
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.video import MpegSegment, Merger, Video
@@ -269,16 +269,16 @@ class Stream(Downloader):
         """
         Attempt to merge downloaded segments.
         """
-        # pass completed segments as muted to ignore any corruptions present
-        merger = Merger(self.vod, self.output_dir, self._completed_segments, self._completed_segments, self._quiet)
+        # we pass all possible segments as muted segments so that corrupt parts are ignored.
+        merger = Merger(self.vod, self.output_dir, self._completed_segments, [MpegSegment(i, 10) for i in range(10000)], self._quiet)
 
-        # attempt to merge - no verification done as unsynced streams have no accurate duration to verifying against
+        # attempt to merge - no verification done as unsynced streams have no accurate duration to verify against
         try:
             merger.merge()
             merger.cleanup_temp_files()
 
         except BaseException as exc:
-            raise VodMergeError from exc
+            raise VodMergeError(exc) from exc
 
     def single_download_pass(self):
         """
