@@ -12,8 +12,8 @@ import traceback
 
 from pathlib import Path
 
-console_formatter = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
-file_formatter = logging.Formatter(
+CONSOLE_FORMATTER = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
+FILE_FORMATTER = logging.Formatter(
     '%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s', '%Y-%m-%d %H:%M:%S')
 
 
@@ -32,7 +32,7 @@ class Logger:
 
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
-        console.setFormatter(console_formatter)
+        console.setFormatter(CONSOLE_FORMATTER)
         if len(logger.handlers) < 1:
             logger.addHandler(console)
 
@@ -67,7 +67,7 @@ class Logger:
         file = logging.handlers.RotatingFileHandler(
             Path(logging_dir, 'debug.log'), maxBytes=100000000, backupCount=5, encoding='utf8')
         file.setLevel(logging.DEBUG)
-        file.setFormatter(file_formatter)
+        file.setFormatter(FILE_FORMATTER)
         logger.addHandler(file)
 
         return logger
@@ -118,7 +118,7 @@ class ProcessLogger(multiprocessing.Process):
         root = Logger.setup_logger()
         # limit to 5x 100MB log files
         h = logging.handlers.RotatingFileHandler('realtime.log', 'a', 100*1024**2, 5, encoding='utf8')
-        h.setFormatter(file_formatter)
+        h.setFormatter(FILE_FORMATTER)
         root.addHandler(h)
 
     def stop(self):

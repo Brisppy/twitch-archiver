@@ -83,7 +83,7 @@ class Api:
 
         return _r
 
-    def post_request(self, url: str, d: dict = None, j: dict = None, h: dict = None):
+    def post_request(self, url, d=None, j=None, h=None):
         """
         Wrapper for post requests for catching exceptions and status code issues.
 
@@ -92,7 +92,7 @@ class Api:
         :param d: formatted data to send with request
         :type d: str
         :param j: json to send with request
-        :type j: dict
+        :type j: dict or list
         :param h: override class headers to send with request
         :type h: dict
         :return: entire requests response

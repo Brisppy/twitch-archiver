@@ -138,7 +138,7 @@ class Chapters:
         """
         # convert category into moment spanning whole duration of VOD
         _moment = Chapters.Moment()
-        # todo check if 'GAME CHANGE' is the same name used by TWITCH
+        # 'GAME_CHANGE' is type assigned to chapters by Twitch
         _moment.type = 'GAME_CHANGE'
         _moment.description = category.display_name or category.name
         _moment.category = category
