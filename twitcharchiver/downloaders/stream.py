@@ -511,11 +511,8 @@ class Stream(Downloader):
         """
         Deletes all temporary files and directories.
         """
-        try:
-            shutil.rmtree(Path(self.output_dir, 'parts'))
-        except FileNotFoundError:
-            pass
-        try:
-            shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)))
-        except FileNotFoundError:
-            pass
+        shutil.rmtree(Path(self.output_dir, 'parts'), ignore_errors=True)
+        if self.vod.v_id:
+            shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)), ignore_errors=True)
+        else:
+            shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)), ignore_errors=True)
