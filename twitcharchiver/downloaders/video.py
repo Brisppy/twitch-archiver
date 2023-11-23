@@ -408,7 +408,7 @@ class Merger:
         self._output_dir = output_dir
         self._completed_segments = completed_segments
         self._completed_parts = self.get_completed_parts()
-        self._muted_segments = muted_segments
+        self._muted_segment_ids = [s.id for s in muted_segments]
         self._quiet = quiet
 
     def merge(self):
@@ -546,7 +546,7 @@ class Merger:
                     _corrupt_part = MpegSegment(floor((_dts_timestamp - _dts_offset) / 90000 / 10), 10)
 
                     # ignore if corrupt packet within ignore_corruptions range
-                    if _corrupt_part in self._muted_segments:
+                    if _corrupt_part.id in self._muted_segment_ids:
                         _corrupt_part.muted = True
                         self._log.debug('Ignoring corrupt packet as part in whitelist. Part: %s', _corrupt_part)
 
