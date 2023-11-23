@@ -376,6 +376,13 @@ class Video(Downloader):
         except BaseException as exc:
             raise VodMergeError(exc) from exc
 
+        # verify VOD based on its length
+        if merger.verify_length():
+            merger.cleanup_temp_files()
+
+        else:
+            raise VodMergeError('VOD verification failed as VOD length is outside the acceptable range.')
+
     def cleanup_temp_files(self):
         """
         Deletes temporary and transitional files used for archiving VOD video.
@@ -423,11 +430,6 @@ class Merger:
 
         self._log.info('Converting VOD to mp4. This may take a while.')
         self._convert_vod()
-
-        self._log.info('Verifying length of downloaded VOD.')
-        self.verify_length()
-
-        self.cleanup_temp_files()
 
     def _write_chapters(self):
         # retrieve vod chapters

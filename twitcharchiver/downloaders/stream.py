@@ -275,6 +275,7 @@ class Stream(Downloader):
         # attempt to merge - no verification done as unsynced streams have no accurate duration to verifying against
         try:
             merger.merge()
+            merger.cleanup_temp_files()
 
         except BaseException as exc:
             raise VodMergeError from exc
