@@ -420,7 +420,8 @@ class Merger:
         self._write_chapters()
 
         # export vod thumbnail
-        self._write_thumbnail()
+        if self.vod.thumbnail_url:
+            self._write_thumbnail()
 
         # merge and remux mpegts segments to single mp4
         self._log.info('Merging VOD parts. This may take a while.')
