@@ -225,6 +225,9 @@ class Vod:
         :return: Retrieves any chapters for the VOD, or a single chapter with the VOD category otherwise.
         :rtype: Chapters
         """
+        if not self.v_id:
+            return Chapters()
+
         _r = self._api.gql_request('VideoPlayer_ChapterSelectButtonVideo',
                                    '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
                                    {"includePrivate": False, "videoID": str(self.v_id)})
@@ -251,6 +254,9 @@ class Vod:
         :return: muted segments
         :rtype: list[MpegSegment]
         """
+        if not self.v_id:
+            return []
+
         _r = self._api.gql_request('VideoPlayer_MutedSegmentsAlertOverlay',
                                    'c36e7400657815f4704e6063d265dff766ed8fc1590361c6d71e4368805e0b49',
                                    {'includePrivate': False, 'vodID': str(self.v_id)})
@@ -272,6 +278,9 @@ class Vod:
         :return: Channel containing `id` and `name` of VOD owner
         :rtype: Channel
         """
+        if not self.v_id:
+            return Channel()
+
         _r = self._api.gql_request('ComscoreStreamingQuery',
                                    'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
                                    {"channel": "", "clipSlug": "", "isClip": False, "isLive": False,
@@ -328,6 +337,9 @@ class Vod:
         :return: stream id
         :rtype: int
         """
+        if not self.thumbnail_url:
+            return 0
+
         # check for processing thumbnail used by broadcasts
         if '404_processing' not in self.thumbnail_url:
             # use index for end of list as users with '_' in their name will break this
