@@ -187,10 +187,6 @@ class DownloadHandler:
                 'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
                 {'stream_id': self.vod.s_id}))
 
-            # set appropriate chat and video flags
-            self.vod.chat_archived = self.vod.chat_archived
-            self.vod.video_archived = self.vod.video_archived
-
             # if already present update it
             if downloaded_vod:
                 # set flags for updating
