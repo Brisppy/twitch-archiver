@@ -60,7 +60,7 @@ class Video(Downloader):
 
         # buffers and progress tracking
         # collect previously downloaded segments (if any)
-        self._completed_segments = self.get_completed_segments(self.output_dir)
+        self._completed_segments: set[MpegSegment] = self.get_completed_segments(self.output_dir)
         self._muted_segments: set[MpegSegment] = set()
 
 
@@ -77,8 +77,8 @@ class Video(Downloader):
 
         :param directory: directory containing *.ts files
         :type directory: str or Path
-        :return: list of segments inside directory
-        :rtype: list[MpegSegment]
+        :return: set of segments inside directory
+        :rtype: set[MpegSegment]
         """
         return {MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
                 for p in list(Path(directory, 'parts').glob('*.ts'))}
@@ -578,7 +578,7 @@ class Merger:
 
         :return: True if verification passes
         :rtype: bool
-        :raises VodVerificationError: if verification fails
+        :raises VodVerificationError: if error occurs when verifying
         """
         self._log.debug('Verifying length of VOD file.')
 
