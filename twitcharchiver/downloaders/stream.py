@@ -413,6 +413,7 @@ class Stream(Downloader):
                     if _part not in self._processed_parts:
                         self._processed_parts.add(_part)
                         self._incoming_part_buffer.append(_part)
+                        self.vod.duration = int(_part.timestamp - self.vod.created_at)
                 break
 
             # retry if request times out
