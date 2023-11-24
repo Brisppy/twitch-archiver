@@ -117,7 +117,7 @@ class ProcessLogger(multiprocessing.Process):
     def configure():
         root = Logger.setup_logger()
         # limit to 5x 100MB log files
-        h = logging.handlers.RotatingFileHandler('realtime.log', 'a', 100*1024**2, 5, encoding='utf8')
+        h = logging.handlers.RotatingFileHandler('debug.log', 'a', 100*1024**2, 5, encoding='utf8')
         h.setFormatter(FILE_FORMATTER)
         root.addHandler(h)
 
