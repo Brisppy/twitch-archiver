@@ -207,11 +207,13 @@ class Processing:
         # catch halting errors
         except (RequestError, VodDownloadError, VodMergeError) as exc:
             self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
-            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
+            if self.pushbullet_key:
+                send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
             sys.exit(1)
 
         # catch unhandled exceptions
         except BaseException as exc:
             self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
-            send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
+            if self.pushbullet_key:
+                send_push(self.pushbullet_key, f'Error downloading VOD {_downloader.vod}.', str(exc))
             sys.exit(1)

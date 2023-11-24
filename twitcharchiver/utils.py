@@ -229,24 +229,23 @@ def send_push(pushbullet_key, title, body=''):
     :param title: title to send with push
     :param body: body to send with push
     """
-    if pushbullet_key:
-        h = {'content-type': 'application/json', 'Authorization': f'Bearer {pushbullet_key}'}
-        d = {'type': 'note', 'title': f'[twitch-archiver] {title}', 'body': body}
+    h = {'content-type': 'application/json', 'Authorization': f'Bearer {pushbullet_key}'}
+    d = {'type': 'note', 'title': f'[twitch-archiver] {title}', 'body': body}
 
-        try:
-            _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d),
-                               timeout=10)
+    try:
+        _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d),
+                           timeout=10)
 
-            if _r.status_code != 200:
-                if _r.json()['error']['code'] == 'pushbullet_pro_required':
-                    log.error('Error sending push. Likely rate limited (500/month). '
-                              'Error %s: %s', _r.status_code, _r.text)
+        if _r.status_code != 200:
+            if _r.json()['error']['code'] == 'pushbullet_pro_required':
+                log.error('Error sending push. Likely rate limited (500/month). '
+                          'Error %s: %s', _r.status_code, _r.text)
 
-                else:
-                    log.error('Error sending push. Error %s: %s', _r.status_code, _r.text)
+            else:
+                log.error('Error sending push. Error %s: %s', _r.status_code, _r.text)
 
-        except BaseException as e:
-            log.error('Error sending push. Error: %s', e)
+    except BaseException as e:
+        log.error('Error sending push. Error: %s', e)
 
 
 # reference:

@@ -98,7 +98,7 @@ class Configuration:
         if name is None:
             return cls.__conf
 
-        if name not in cls.__dict__:
+        if name not in cls.__conf:
             return None
 
         return cls.__conf[name]
