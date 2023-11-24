@@ -577,7 +577,7 @@ class Merger:
     def verify_length(self):
         """Verifies the length of the downloaded VOD.
 
-        :return: True if verification passes
+        :return: True if VOD length within the acceptable range
         :rtype: bool
         :raises VodVerificationError: if error occurs when verifying
         """
@@ -606,9 +606,9 @@ class Merger:
 
         # pass verification if downloaded file is within 2s of expected length
         if 2 >= downloaded_length - self.vod.duration >= -2:
-            return False
+            return True
 
-        return True
+        return False
 
     def _write_thumbnail(self):
         """
