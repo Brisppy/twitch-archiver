@@ -25,6 +25,12 @@ from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get
 from twitcharchiver.vod import Vod
 
 
+# time in seconds between checking for new VOD parts if VOD is currently live and being updated
+CHECK_INTERVAL = 60
+# time in seconds that need to pass since the last VOD segment announced for a VOD to be considered offline
+# must be larger than CHECK_INTERVAL
+VOD_OFFLINE_TIME = 600
+
 class Video(Downloader):
     """
     Class used for downloading the video for a given Twitch VOD.
@@ -140,18 +146,18 @@ class Video(Downloader):
         self.refresh_playlist()
         self.download_m3u8_playlist()
 
-        # while VOD live, check for new parts every 60 seconds. if no new parts discovered after 10 minutes, or error
+        # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
         # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
         while self.vod.is_live():
             for _ in range(11):
                 if _ >= 10:
-                    self._log.debug('10m has passed since VOD duration changed - assuming it is no longer live.')
+                    self._log.debug(f'{(VOD_OFFLINE_TIME/CHECK_INTERVAL)/60}m has passed since VOD duration changed - assuming it is no longer live.')
                     return
 
                 # todo : find a way to confirm the VOD is offline so we dont needs to wait 10 minutes
                 # if VOD is live check for new parts every 60s
-                self._log.debug('Waiting 60s to see if VOD changes.')
-                sleep(60)
+                self._log.debug(f'Waiting {CHECK_INTERVAL}s to see if VOD changes.')
+                sleep(CHECK_INTERVAL)
 
                 try:
                     # refresh mpegts segment playlist
@@ -490,8 +496,7 @@ class Merger:
                         if 'time=' in _line.rstrip():
                             # extract current timestamp from output
                             _cur_time = re.search('(?<=time=).*(?= bitrate=)', _line).group(0).split(':')
-                            _cur_time = \
-                                int(_cur_time[0]) * 3600 + int(_cur_time[1]) * 60 + int(_cur_time[2][:2])
+                            _cur_time = int(_cur_time[0]) * 3600 + int(_cur_time[1]) * 60 + int(_cur_time[2][:2])
 
                             _progress.print_progress(int(_cur_time), self.vod.duration)
 

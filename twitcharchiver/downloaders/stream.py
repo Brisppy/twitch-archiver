@@ -23,6 +23,10 @@ from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamP
 from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
 
 
+TEMP_BUFFER_LEN = 120
+CHECK_INTERVAL = 4
+
+
 class StreamSegmentList:
     """
     Parses and stores segments of a Twitch livestream and the parts they are derived from.
@@ -260,10 +264,10 @@ class Stream(Downloader):
                 self._get_final_segment()
                 break
 
-            # sleep if processing time < 4s before checking for new segments
+            # sleep if processing time < CHECK_INTERVAL time before checking for new segments
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
-            if _loop_time < 4:
-                sleep(4 - _loop_time)
+            if _loop_time < CHECK_INTERVAL:
+                sleep(CHECK_INTERVAL - _loop_time)
 
     def merge(self):
         """
@@ -329,7 +333,7 @@ class Stream(Downloader):
         # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
         # meantime in case there is no vod and thus no way to retrieve them after the fact
         if not self.vod.v_id:
-            if self.vod.duration < 120:
+            if self.vod.duration < TEMP_BUFFER_LEN:
                 self._buffer_stream(self.vod.duration)
 
             # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
@@ -380,18 +384,18 @@ class Stream(Downloader):
         self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at))
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
-        # download new parts every 4s
-        for _ in range(int((120 - stream_length) / 4)):
+        # download new parts every CHECK_INTERVAL time
+        for _ in range(int((TEMP_BUFFER_LEN - stream_length) / CHECK_INTERVAL)):
             _start_timestamp: float = datetime.utcnow().timestamp()
             self.single_download_pass()
 
-            # wait if less than 4s passed since grabbing more parts
+            # wait if less than CHECK_INTERVAL time passed since grabbing more parts
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
-            if _loop_time < 4:
-                sleep(4 - _loop_time)
+            if _loop_time < CHECK_INTERVAL:
+                sleep(CHECK_INTERVAL - _loop_time)
 
         # wait any remaining time
-        sleep((120 - stream_length) % 4)
+        sleep((TEMP_BUFFER_LEN - stream_length) % CHECK_INTERVAL)
 
     def _fetch_advertised_parts(self):
         """
