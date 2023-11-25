@@ -447,7 +447,7 @@ class Stream(Downloader):
                 raise UnsupportedStreamPartDuration
 
             # add part to segment download queue
-            self._log.debug('Adding part %s to download queue.', _part)
+            self._log.debug('Adding part %s to download queue.', {'url': _part.url[-16:], 'timestamp': _part.timestamp, 'duration': _part.duration})
             self._download_queue.add_part(_part)
 
         # wipe part buffer

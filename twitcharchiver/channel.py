@@ -282,7 +282,6 @@ class Channel:
 
             # retrieve list of videos from response
             _videos = [Vod(vod_info=v['node']) for v in _r.json()[0]['data']['user']['videos']['edges']]
-            self._log.debug('Retrieved videos for %s: %s', self.name, len(_videos))
             _channel_videos.extend(_videos)
 
             if _r.json()[0]['data']['user']['videos']['pageInfo']['hasNextPage'] is not False:
@@ -293,7 +292,7 @@ class Channel:
                 break
 
         if _channel_videos:
-            self._log.debug('Full list of VODs for %s: %s', self.name, _channel_videos)
+            self._log.debug('VODs retrieved for %s: %s', self.name, len(_channel_videos))
             return _channel_videos
 
         self._log.debug('No VODs found for %s.', self.name)
