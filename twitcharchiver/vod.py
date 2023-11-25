@@ -98,8 +98,6 @@ class Vod:
 
         :param vod_info: dict of values related to the VOD retrieved from Twitch
         """
-        self._log.debug('Parsing provided metadata for VOD %s: %s', vod_info['id'], vod_info)
-
         if not self.v_id:
             self.v_id = int(vod_info['id'])
         self.category = Category(vod_info['game'])
