@@ -123,7 +123,7 @@ class Channel:
             return _stream_info
 
         self._log.debug('No broadcast info found for %s', self.name)
-        return {}
+        return {'id': '', 'displayName': '', 'stream': {}, 'broadcastSettings': {'id': '', 'title': '', '__typename': 'BroadcastSettings'}, '__typename': 'User'}
 
     def _get_broadcast_v_id(self):
         """

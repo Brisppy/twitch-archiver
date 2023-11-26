@@ -260,9 +260,16 @@ class Stream(Downloader):
             # assume stream has ended once >20s has passed since the last segment was advertised
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
             if time_since_date(self._last_part_announce) > 20:
-                self._log.debug('Assuming stream has ended as 20 seconds passed since last segment announced.')
-                self._get_final_segment()
-                break
+                # perform secondary check to see if stream is actually offline
+                _stream_info = self.channel.get_stream_info()
+                # check channel stream id matches ours
+                if _stream_info['stream'] and int(_stream_info['stream']['id']) == self.vod.s_id:
+                    pass
+
+                else:
+                    self._log.debug('Assuming stream has ended as 20 seconds passed since last segment announced.')
+                    self._get_final_segment()
+                    break
 
             # sleep if processing time < CHECK_INTERVAL time before checking for new segments
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
