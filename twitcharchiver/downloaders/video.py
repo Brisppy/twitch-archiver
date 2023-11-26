@@ -11,6 +11,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from math import floor
 from pathlib import Path
+from requests import adapters
 from time import sleep
 
 import m3u8
@@ -38,7 +39,6 @@ class Video(Downloader):
     # class vars
     _api: Api = Api()
     _quality: str = ''
-    _s: requests.Session = requests.session()
 
     def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), quality: str = 'best', threads: int = 20,
                  quiet: bool = False):
@@ -69,6 +69,10 @@ class Video(Downloader):
         self._completed_segments: set[MpegSegment] = self.get_completed_segments(self.output_dir)
         self._muted_segments: set[MpegSegment] = set()
 
+        # expand download https session pool
+        self._s: requests.Session = requests.session()
+        _a = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
+        self._s.mount('https://', _a)
 
         # video segment containers and required params
         self._index_url: str = ""
