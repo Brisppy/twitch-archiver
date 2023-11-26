@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -68,23 +69,34 @@ class RealTime(Downloader):
         self.stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
         self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 
-        # logging directory is used and moved into as Windows doesn't properly share the global logger, so it is
-        # reconfigured using a relative path as it is much easier than passing a designated file to the processlogger
-        # instance.
-        Path(logging_dir).mkdir(exist_ok=True, parents=True)
-        os.chdir(logging_dir)
-
-        process_logger = ProcessLogger.create_global_logger()
-        process_logger.start()
-
         _worker_pool = ThreadPoolExecutor(max_workers=3)
-        try:
+        process_logger = None
+
+        Path(logging_dir).mkdir(exist_ok=True, parents=True)
+        # use different logging method on Windows systems
+        if os.name == 'nt':
+            # logging directory is used and moved into as Windows doesn't properly share the global logger, so it is
+            # reconfigured using a relative path as it is much easier than passing a designated file to the
+            # processlogger instance.
+            os.chdir(logging_dir)
+
+            process_logger = ProcessLogger.create_global_logger()
+            process_logger.start()
+
             workers = [ProcessWithLogging(self.stream.start),
                        ProcessWithLogging(self.video.start, [_q])]
 
             if self.archive_chat:
                 workers.append(ProcessWithLogging(self.chat.start))
 
+        else:
+            workers = [multiprocessing.Process(target=self.stream.start),
+                       multiprocessing.Process(target=self.video.start, args=[_q])]
+
+            if self.archive_chat:
+                workers.append(multiprocessing.Process(target=self.chat.start))
+
+        try:
             for _w in workers:
                 _w.start()
 
@@ -101,8 +113,11 @@ class RealTime(Downloader):
         finally:
             _q.close()
             _q.join_thread()
-            process_logger.stop()
-            process_logger.join()
+
+            if process_logger:
+                process_logger.stop()
+                process_logger.join()
+
             _worker_pool.shutdown(wait=False)
 
     def merge(self):
