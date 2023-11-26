@@ -68,6 +68,9 @@ class RealTime(Downloader):
         self.stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
         self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 
+        # logging directory is used and moved into as Windows doesn't properly share the global logger, so it is
+        # reconfigured using a relative path as it is much easier than passing a designated file to the processlogger
+        # instance.
         Path(logging_dir).mkdir(exist_ok=True, parents=True)
         os.chdir(logging_dir)
 

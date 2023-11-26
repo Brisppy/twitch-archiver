@@ -33,6 +33,8 @@ class Logger:
         # setup console logging
         console = logging.StreamHandler(sys.stdout)
         console.setFormatter(CONSOLE_FORMATTER)
+
+        # check if stream handler already created - necessary as Windows doesn't properly share the global logger.
         if len(logger.handlers) < 1:
             logger.addHandler(console)
 
@@ -116,10 +118,14 @@ class ProcessLogger(multiprocessing.Process):
     @staticmethod
     def configure():
         root = Logger.setup_logger()
-        # limit to 5x 100MB log files
-        h = logging.handlers.RotatingFileHandler('debug.log', 'a', 100*1024**2, 5, encoding='utf8')
-        h.setFormatter(FILE_FORMATTER)
-        root.addHandler(h)
+        # Windows doesn't properly share the global logging instance and so it has to be re-added when we setup
+        # multiprocess logging. Linux doesn't have this problem and so the logger configured during `__init__` is all
+        # that's needed.
+        if not root.handlers:
+            # limit to 5x 100MB log files
+            h = logging.handlers.RotatingFileHandler('debug.log', 'a', 100*1024**2, 5, encoding='utf8')
+            h.setFormatter(FILE_FORMATTER)
+            root.addHandler(h)
 
     def stop(self):
         self.queue.put_nowait(None)
