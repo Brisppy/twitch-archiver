@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Queue
 from pathlib import Path
 
@@ -69,7 +68,6 @@ class RealTime(Downloader):
         self.stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
         self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 
-        _worker_pool = ThreadPoolExecutor(max_workers=3)
         process_logger = None
 
         Path(logging_dir).mkdir(exist_ok=True, parents=True)
@@ -117,8 +115,6 @@ class RealTime(Downloader):
             if process_logger:
                 process_logger.stop()
                 process_logger.join()
-
-            _worker_pool.shutdown(wait=False)
 
     def merge(self):
         try:
