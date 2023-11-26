@@ -40,7 +40,6 @@ class Chat(Downloader):
         # create output dir
         self.output_dir = Path(self._parent_dir,
                                build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
-        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
         # load chat from file if a download was attempted previously
         self._chat_log: list = self.load_from_file()
@@ -76,6 +75,9 @@ class Chat(Downloader):
         :return: list of dictionaries containing chat message data
         :rtype: list[dict]
         """
+        # create output dir
+        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+
         # use while loop for archiving live VODs
         while True:
             _start_timestamp: float = datetime.utcnow().timestamp()
@@ -85,6 +87,7 @@ class Chat(Downloader):
 
             else:
                 self._download()
+                self.export_chat_logs()
 
             if not self.vod.is_live():
                 break
