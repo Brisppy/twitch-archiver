@@ -288,8 +288,8 @@ class Stream(Downloader):
             merger.merge()
             merger.cleanup_temp_files()
 
-        except BaseException as exc:
-            raise VodMergeError(exc) from exc
+        except Exception as exc:
+            raise VodMergeError('Exception raised while merging VOD.') from exc
 
     def single_download_pass(self):
         """
@@ -310,11 +310,8 @@ class Stream(Downloader):
             if self._download_queue:
                 self._get_final_segment()
 
-        except KeyboardInterrupt as exc:
-            raise KeyboardInterrupt from exc
-
         # catch any other exception
-        except BaseException as exc:
+        except Exception as exc:
             raise StreamDownloadError(self.channel.name, exc) from exc
 
     def _do_setup(self):
@@ -508,7 +505,7 @@ class Stream(Downloader):
                 self._log.debug('Stream segment: %s completed.', segment.id)
                 break
 
-            except BaseException as exc:
+            except Exception as exc:
                 raise StreamSegmentDownloadError(segment.id, self.channel.name, exc) from exc
 
     def _get_final_segment(self):

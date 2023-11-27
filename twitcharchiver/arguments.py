@@ -140,6 +140,6 @@ class Arguments:
             with open(Path(file_path), 'r') as _fp:
                 return [line.rstrip() for line in _fp]
 
-        except BaseException as exc:
+        except Exception as exc:
             cls._log.error('Failed to read from provided input file. %s', exc)
             return None
