@@ -129,11 +129,7 @@ class Video(Downloader):
 
             self.vod.status = 'offline'
 
-        # pass user termination up
-        except KeyboardInterrupt as exc:
-            raise KeyboardInterrupt from exc
-
-        except BaseException as exc:
+        except Exception as exc:
             raise VodDownloadError(exc) from exc
 
     def refresh_playlist(self):
@@ -296,13 +292,10 @@ class Video(Downloader):
             safe_move(_tmp_ts_file.name, _segment_path)
             self._log.debug('Segment %s completed and moved to %s.', Path(_segment_path).stem, _segment_path)
 
-        except KeyboardInterrupt as exc:
-            raise KeyboardInterrupt from exc
-
         except FileNotFoundError as exc:
             raise VodPartDownloadError(f'MPEG-TS segment did not download correctly. Piece: {segment.url}') from exc
 
-        except BaseException as exc:
+        except Exception as exc:
             raise VodPartDownloadError(
                 f'Exception encountered while moving downloaded MPEG-TS segment {segment.id}.') from exc
 
@@ -383,8 +376,8 @@ class Video(Downloader):
             self.repair_vod_corruptions(_c.parts)
             merger.merge()
 
-        except BaseException as exc:
-            raise VodMergeError(exc) from exc
+        except Exception as exc:
+            raise VodMergeError('Exception raised while merging VOD.') from exc
 
         # verify VOD based on its length
         if merger.verify_length():
@@ -452,7 +445,7 @@ class Merger:
             with open(Path(self._output_dir, 'parts', 'chapters.txt'), 'w', encoding='utf8') as chapters_file:
                 chapters_file.write(str(format_vod_chapters(vod_chapters)))
 
-        except BaseException as exc:
+        except Exception as exc:
             self._log.error('Failed to retrieve or insert chapters into VOD file. %s', exc)
 
     def _combine_vod_parts(self):
@@ -629,7 +622,7 @@ class Merger:
             with open(Path(self._output_dir, 'thumbnail.jpg'), 'wb') as thumbnail_file:
                 thumbnail_file.write(thumbnail.content)
 
-        except BaseException as exc:
+        except Exception as exc:
             self._log.error('Failed to grab thumbnail for VOD. Error: %s', str(exc))
 
     def get_completed_parts(self):

@@ -104,10 +104,6 @@ class RealTime(Downloader):
             for _w in workers:
                 _w.join()
 
-        except KeyboardInterrupt as e:
-            self._log.info('User requested stop, shutting down workers...')
-            raise KeyboardInterrupt from e
-
         finally:
             _q.close()
             _q.join_thread()
@@ -120,8 +116,8 @@ class RealTime(Downloader):
         try:
             self.video.merge()
 
-        except BaseException as e:
-            raise VodMergeError(e) from e
+        except Exception as exc:
+            raise VodMergeError('Exception raised while merging VOD.') from exc
 
     def cleanup_temp_files(self):
         self.chat.cleanup_temp_files()

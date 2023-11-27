@@ -177,7 +177,7 @@ def get_latest_version():
         release_notes = _r.json()['body']
 
     # return a dummy value if request fails
-    except BaseException:
+    except Exception:
         return '0.0.0', ''
 
     return latest_version, release_notes
@@ -244,8 +244,8 @@ def send_push(pushbullet_key, title, body=''):
             else:
                 log.error('Error sending push. Error %s: %s', _r.status_code, _r.text)
 
-    except BaseException as e:
-        log.error('Error sending push. Error: %s', e)
+    except Exception as exc:
+        log.error('Error sending push. Error: %s', exc)
 
 
 # reference:
@@ -370,8 +370,8 @@ def write_file(data: str, file: Path):
         with open(Path(file), 'w', encoding='utf8') as _f:
             _f.write(data)
 
-    except BaseException as e:
-        log.error('Failed to write data to "%s". Error: %s', Path(file), e)
+    except Exception as exc:
+        log.error('Failed to write data to "%s". Error: %s', Path(file), exc)
 
 
 def write_file_line_by_line(data: list, file: Path):
@@ -393,8 +393,8 @@ def write_file_line_by_line(data: list, file: Path):
             for _element in data:
                 _f.write(f'{_element}\n')
 
-    except BaseException as e:
-        log.error('Failed to write data to "%s". Error: %s', Path(file), e)
+    except Exception as exc:
+        log.error('Failed to write data to "%s". Error: %s', Path(file), exc)
 
 
 def write_json_file(data, file: Path):
@@ -410,8 +410,8 @@ def write_json_file(data, file: Path):
         with open(Path(file), 'w', encoding='utf8') as _f:
             _f.write(json.dumps(data))
 
-    except BaseException as e:
-        log.error('Failed to write json data to "%s". Error: %s', Path(file), e)
+    except Exception as exc:
+        log.error('Failed to write json data to "%s". Error: %s', Path(file), exc)
 
 
 class Progress:
