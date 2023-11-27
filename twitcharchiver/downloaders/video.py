@@ -23,8 +23,7 @@ from twitcharchiver.twitch import MpegSegment
 from twitcharchiver.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
     VodDownloadError, VodConvertError, CorruptPartError, VodMergeError, VodVerificationError
 from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get_hash, format_vod_chapters
-from twitcharchiver.vod import Vod
-
+from twitcharchiver.vod import Vod, ArchivedVod
 
 # time in seconds between checking for new VOD parts if VOD is currently live and being updated
 CHECK_INTERVAL = 60
@@ -121,6 +120,10 @@ class Video(Downloader):
             # put self into mp queue if provided
             if _q:
                 _q.put(self, block=False)
+
+            # set archival flag if ArchivedVod provided
+            if isinstance(self.vod, ArchivedVod):
+                self.vod.video_archived = True
 
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.warning('HTTP code 403 or 404 encountered, VOD %s was likely deleted.', self.vod.v_id)
