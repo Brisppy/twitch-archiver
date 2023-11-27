@@ -115,13 +115,16 @@ class Processing:
 
                 # if VOD already downloaded, add it to the queue if formats are missing
                 else:
-                    self.log.debug('VOD already archived but requested format(s) missing - adding them to download queue.')
                     # get downloaded VOD from list of downloaded VODs
                     _downloaded_vod = downloaded_vods[[v.v_id for v in downloaded_vods].index(_vod.v_id)]
 
-                    # append to queue with already archived formats flagged as done
-                    download_queue.append(ArchivedVod.convert_from_vod(
-                        _vod, _downloaded_vod.chat_archived, _downloaded_vod.video_archived))
+                    # check if any requested format is missing
+                    if not _downloaded_vod.chat_archived and self.archive_chat or \
+                            not _downloaded_vod.video_archived and self.archive_video:
+                        self.log.debug(
+                            'VOD already archived but requested format(s) missing - adding them to download queue.')
+                        download_queue.append(ArchivedVod.convert_from_vod(
+                            _vod, _downloaded_vod.chat_archived, _downloaded_vod.video_archived))
 
             # exit if vod queue empty
             if not download_queue:
@@ -188,7 +191,7 @@ class Processing:
         for _downloader in _video_download_queue:
             self._start_download(_downloader)
 
-        if self.archive_chat:
+        if _chat_download_queue:
             self.log.debug('Beginning bulk chat archival with %s threads.', self.threads)
             # create threadpool for chat downloads
             _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
