@@ -346,7 +346,7 @@ class Stream(Downloader):
             if not broadcast_vod_id:
                 self._align_segments = False
             else:
-                self.vod.v_id = broadcast_vod_id
+                self.vod = Vod(broadcast_vod_id)
                 # if a paired VOD exists for the stream we can discard our temporary buffer
                 if self.output_dir and Path(self.output_dir).exists():
                     shutil.rmtree(Path(self.output_dir))

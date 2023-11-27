@@ -5,6 +5,8 @@ In addition to this, some new features have also been implemented.
 
 TLDR: expect everything faster and better polished, and any new features will be far easier to implement. 
 
+NOTE: If you used any of the .dev versions with the `real-time` flag I would recommend re-downloading archived VODs, there were issues with segment alignment which may have corrupted the VODs.
+
 **Additions:**
  * Added support for inputting a list of VOD IDs or channels has been added. Simply add `-f | --file` in conjunction with `-c | --channel` or `-v | --vod` and the corresponding value(s) will be interpreted as a file path.
  * Added parallel chat archiving to allow multiple chat logs to be downloaded simultaneously (https://github.com/Brisppy/twitch-archiver/issues/22).
