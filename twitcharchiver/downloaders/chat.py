@@ -13,7 +13,7 @@ from twitcharchiver.downloader import Downloader
 from twitcharchiver.exceptions import TwitchAPIErrorNotFound, RequestError, ChatDownloadError
 from twitcharchiver.utils import (Progress, get_time_difference, write_json_file, write_file_line_by_line,
                                   build_output_dir_name)
-from twitcharchiver.vod import Vod
+from twitcharchiver.vod import Vod, ArchivedVod
 
 
 class Chat(Downloader):
@@ -43,6 +43,10 @@ class Chat(Downloader):
 
         # load chat from file if a download was attempted previously
         self._chat_log: list = self.load_from_file()
+
+        # set archival flag if ArchivedVod provided
+        if isinstance(self.vod, ArchivedVod):
+            self.vod.chat_archived = True
 
     def load_from_file(self):
         """

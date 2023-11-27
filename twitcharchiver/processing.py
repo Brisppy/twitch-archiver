@@ -180,12 +180,10 @@ class Processing:
 
             if not _vod.video_archived and self.archive_video:
                 self.log.debug('Adding VOD to video archive queue.')
-                _vod.video_archived = True
                 _video_download_queue.append(Video(_vod, self.output_dir, self.quality, self.threads, self.quiet))
 
             if not _vod.chat_archived and self.archive_chat:
                 self.log.debug('Adding VOD to chat archive queue.')
-                _vod.chat_archived = True
                 _chat_download_queue.append(Chat(_vod, self.output_dir, self.quiet))
 
         for _downloader in _video_download_queue:

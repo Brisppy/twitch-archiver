@@ -8,7 +8,7 @@ from twitcharchiver import Configuration
 from twitcharchiver.api import Api
 from twitcharchiver.exceptions import VodMergeError
 from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
-from twitcharchiver.vod import Vod
+from twitcharchiver.vod import Vod, ArchivedVod
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
@@ -103,6 +103,10 @@ class RealTime(Downloader):
 
             for _w in workers:
                 _w.join()
+
+            # set archival flag if ArchivedVod provided
+            if isinstance(self.vod, ArchivedVod):
+                self.vod.chat_archived = self.vod.video_archived = True
 
         finally:
             _q.close()
