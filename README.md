@@ -103,8 +103,8 @@ options:
                         A single twitch channel to download, or multiple comma-separated channels.
   -v VOD, --vod VOD, --vod-id VOD
                         A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).
-  -f, --file            Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a
-                        path to a file.
+  -f, --file            Denotes that the value(s) provided to `-c | --channel` or `-v | --vod` is a
+                        path to a file. Each line should contain a VOD ID or channel name.
   -C, --chat            Only save chat logs.
   -V, --video           Only save video.
   -t THREADS, --threads THREADS

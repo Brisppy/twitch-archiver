@@ -80,8 +80,8 @@ def main():
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
                       default=getenv("TWITCH_ARCHIVER_VOD_ID"))
     parser.add_argument('-f', '--file', action='store_true',
-                        help='Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a\n'
-                             'path to a file.', default=False)
+                        help='Denotes that the value provided to `-c | --channel` or `-v | --vod` is a\n'
+                             'path to a file. Each line should contain a VOD ID or channel name.', default=False)
     parser.add_argument('-C', '--chat', action='store_true', help='Only save chat logs.',
                         default=getenv("TWITCH_ARCHIVER_CHAT", False, True))
     parser.add_argument('-V', '--video', action='store_true', help='Only save video.',
