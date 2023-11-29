@@ -152,8 +152,8 @@ class Video(Downloader):
         # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
         # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
         while self.vod.is_live():
-            for _ in range(11):
-                if _ >= 10:
+            for _ in range(int(VOD_OFFLINE_TIME/CHECK_INTERVAL + 1)):
+                if _ >= VOD_OFFLINE_TIME/CHECK_INTERVAL:
                     self._log.debug(f'{(VOD_OFFLINE_TIME/CHECK_INTERVAL)/60}m has passed since VOD duration changed - assuming it is no longer live.')
                     return
 
