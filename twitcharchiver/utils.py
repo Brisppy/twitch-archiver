@@ -425,7 +425,7 @@ class Progress:
         Sets the start time used for computing the time remaining.
         """
         if self.start_time == 0:
-            self.start_time = int(datetime.utcnow().timestamp())
+            self.start_time = int(datetime.now(timezone.utc).timestamp())
 
     # reference:
     #   https://stackoverflow.com/questions/63865536/how-to-convert-seconds-to-hhmmss-format-without-failing-if-hour-more-than-24
@@ -454,7 +454,7 @@ class Progress:
 
         else:
             remaining_time = self.to_hms(
-                ceil(((int(datetime.utcnow().timestamp()) - self.start_time) / cur) * (total - cur)))
+                ceil(((int(datetime.now(timezone.utc).timestamp()) - self.start_time) / cur) * (total - cur)))
 
         if len(str(percent)) < 3:
             percent = ' ' * (3 - len(str(percent))) + str(percent)

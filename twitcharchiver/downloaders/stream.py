@@ -252,7 +252,7 @@ class Stream(Downloader):
 
         # loop until stream ends
         while True:
-            _start_timestamp: float = datetime.utcnow().timestamp()
+            _start_timestamp: float = datetime.now(timezone.utc).timestamp()
             self.single_download_pass()
 
             # assume stream has ended once >20s has passed since the last segment was advertised
@@ -270,7 +270,7 @@ class Stream(Downloader):
                     break
 
             # sleep if processing time < CHECK_INTERVAL time before checking for new segments
-            _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
+            _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
             if _loop_time < CHECK_INTERVAL:
                 sleep(CHECK_INTERVAL - _loop_time)
 
@@ -388,11 +388,11 @@ class Stream(Downloader):
 
         # download new parts every CHECK_INTERVAL time
         for _ in range(int((TEMP_BUFFER_LEN - stream_length) / CHECK_INTERVAL)):
-            _start_timestamp: float = datetime.utcnow().timestamp()
+            _start_timestamp: float = datetime.now(timezone.utc).timestamp()
             self.single_download_pass()
 
             # wait if less than CHECK_INTERVAL time passed since grabbing more parts
-            _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
+            _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
             if _loop_time < CHECK_INTERVAL:
                 sleep(CHECK_INTERVAL - _loop_time)
 

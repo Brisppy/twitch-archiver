@@ -82,7 +82,7 @@ class Chat(Downloader):
 
         # use while loop for archiving live VODs
         while True:
-            _start_timestamp: float = datetime.utcnow().timestamp()
+            _start_timestamp: float = datetime.now(timezone.utc).timestamp()
             # begin downloader from offset if previous log found
             if self._chat_log:
                 self._download(self._chat_log[-1]['contentOffsetSeconds'])
@@ -96,7 +96,7 @@ class Chat(Downloader):
             self.export_chat_logs()
 
             # sleep if processing time < 60s before fetching new messages
-            _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
+            _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
             if _loop_time < CHECK_INTERVAL:
                 sleep(CHECK_INTERVAL - _loop_time)
 
