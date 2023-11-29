@@ -105,7 +105,7 @@ class DownloadHandler:
         if self.remove_lock():
             self._log.debug('Failed to remove lock file.')
 
-        if isinstance(exc_val, Exception):
+        if isinstance(exc_val, BaseException):
             self._log.debug('Exception occurred inside DownloadHandler: %s', exc_val)
 
         else:
