@@ -44,10 +44,6 @@ class Chat(Downloader):
         # load chat from file if a download was attempted previously
         self._chat_log: list = self.load_from_file()
 
-        # set archival flag if ArchivedVod provided
-        if isinstance(self.vod, ArchivedVod):
-            self.vod.chat_archived = True
-
     def load_from_file(self):
         """
         Loads and returns the chat log stored in the output directory.
@@ -104,8 +100,9 @@ class Chat(Downloader):
         # logging
         self._log.info('Found %s chat messages.', len(self._chat_log))
 
-        # export logs
-        self.export_chat_logs()
+        # set archival flag if ArchivedVod provided
+        if isinstance(self.vod, ArchivedVod):
+            self.vod.chat_archived = True
 
     def _download(self, offset: int = 0):
         """
