@@ -2,11 +2,13 @@
 Class for retrieving and storing information related to channels and users.
 """
 import logging
+from datetime import datetime, timezone
 from random import randrange
 
 import m3u8
 
 from twitcharchiver.api import Api
+from twitcharchiver.utils import time_since_date
 
 
 class Channel:
@@ -29,6 +31,8 @@ class Channel:
         self.name: str = channel_name
         self.stream: dict = {}
         self._broadcast_v_id = int()
+
+        self._last_update: float = 0
 
         if owner:
             self._parse_dict(owner)
@@ -83,6 +87,7 @@ class Channel:
 
         # failure return contains "userDoesNotExist" key
         if "userDoesNotExist" not in _user_data.keys():
+            self._last_update = datetime.now(timezone.utc).timestamp()
             return _user_data
 
         return {}
@@ -94,7 +99,9 @@ class Channel:
         :return: True if channel live
         :rtype: bool
         """
-        self.refresh_metadata()
+        # refresh metadata if it was last updated more than 60 seconds ago
+        if time_since_date(self._last_update) > 60:
+            self.refresh_metadata()
         return self.stream is not None
 
     def refresh_metadata(self):
