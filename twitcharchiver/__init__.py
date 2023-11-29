@@ -78,7 +78,7 @@ def main():
                       default=getenv("TWITCH_ARCHIVER_CHANNEL"))
     mode.add_argument('-v', '--vod', '--vod-id', type=str, action='store',
                       help='A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).',
-                      default=getenv("TWITCH_ARCHIVER_VOD"))
+                      default=getenv("TWITCH_ARCHIVER_VOD_ID"))
     parser.add_argument('-f', '--file', action='store_true',
                         help='Denotes that the value provided to `-c | --channel` or `-v | --vod-id` is a\n'
                              'path to a file.', default=False)
@@ -95,7 +95,7 @@ def main():
                              '(default: best)', default='best')
     parser.add_argument('-d', '--directory', action='store',
                         help='Directory to store archived VOD(s), use TWO slashes for Windows paths.\n'
-                             '(default: %(default)s)', type=Path,
+                             '(default: current directory)', type=Path,
                         default=getenv('TWITCH_ARCHIVER_DIRECTORY', Path(os.getcwd())))
     parser.add_argument('-w', '--watch', action='store_true',
                         help='Continually check every 10 seconds for new streams/VODs from a specified channel.',
