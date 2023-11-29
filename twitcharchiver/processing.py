@@ -157,7 +157,7 @@ class Processing:
                 _channel_cache.append(_vod.channel)
 
             if self.live_only and not _vod.is_live():
-                self.log.debug('Skipping VOD as channel is offline and `live-only` flag set.')
+                self.log.debug('Skipping as VOD is offline and `live-only` flag set.')
                 continue
 
             _channel_index = _channel_cache.index(_vod.channel)
