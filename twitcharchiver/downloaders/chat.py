@@ -16,6 +16,8 @@ from twitcharchiver.utils import (Progress, get_time_difference, write_json_file
 from twitcharchiver.vod import Vod, ArchivedVod
 
 
+CHECK_INTERVAL = 60
+
 class Chat(Downloader):
     """
     Class which handles the downloading, updating and importing of chat logs and the subsequent fomatting and archival.
@@ -87,15 +89,16 @@ class Chat(Downloader):
 
             else:
                 self._download()
-                self.export_chat_logs()
 
             if not self.vod.is_live():
                 break
 
+            self.export_chat_logs()
+
             # sleep if processing time < 60s before fetching new messages
             _loop_time = int(datetime.utcnow().timestamp() - _start_timestamp)
-            if _loop_time < 60:
-                sleep(60 - _loop_time)
+            if _loop_time < CHECK_INTERVAL:
+                sleep(CHECK_INTERVAL - _loop_time)
 
         # logging
         self._log.info('Found %s chat messages.', len(self._chat_log))
