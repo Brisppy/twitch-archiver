@@ -106,7 +106,9 @@ class RealTime(Downloader):
 
             # set archival flag if ArchivedVod provided
             if isinstance(self.vod, ArchivedVod):
-                self.vod.chat_archived = self.vod.video_archived = True
+                self.vod.video_archived = True
+                if self.archive_chat:
+                    self.vod.chat_archived = True
 
         finally:
             _q.close()
