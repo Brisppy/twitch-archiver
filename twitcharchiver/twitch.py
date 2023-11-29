@@ -59,7 +59,7 @@ class Category:
         """
         if isinstance(other, self.__class__):
             return bool(self.id == other.id)
-        return False
+        raise TypeError
 
     def to_dict(self):
         """
@@ -241,12 +241,17 @@ class MpegSegment(Segment):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.id == other.id
-        return False
+        raise TypeError
 
     def __ne__(self, other):
         if isinstance(other, self.__class__):
             return self.id != other.id
-        return True
+        raise TypeError
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.id < other.id
+        raise TypeError
 
     @staticmethod
     def convert_m3u8_segment(segment: m3u8.Segment, base_url: str):

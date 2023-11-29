@@ -62,8 +62,7 @@ class Vod:
         """
         if isinstance(other, self.__class__):
             return self.v_id == other.v_id
-
-        return False
+        raise TypeError
 
     def __repr__(self):
         """
@@ -563,7 +562,7 @@ class ArchivedVod(Vod):
         if isinstance(other, self.__class__):
             return (self.s_id == other.s_id or self.v_id == other.v_id) and self.chat_archived == other.chat_archived \
                 and self.video_archived == other.video_archived
-        return False
+        raise TypeError
 
     def __repr__(self):
         return str(self.to_dict())

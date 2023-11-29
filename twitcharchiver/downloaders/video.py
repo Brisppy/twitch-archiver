@@ -310,9 +310,10 @@ class Video(Downloader):
         """
         # check vod still available
         if not self._index_url:
-            raise VodDownloadError("Corrupt segments were found while converting VOD and TA was unable to re-download "
-                                   "the missing segments. Either re-download the VOD if it is still available, or "
-                                   "manually convert 'merged.ts' using FFmpeg. Corrupt parts:\n{str(corruption)}")
+            raise VodDownloadError(
+                "Corrupt segments were found while converting VOD and TA was unable to re-download the missing "
+                "segments. Either re-download the VOD if it is still available, or manually convert 'merged.ts' using "
+                f"FFmpeg. Corrupt parts:\n{str(sorted(corruption))}")
 
         # rename corrupt segments
         for segment in corruption:
@@ -362,7 +363,7 @@ class Video(Downloader):
             raise VodDownloadError(
                 "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
                 "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
-                f"'parts' folder if issue persists.\n{str(corruption)}") from exc
+                f"'parts' folder if issue persists.\n{str(sorted(corruption))}") from exc
 
     def merge(self):
         """

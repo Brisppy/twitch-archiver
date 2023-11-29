@@ -156,7 +156,7 @@ class StreamSegment:
         def __eq__(self, other):
             if isinstance(other, StreamSegment.Part):
                 return self.url == other.url
-            return False
+            raise TypeError
 
         def __hash__(self):
             return hash(self.url)
@@ -187,10 +187,8 @@ class StreamSegment:
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            if self.parts == other.parts:
-                return True
-
-        return False
+            return self.parts == other.parts
+        raise TypeError
 
     def __hash__(self):
         return hash(str(self.parts))
