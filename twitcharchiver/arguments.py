@@ -48,12 +48,15 @@ class Arguments:
             cls.set('video', True)
 
         # generate list from comma-separated VODs
-        if cls.get('vod'):
-            cls.extract_vods_and_channels('vod')
+        try:
+            if cls.get('vod'):
+                cls.extract_vods_and_channels('vod')
 
-        # generate list from comma-separated channels
-        elif cls.get('channel'):
-            cls.extract_vods_and_channels('channel')
+            # generate list from comma-separated channels
+            elif cls.get('channel'):
+                cls.extract_vods_and_channels('channel')
+        except TypeError:
+            print('Error parsing provided channel or VOD argument.')
 
         # split quality into [resolution, framerate]
         if cls.get('quality') not in ['best', 'worst']:
