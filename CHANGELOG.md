@@ -1,6 +1,6 @@
 **(2023-11-XX) Version 4.0.0**
 
-This update has been a long time coming, pretty much all the central processing code was refactored to follow better, more modern coding standards. This was primarily to make it eaiser to find and fix bugs, and to develop new features.
+This update has been a long time coming, pretty much all the central processing code was refactored to follow better, more modern coding standards. This was primarily to make it easier to find and fix bugs, and to develop new features.
 In addition to this, some new features have also been implemented.
 
 TLDR: expect everything faster and better polished, and any new features will be far easier to implement. 
@@ -17,6 +17,7 @@ NOTE: If you used any of the .dev versions with the `real-time` flag I would rec
  * Add `--vod` as substitute for the `--vod-id` argument.
  * The `-w | --watch-only` mode is much lighter, using significantly fewer requests.
  * The `-L | --log-file` flag has been replaced with  `-L | --log-dir`, where a directory is supplied in which log files will be placed rather than a file.
+ * Logging with the `--real-time` archiver enabled now properly works on both Windows and Linux.
 
 **(2023-08-31) Version 3.0.7**
 
