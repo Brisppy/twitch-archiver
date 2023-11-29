@@ -94,6 +94,7 @@ class Channel:
         :return: True if channel live
         :rtype: bool
         """
+        self.refresh_metadata()
         return self.stream is not None
 
     def refresh_metadata(self):
