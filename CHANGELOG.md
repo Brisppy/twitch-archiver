@@ -12,7 +12,7 @@ NOTE: If you used any of the .dev versions with the `real-time` flag I would rec
  * Added parallel chat archiving to allow multiple chat logs to be downloaded simultaneously (https://github.com/Brisppy/twitch-archiver/issues/22).
 
 **Changes and Fixes:**
- * Moved all API requests to the GQL API, neither the `client-id` or `client-secret` are now required for archiving.
+ * Moved all API requests to the GQL API, authentication (`client-id / client-secret`) is no longer required for archiving.
  * Refactored entire codebase to follow object-oriented practices.
  * Add `--vod` as substitute for the `--vod-id` argument.
  * The `-w | --watch-only` mode is much lighter, using significantly fewer requests.
