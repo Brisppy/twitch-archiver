@@ -113,7 +113,7 @@ def main():
     parser.add_argument('-L', '--log-dir', action='store', help='Output logs to specified directory.', type=Path,
                         default=getenv("TWITCH_ARCHIVER_LOG_FILE", False))
     parser.add_argument('-I', '--config-dir', action='store', type=Path,
-                        help='Directory to store configuration, VOD database and lock files.\n(default: %(default)s)',
+                        help='Directory to store configuration and VOD database.\n(default: %(default)s)',
                         default=getenv('TWITCH_ARCHIVER_CONFIG_DIR',
                                        Path(os.path.expanduser("~"), '.config', 'twitch-archiver')))
     parser.add_argument('-p', '--pushbullet-key', action='store',

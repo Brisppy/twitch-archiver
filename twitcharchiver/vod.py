@@ -201,9 +201,8 @@ class Vod:
 
                 # if vod created within 10s of stream created time
                 if 10 >= self.created_at - _stream_created_time >= -10:
-                    self._log.debug(
-                        'VOD creation time (%s) is within 10s of stream created time (%s), running in live mode.',
-                        self.created_at, _stream_created_time)
+                    self._log.debug('VOD creation time (%s) is within 10s of stream created time (%s).',
+                             self.created_at, _stream_created_time)
                     return True
 
             except IndexError:
