@@ -45,6 +45,7 @@ class Chat(Downloader):
 
         # load chat from file if a download was attempted previously
         self._chat_log: list = self.load_from_file()
+        self._chat_message_ids: set = set()
 
     def load_from_file(self):
         """
@@ -116,20 +117,24 @@ class Chat(Downloader):
         :rtype: list
         """
         _progress = Progress()
+        start_len = len(self._chat_log)
 
         # grab initial chat segment containing cursor
         _initial_segment, _cursor = self._get_chat_segment(offset=offset)
-        self._chat_log.extend(_initial_segment)
+        self._chat_log.extend([m for m in _initial_segment if m['id'] not in self._chat_message_ids])
+        self._chat_message_ids.add([m['id'] for m in _initial_segment])
 
         while True:
             if not _cursor:
+                self._log.debug(f'{len(self._chat_log) - start_len} messages retrieved from Twitch.')
                 break
 
             try:
                 self._log.debug('Fetching chat segments at cursor: %s.', _cursor)
                 # grab next chat segment along with cursor for next segment
                 _segment, _cursor = self._get_chat_segment(cursor=_cursor)
-                self._chat_log.extend(_segment)
+                self._chat_log.extend([m for m in _segment if m['id'] not in self._chat_message_ids])
+                self._chat_message_ids.add([m['id'] for m in _segment])
                 # vod duration in seconds is used as the total for progress bar
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
