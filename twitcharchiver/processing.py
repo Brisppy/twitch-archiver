@@ -69,7 +69,7 @@ class Processing:
             # retrieve available vods and extract required info
             channel_videos: list[Vod] = channel.get_channel_videos()
 
-            channel_live = channel.is_live()
+            channel_live = channel.is_live(force_refresh=True)
             if channel_live:
                 # fetch current stream info
                 stream: Stream = Stream(channel, Vod(), self.output_dir, self.quality, self.quiet)
