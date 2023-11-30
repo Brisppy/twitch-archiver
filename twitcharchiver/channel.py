@@ -92,15 +92,17 @@ class Channel:
 
         return {}
 
-    def is_live(self):
+    def is_live(self, force_refresh=False):
         """
         Checks if the channel is currently live.
 
+        :param force_refresh: True if cache to be ignored and metadata to be forcefully refreshed
+        :type force_refresh: bool
         :return: True if channel live
         :rtype: bool
         """
         # refresh metadata if it was last updated more than 60 seconds ago
-        if time_since_date(self._last_update) > 60:
+        if time_since_date(self._last_update) > 60 or force_refresh:
             self.refresh_metadata()
         return self.stream is not None
 
