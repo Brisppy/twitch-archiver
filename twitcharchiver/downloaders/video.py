@@ -27,9 +27,10 @@ from twitcharchiver.vod import Vod, ArchivedVod
 
 # time in seconds between checking for new VOD parts if VOD is currently live and being updated
 CHECK_INTERVAL = 60
-# time in seconds that need to pass since the last VOD segment announced for a VOD to be considered offline
-# must be larger than CHECK_INTERVAL
-VOD_OFFLINE_TIME = 600
+
+# the number of times the check interval has to pass before a VOD is considered offline.
+# the total time which must pass can be calculated as CHECK_INTERVAL * VOD_OFFLINE_TIME
+VOD_OFFLINE_LOOPS = 10
 
 class Video(Downloader):
     """
@@ -152,9 +153,9 @@ class Video(Downloader):
         # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
         # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
         while self.vod.is_live():
-            for _ in range(int(VOD_OFFLINE_TIME/CHECK_INTERVAL + 1)):
-                if _ >= VOD_OFFLINE_TIME/CHECK_INTERVAL:
-                    self._log.debug(f'{(VOD_OFFLINE_TIME/CHECK_INTERVAL)/60}m has passed since VOD duration changed - assuming it is no longer live.')
+            for _ in range(VOD_OFFLINE_LOOPS + 1):
+                if _ >= VOD_OFFLINE_LOOPS:
+                    self._log.debug(f'{VOD_OFFLINE_LOOPS * CHECK_INTERVAL}s has passed since VOD duration changed - assuming it is no longer live.')
                     return
 
                 # todo : find a way to confirm the VOD is offline so we dont needs to wait 10 minutes
