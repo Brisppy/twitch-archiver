@@ -395,6 +395,7 @@ class Video(Downloader):
         """
         Deletes temporary and transitional files used for archiving VOD video.
         """
+        self._log.debug('Deleting VOD parts - this may take a while.')
         shutil.rmtree(Path(self.output_dir, 'parts'), ignore_errors=True)
         shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)), ignore_errors=True)
 
