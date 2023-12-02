@@ -4,7 +4,6 @@ Module for downloading currently live Twitch broadcasts.
 import os
 import shutil
 import tempfile
-
 from datetime import datetime, timezone
 from math import floor
 from operator import attrgetter
@@ -14,14 +13,13 @@ from time import sleep
 import m3u8
 import requests
 
-from twitcharchiver.vod import Vod, ArchivedVod
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.downloaders.video import MpegSegment, Merger, Video
+from twitcharchiver.downloaders.video import MpegSegment, Merger
 from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamPartDuration, StreamDownloadError, \
     StreamSegmentDownloadError, StreamFetchError, StreamOfflineError, VodMergeError, RequestError
 from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
-
+from twitcharchiver.vod import Vod, ArchivedVod
 
 TEMP_BUFFER_LEN = 120
 CHECK_INTERVAL = 4

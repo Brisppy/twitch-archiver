@@ -32,7 +32,6 @@ import os
 import sys
 import tempfile
 import textwrap
-
 from pathlib import Path
 from time import sleep
 

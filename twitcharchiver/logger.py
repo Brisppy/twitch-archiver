@@ -4,12 +4,11 @@
 """
 Logging class used by Twitch Archiver.
 """
-import multiprocessing
-import sys
 import logging
 import logging.handlers
+import multiprocessing
+import sys
 import traceback
-
 from pathlib import Path
 
 CONSOLE_FORMATTER = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')

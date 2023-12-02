@@ -4,12 +4,11 @@ Classes related to Downloading methods and managing the downloading of a given V
 
 import logging
 import tempfile
-
 from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
-from twitcharchiver.exceptions import VodAlreadyCompleted, VodLockedError
 from twitcharchiver.database import Database, INSERT_VOD
+from twitcharchiver.exceptions import VodLockedError
 from twitcharchiver.vod import ArchivedVod, Vod
 
 

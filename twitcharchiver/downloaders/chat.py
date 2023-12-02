@@ -4,7 +4,6 @@ Module used for downloading chat logs for a given Twitch VOD.
 import json
 import os
 from datetime import datetime, timezone
-
 from pathlib import Path
 from time import sleep
 
@@ -14,7 +13,6 @@ from twitcharchiver.exceptions import TwitchAPIErrorNotFound, RequestError, Chat
 from twitcharchiver.utils import (Progress, get_time_difference, write_json_file, write_file_line_by_line,
                                   build_output_dir_name)
 from twitcharchiver.vod import Vod, ArchivedVod
-
 
 CHECK_INTERVAL = 60
 
