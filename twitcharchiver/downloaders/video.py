@@ -348,7 +348,7 @@ class Video(Downloader):
                         self._muted_segments.add(segment)
 
                     else:
-                        self._log.error('Re-downloaded .ts segment %s does not match corrupt one.')
+                        self._log.error('Re-downloaded .ts segment %s does not match corrupt one.', segment.id)
 
                 # occasionally the last few pieces of a stream may not be archived to the VOD and so won't be
                 # re-downloaded. instead we just assume the corrupt segment is OK.
@@ -379,6 +379,7 @@ class Video(Downloader):
         # corrupt part(s) encountered - redownload them and reattempt merge
         except CorruptPartError as _c:
             self.repair_vod_corruptions(_c.parts)
+            merger.set_muted_segments(self._muted_segments)
             merger.merge()
 
         except Exception as exc:
@@ -417,6 +418,9 @@ class Merger:
         self._completed_parts = self.get_completed_parts()
         self._muted_segment_ids = [s.id for s in muted_segments]
         self._quiet = quiet
+
+    def set_muted_segments(self, segments):
+        self._muted_segment_ids = [s.id for s in segments]
 
     def merge(self):
         """
