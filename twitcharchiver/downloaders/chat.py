@@ -43,16 +43,16 @@ class Chat(Downloader):
         self.output_dir = Path(self._parent_dir,
                                build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
 
-        # load chat from file if a download was attempted previously
-        self._chat_log: list = self.load_from_file()
+        # store chat log and seen message ids
+        self._chat_log: list = []
         self._chat_message_ids: set = set()
+
+        # load chat from file if a download was attempted previously
+        self.load_from_file()
 
     def load_from_file(self):
         """
-        Loads and returns the chat log stored in the output directory.
-
-        :return: list of chat messages
-        :rtype: list
+        Loads the chat log stored in the output directory.
         """
         try:
             with open(Path(self.output_dir, 'verbose_chat.json'), 'r', encoding='utf8') as chat_file:
@@ -62,13 +62,16 @@ class Chat(Downloader):
             # ignore chat logs created with older incompatible schema - see v2.2.1 changes
             if chat_log and 'contentOffsetSeconds' not in chat_log[0].keys():
                 self._log.debug('Ignoring chat log loaded from file as it is incompatible.')
-                return []
+                return
 
             self._log.debug('Chat log found for VOD %s.', self.vod)
-            return chat_log
+            self._chat_log = chat_log
+            # add chat messages to id set
+            self._chat_message_ids.update(m['id'] for m in chat_log)
+            return
 
         except FileNotFoundError:
-            return []
+            return
 
     def start(self):
         """
@@ -122,7 +125,7 @@ class Chat(Downloader):
         # grab initial chat segment containing cursor
         _initial_segment, _cursor = self._get_chat_segment(offset=offset)
         self._chat_log.extend([m for m in _initial_segment if m['id'] not in self._chat_message_ids])
-        self._chat_message_ids.add([m['id'] for m in _initial_segment])
+        self._chat_message_ids.update([m['id'] for m in _initial_segment])
 
         while True:
             if not _cursor:
@@ -134,7 +137,7 @@ class Chat(Downloader):
                 # grab next chat segment along with cursor for next segment
                 _segment, _cursor = self._get_chat_segment(cursor=_cursor)
                 self._chat_log.extend([m for m in _segment if m['id'] not in self._chat_message_ids])
-                self._chat_message_ids.add([m['id'] for m in _segment])
+                self._chat_message_ids.update([m['id'] for m in _segment])
                 # vod duration in seconds is used as the total for progress bar
                 # comment offset is used to track what's been done
                 # could be done properly if there was a way to get the total number of comments
