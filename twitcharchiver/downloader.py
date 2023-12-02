@@ -85,11 +85,6 @@ class DownloadHandler:
 
         :return: self
         """
-        # check if VOD has been completed already
-        if self._with_database:
-            if self.database_vod_completed():
-                raise VodAlreadyCompleted(self.vod)
-
         # attempt to create lock file
         if self.create_lock():
             raise VodLockedError(self.vod)
@@ -112,40 +107,6 @@ class DownloadHandler:
             # add VOD to database if exit not due to exception
             if self._with_database:
                 self.insert_into_database()
-
-    def get_downloaded_vod(self):
-        """
-        Retrieves a VOD with a matching stream_id (if any) from the VOD database.
-
-        :return: VOD retrieved from database
-        :rtype: ArchivedVod
-        """
-        with Database(Path(self._config_dir, 'vods.db')) as _db:
-            # use list comprehension to avoid issues with attempting to import VOD when none returned
-            downloaded_vod = [ArchivedVod.import_from_db(v) for v in _db.execute_query(
-                'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
-                {'stream_id': self.vod.s_id})]
-
-            if downloaded_vod:
-                return downloaded_vod[0]
-
-            return ArchivedVod()
-
-    def database_vod_completed(self):
-        """
-        Checks if a given VOD is already downloaded in the desired formats according to the database.
-
-        :return: True if VOD exists in the database with matching video and chat archival flags.
-        :rtype: bool
-        """
-        downloaded_vod = self.get_downloaded_vod()
-        if downloaded_vod:
-            if downloaded_vod.chat_archived == self.vod.chat_archived \
-                    and downloaded_vod.video_archived == self.vod.video_archived:
-                self._log.debug('VOD already downloaded in requested format according to database.')
-                return True
-
-        return False
 
     def create_lock(self):
         """
