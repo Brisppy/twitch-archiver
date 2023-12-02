@@ -8,9 +8,9 @@ import shutil
 from pathlib import Path
 from unittest import TestCase
 
+from twitcharchiver.downloaders.video import Video
 from twitcharchiver.utils import build_output_dir_name
 from twitcharchiver.vod import Vod
-from twitcharchiver.downloaders.video import Video
 
 
 class TestVideo(TestCase):

@@ -13,8 +13,8 @@ import m3u8
 
 from twitcharchiver.api import Api
 from twitcharchiver.channel import Channel
-from twitcharchiver.twitch import Category, Chapters, MpegSegment
 from twitcharchiver.exceptions import TwitchAPIErrorForbidden
+from twitcharchiver.twitch import Category, Chapters, MpegSegment
 from twitcharchiver.utils import time_since_date
 
 

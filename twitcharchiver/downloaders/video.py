@@ -11,17 +11,17 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from math import floor
 from pathlib import Path
-from requests import adapters
 from time import sleep
 
 import m3u8
 import requests
+from requests import adapters
 
 from twitcharchiver.api import Api
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.twitch import MpegSegment
 from twitcharchiver.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
     VodDownloadError, VodConvertError, CorruptPartError, VodMergeError, VodVerificationError
+from twitcharchiver.twitch import MpegSegment
 from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get_hash, format_vod_chapters
 from twitcharchiver.vod import Vod, ArchivedVod
 

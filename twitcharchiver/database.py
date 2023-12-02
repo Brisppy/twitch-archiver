@@ -4,7 +4,6 @@ Module used for creating, accessing, updating and modifying database entries.
 
 import logging
 import sqlite3
-
 from sqlite3 import Error
 
 from twitcharchiver.exceptions import DatabaseError, DatabaseQueryError

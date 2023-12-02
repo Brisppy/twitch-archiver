@@ -6,16 +6,15 @@ import logging
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
-
 from pathlib import Path
 
 from twitcharchiver.channel import Channel
+from twitcharchiver.database import Database
 from twitcharchiver.downloader import DownloadHandler
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.realtime import RealTime
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.database import Database
 from twitcharchiver.exceptions import RequestError, VodDownloadError, VodMergeError, VodLockedError, VodAlreadyCompleted
 from twitcharchiver.utils import send_push
 from twitcharchiver.vod import Vod, ArchivedVod

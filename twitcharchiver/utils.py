@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import shutil
-
 from datetime import datetime, timezone
 from itertools import groupby
 from math import ceil, floor
@@ -220,7 +219,6 @@ def check_update_available(local_version, remote_version):
     return False
 
 
-# todo : needs to be re implemented
 def send_push(pushbullet_key, title, body=''):
     """
     Sends a push to an account based on a given pushbullet key.

@@ -6,13 +6,13 @@ from pathlib import Path
 
 from twitcharchiver import Configuration
 from twitcharchiver.api import Api
-from twitcharchiver.exceptions import VodMergeError
-from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
-from twitcharchiver.vod import Vod, ArchivedVod
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
+from twitcharchiver.exceptions import VodMergeError
+from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
+from twitcharchiver.vod import Vod, ArchivedVod
 
 
 class RealTime(Downloader):

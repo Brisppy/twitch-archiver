@@ -1,9 +1,9 @@
 """
 Handles communication with the Twitch API.
 """
+import logging
 from time import sleep
 
-import logging
 import requests
 
 from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \

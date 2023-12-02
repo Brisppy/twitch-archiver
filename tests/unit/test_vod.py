@@ -1,8 +1,8 @@
 import tracemalloc
 import unittest
 
-from twitcharchiver.vod import Vod
 from twitcharchiver.channel import Channel
+from twitcharchiver.vod import Vod
 
 
 class TestVod(unittest.TestCase):
