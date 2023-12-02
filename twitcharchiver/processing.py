@@ -99,7 +99,7 @@ class Processing:
                 downloaded_vods: list[ArchivedVod] = [ArchivedVod.import_from_db(v) for v in _db.execute_query(
                     'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods '
                     'WHERE user_id IS ?', {'user_id': channel.id})]
-            self.log.debug('Downloaded VODs: %s', [v.v_id for v in downloaded_vods])
+            self.log.debug('Downloaded VODs: %s', len(downloaded_vods))
 
             # generate vod queue using downloaded and available vods
             download_queue: list[ArchivedVod] = []
