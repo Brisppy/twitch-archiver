@@ -190,16 +190,25 @@ class Processing:
             self._start_download(_downloader)
 
         if _chat_download_queue:
-            self.log.debug('Beginning bulk chat archival with %s threads.', self.threads)
-            # create threadpool for chat downloads
             _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
-            futures = []
-            for _downloader in _chat_download_queue:
-                futures.append(_worker_pool.submit(self._start_download, _downloader))
+            try:
+                self.log.debug('Beginning bulk chat archival with %s threads.', self.threads)
+                # create threadpool for chat downloads
+                futures = []
+                for _downloader in _chat_download_queue:
+                    futures.append(_worker_pool.submit(self._start_download, _downloader))
 
-            for future in futures:
-                if future.result():
-                    continue
+                for future in futures:
+                    if future.exception():
+                        self.log.debug('Exception occurred in chat download pool: %s', future.exception())
+
+            except KeyboardInterrupt:
+                self.log.debug('Chat downloader caught interrupt, shutting down workers...')
+                _worker_pool.shutdown(wait=False, cancel_futures=True)
+                sys.exit(0)
+
+            finally:
+                _worker_pool.shutdown(wait=False, cancel_futures=True)
 
     def _start_download(self, _downloader):
         try:
