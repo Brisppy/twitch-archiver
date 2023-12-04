@@ -110,7 +110,7 @@ class Channel:
         """
         Refreshes all metadata for the channel.
         """
-        self._fetch_metadata()
+        self._parse_dict(self._fetch_metadata())
 
     def get_stream_info(self):
         """Retrieves information relating to a channel if it is currently live.
