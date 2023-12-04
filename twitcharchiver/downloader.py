@@ -79,8 +79,7 @@ class DownloadHandler:
 
     def __enter__(self):
         """
-        Enable 'with' statement functions. Checks if the VOD has already been completed in the requested formats,
-        then creates a lock file (if one doesn't already exist).
+        Enable 'with' statement functions. Creates a lock file (if one doesn't already exist) for the VOD.
 
         :return: self
         """
