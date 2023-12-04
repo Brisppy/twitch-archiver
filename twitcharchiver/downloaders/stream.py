@@ -433,7 +433,9 @@ class Stream(Downloader):
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
             if _part.title != 'live':
-                self._log.debug('Ignoring advertisement part %s.', _part)
+                self._log.debug(
+                    'Ignoring advertisement part %s.', {'url': '(hash)' + str(hash(_part.url)),
+                                                        'timestamp': _part.timestamp, 'duration': _part.duration})
                 continue
 
             # some streams have part lengths other than the default of 2.0. these cannot be aligned, and so we raise
@@ -447,7 +449,9 @@ class Stream(Downloader):
                 raise UnsupportedStreamPartDuration
 
             # add part to segment download queue
-            self._log.debug('Adding part %s to download queue.', {'url': '...' + _part.url[-41:], 'timestamp': _part.timestamp, 'duration': _part.duration})
+            self._log.debug(
+                'Adding part %s to download queue.', {'url': '(hash)' + str(hash(_part.url)),
+                                                      'timestamp': _part.timestamp, 'duration': _part.duration})
             self._download_queue.add_part(_part)
 
         # wipe part buffer

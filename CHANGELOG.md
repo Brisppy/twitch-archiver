@@ -1,4 +1,4 @@
-**(2023-11-XX) Version 4.0.0**
+**(2023-12-XX) Version 4.0.0**
 
 This update has been a long time coming, pretty much all the central processing code was refactored to follow better, more modern coding standards. This was primarily to make it easier to find and fix bugs, and to develop new features.
 In addition to this, some new features have also been implemented.
