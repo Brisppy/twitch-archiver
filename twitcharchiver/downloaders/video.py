@@ -118,10 +118,6 @@ class Video(Downloader):
             # begin download
             self._download_loop()
 
-            # put self into mp queue if provided
-            if _q:
-                _q.put(self, block=False)
-
             # set archival flag if ArchivedVod provided
             if isinstance(self.vod, ArchivedVod):
                 self.vod.video_archived = True
@@ -135,6 +131,11 @@ class Video(Downloader):
 
         except Exception as exc:
             raise VodDownloadError(exc) from exc
+
+        finally:
+            # put self into mp queue if provided
+            if _q:
+                _q.put(self, block=False)
 
     def refresh_playlist(self):
         """
