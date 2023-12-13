@@ -343,7 +343,12 @@ class Stream(Downloader):
                 self._align_segments = False
             else:
                 self.vod = Vod(broadcast_vod_id)
-                # if a paired VOD exists for the stream we can discard our temporary buffer
+
+                # if a paired VOD exists for the stream we can discard our temporary buffer and any downloaded files
+                self._incoming_part_buffer: list[StreamSegment.Part] = []
+                self._processed_parts: set[StreamSegment.Part] = set()
+                self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
+
                 if self.output_dir and Path(self.output_dir).exists():
                     shutil.rmtree(Path(self.output_dir))
 
@@ -356,14 +361,7 @@ class Stream(Downloader):
             self._completed_segments = {MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
                                         for p in list(Path(self.output_dir, 'parts').glob('*.ts'))}
 
-        # start at '-1', the first part will then be '0'
-        _latest_segment = MpegSegment(-1, 0)
-        if self._completed_segments:
-            # set start segment for download queue
-            _latest_segment = max(self._completed_segments, key=attrgetter('id'))
-
-        # pass stream created to segment list to be used for determining part and segment ids
-        self._download_queue = StreamSegmentList(self.vod.created_at, self._align_segments, _latest_segment.id)
+        self._init_download_queue()
 
         # fetch index
         try:
@@ -379,6 +377,8 @@ class Stream(Downloader):
         :param stream_length: time in seconds stream has been live
         """
         self._log.debug('Stream began less than 120s ago, delaying archival start until VOD API updated.')
+
+        self._init_download_queue()
 
         # create temporary download directory
         self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at))
@@ -396,6 +396,16 @@ class Stream(Downloader):
 
         # wait any remaining time
         sleep((TEMP_BUFFER_LEN - stream_length) % CHECK_INTERVAL)
+
+    def _init_download_queue(self):
+        # start at '-1', the first part will then be '0'
+        _latest_segment = MpegSegment(-1, 0)
+        if self._completed_segments:
+            # set start segment for download queue
+            _latest_segment = max(self._completed_segments, key=attrgetter('id'))
+
+        # pass stream created to segment list to be used for determining part and segment ids
+        self._download_queue = StreamSegmentList(self.vod.created_at, self._align_segments, _latest_segment.id)
 
     def _fetch_advertised_parts(self):
         """
