@@ -91,6 +91,9 @@ def sanitize_text(string: str):
     :param string: string of characters to sanitize
     :return: sanitized string
     """
+    if not string:
+        return ""
+
     return re.sub(r'[/\\:|<>"?*\0-\x1f]', '_', string)
 
 
