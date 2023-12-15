@@ -4,6 +4,7 @@ Classes related to Downloading methods and managing the downloading of a given V
 
 import logging
 import tempfile
+import traceback
 from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
@@ -100,6 +101,7 @@ class DownloadHandler:
 
         if isinstance(exc_val, BaseException):
             self._log.debug('Exception occurred inside DownloadHandler.')
+            traceback.print_tb(exc_tb)
             raise exc_type(exc_val).with_traceback(exc_tb)
 
         # add VOD to database if exit not due to exception
