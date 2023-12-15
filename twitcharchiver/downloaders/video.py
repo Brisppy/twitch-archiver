@@ -142,7 +142,13 @@ class Video(Downloader):
         Fetch new segments for video (if any).
         """
         self._prev_index_playlist = self._index_playlist
-        self._index_playlist = m3u8.loads(self.vod.get_index_playlist(self._index_url))
+        _raw_playlist = self.vod.get_index_playlist(self._index_url)
+        self._index_playlist = m3u8.loads(_raw_playlist)
+        # update VOD duration
+        try:
+            self.vod.duration = floor(float(re.findall(r'(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', _raw_playlist)[0]))
+        except Exception as exc:
+            self._log.error('Failed to update VOD duration. Error: %s', exc)
 
     def _download_loop(self):
         """
