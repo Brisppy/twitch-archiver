@@ -9,9 +9,9 @@ from time import sleep
 
 from twitcharchiver.api import Api
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.exceptions import TwitchAPIErrorNotFound, RequestError, ChatDownloadError
+from twitcharchiver.exceptions import TwitchAPIErrorNotFound, RequestError, ChatDownloadError, TwitchAPIErrorForbidden
 from twitcharchiver.utils import (Progress, get_time_difference, write_json_file, write_file_line_by_line,
-                                  build_output_dir_name)
+                                  build_output_dir_name, time_since_date)
 from twitcharchiver.vod import Vod, ArchivedVod
 
 CHECK_INTERVAL = 60
@@ -79,28 +79,44 @@ class Chat(Downloader):
         :return: list of dictionaries containing chat message data
         :rtype: list[dict]
         """
-        # create output dir
-        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+        try:
+            # create output dir
+            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
-        # use while loop for archiving live VODs
-        while True:
-            _start_timestamp: float = datetime.now(timezone.utc).timestamp()
-            # begin downloader from offset if previous log found
-            if self._chat_log:
-                self._download(self._chat_log[-1]['contentOffsetSeconds'])
-
-            else:
-                self._download()
-
-            if not self.vod.is_live():
-                break
-
+            self._download()
             self.export_chat_logs()
 
-            # sleep if processing time < 60s before fetching new messages
-            _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
-            if _loop_time < CHECK_INTERVAL:
-                sleep(CHECK_INTERVAL - _loop_time)
+            # use while loop for archiving live VODs
+            while self.vod.is_live():
+                self._log.debug('VOD is still live, attempting to download new segments.')
+                _start_timestamp: float = datetime.now(timezone.utc).timestamp()
+
+                # refresh VOD metadata
+                self.vod.refresh_vod_metadata()
+
+                # begin downloader from offset of previous log
+                self._download(self._chat_log[-1]['contentOffsetSeconds'])
+                self.export_chat_logs()
+
+                # sleep if processing time < CHECK_INTERVAL before fetching new messages
+                _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
+                if _loop_time < CHECK_INTERVAL:
+                    sleep(CHECK_INTERVAL - _loop_time)
+
+            # delay final archive pass if stream just ended
+            self.vod.refresh_vod_metadata()
+            if time_since_date(self.vod.created_at + self.vod.duration) < 300:
+                self._log.debug('Stream ended less than 5m ago, delaying before final archive.')
+                sleep(300)
+
+                # refresh VOD metadata
+                self.vod.refresh_vod_metadata()
+                self._download()
+
+        except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
+            self._log.debug(
+                'Error 403 or 404 returned when checking for new chat segments - VOD was likely deleted.')
+            self.export_chat_logs()
 
         # logging
         self._log.info('Found %s chat messages.', len(self._chat_log))
@@ -130,20 +146,16 @@ class Chat(Downloader):
                 self._log.debug(f'{len(self._chat_log) - start_len} messages retrieved from Twitch.')
                 break
 
-            try:
-                self._log.debug('Fetching chat segments at cursor: %s.', _cursor)
-                # grab next chat segment along with cursor for next segment
-                _segment, _cursor = self._get_chat_segment(cursor=_cursor)
-                self._chat_log.extend([m for m in _segment if m['id'] not in self._chat_message_ids])
-                self._chat_message_ids.update([m['id'] for m in _segment])
-                # vod duration in seconds is used as the total for progress bar
-                # comment offset is used to track what's been done
-                # could be done properly if there was a way to get the total number of comments
-                if not self._quiet:
-                    _progress.print_progress(int(_segment[-1]['contentOffsetSeconds']), self.vod.duration)
-
-            except TwitchAPIErrorNotFound:
-                break
+            self._log.debug('Fetching chat segments at cursor: %s.', _cursor)
+            # grab next chat segment along with cursor for next segment
+            _segment, _cursor = self._get_chat_segment(cursor=_cursor)
+            self._chat_log.extend([m for m in _segment if m['id'] not in self._chat_message_ids])
+            self._chat_message_ids.update([m['id'] for m in _segment])
+            # vod duration in seconds is used as the total for progress bar
+            # comment offset is used to track what's been done
+            # could be done properly if there was a way to get the total number of comments
+            if not self._quiet:
+                _progress.print_progress(int(_segment[-1]['contentOffsetSeconds']), self.vod.duration)
 
     def _get_chat_segment(self, offset: int = 0, cursor: str = ""):
         """
