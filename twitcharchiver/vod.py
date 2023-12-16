@@ -183,36 +183,44 @@ class Vod:
         :return: True if VOD live
         :rtype: bool
         """
-        # wait until 1m has passed since vod created time as the stream api may not have updated yet
-        _time_since_created = time_since_date(self.created_at)
-        if _time_since_created < 60:
-            self._log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.',
-                            self.channel.name)
-            sleep(60 - _time_since_created)
-
-        # check if channel is offline
-        _stream_info = self.channel.get_stream_info()
-
-        if _stream_info['stream']:
+        # attempt to fetch stream information 5 times
+        for _ in range(5):
             try:
-                # if stream live and vod start time matches
-                _stream_created_time = datetime.strptime(
-                    _stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+                # wait until 1m has passed since vod created time as the stream api may not have updated yet
+                _time_since_created = time_since_date(self.created_at)
+                if _time_since_created < 60:
+                    self._log.debug('VOD for channel with id %s created < 60 seconds ago, delaying status retrieval.',
+                                    self.channel.name)
+                    sleep(60 - _time_since_created)
 
-                # if vod created within 10s of stream created time
-                if 10 >= self.created_at - _stream_created_time >= -10:
-                    self._log.debug('VOD creation time (%s) is within 10s of stream created time (%s).',
-                             self.created_at, _stream_created_time)
-                    return True
+                # check if channel is offline
+                _stream_info = self.channel.get_stream_info()
 
-            except IndexError:
-                pass
+                if _stream_info['stream']:
+                    try:
+                        # if stream live and vod start time matches
+                        _stream_created_time = datetime.strptime(
+                            _stream_info['stream']['createdAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
 
-            self._log.debug('VOD is not paired with the current stream by %s.', self.channel.name)
-            return False
+                        # if vod created within 10s of stream created time
+                        if 10 >= self.created_at - _stream_created_time >= -10:
+                            self._log.debug('VOD creation time (%s) is within 10s of stream created time (%s).',
+                                     self.created_at, _stream_created_time)
+                            return True
 
-        self._log.debug('%s is offline and so VOD must be offline.', self.channel.name)
-        return False
+                    except IndexError:
+                        pass
+
+                    self._log.debug('VOD is not paired with the current stream by %s.', self.channel.name)
+                    return False
+
+                self._log.debug('%s is offline and so VOD must be offline.', self.channel.name)
+                return False
+
+            except Exception as exc:
+                self._log.error('Error fetching VOD status. Error: %s', exc)
+                sleep(15)
+                continue
 
     def get_chapters(self):
         """
