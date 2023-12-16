@@ -326,6 +326,12 @@ class Stream(Downloader):
                 raise StreamOfflineError(self.channel)
             self.vod = stream_vod
 
+        # fetch index
+        try:
+            self._index_uri = self.channel.get_stream_index(self._quality)
+        except TwitchAPIErrorNotFound as exc:
+            raise StreamOfflineError(self.channel) from exc
+
         # ensure enough time has passed for VOD api to update before archiving. this is important as it changes
         # the way we archive if the stream is not being archived to a VOD.
         self._log.debug('Current stream length: %s', self.vod.duration)
@@ -362,12 +368,6 @@ class Stream(Downloader):
                                         for p in list(Path(self.output_dir, 'parts').glob('*.ts'))}
 
         self._init_download_queue()
-
-        # fetch index
-        try:
-            self._index_uri = self.channel.get_stream_index(self._quality)
-        except TwitchAPIErrorNotFound as exc:
-            raise StreamOfflineError(self.channel) from exc
 
     def _buffer_stream(self, stream_length: int):
         """
