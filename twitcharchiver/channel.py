@@ -166,7 +166,7 @@ class Channel:
 
         return self._broadcast_v_id
 
-    def get_stream_index(self, quality: str = 'chunked'):
+    def get_stream_index(self, quality: str = 'best'):
         """
         Retrieves a m3u8 index of the channel's live stream.
 
