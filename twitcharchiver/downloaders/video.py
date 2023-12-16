@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from math import floor
 from pathlib import Path
 from time import sleep
@@ -22,15 +23,12 @@ from twitcharchiver.downloader import Downloader
 from twitcharchiver.exceptions import VodPartDownloadError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
     VodDownloadError, VodConvertError, CorruptPartError, VodMergeError, VodVerificationError
 from twitcharchiver.twitch import MpegSegment
-from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get_hash, format_vod_chapters
+from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get_hash, format_vod_chapters, \
+    time_since_date
 from twitcharchiver.vod import Vod, ArchivedVod
 
 # time in seconds between checking for new VOD parts if VOD is currently live and being updated
 CHECK_INTERVAL = 60
-
-# the number of times the check interval has to pass before a VOD is considered offline.
-# the total time which must pass can be calculated as CHECK_INTERVAL * VOD_OFFLINE_TIME
-VOD_OFFLINE_LOOPS = 10
 
 class Video(Downloader):
     """
@@ -115,8 +113,33 @@ class Video(Downloader):
             self._index_url = self.vod.get_index_url(self._quality)
             self._base_url = self._extract_base_url(self._index_url)
 
-            # begin download
-            self._download_loop()
+            # download once
+            self._download()
+
+            # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
+            # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
+            while self.vod.is_live():
+                self._log.debug('VOD is still live, attempting to download new segments.')
+                _start_timestamp: float = datetime.now(timezone.utc).timestamp()
+
+                # refresh VOD metadata
+                self.vod.refresh_vod_metadata()
+                self._download()
+
+                # sleep if processing time < CHECK_INTERVAL before fetching new messages
+                _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
+                if _loop_time < CHECK_INTERVAL:
+                    sleep(CHECK_INTERVAL - _loop_time)
+
+            # delay final archive pass if stream just ended
+            self.vod.refresh_vod_metadata()
+            if time_since_date(self.vod.created_at + self.vod.duration) < 300:
+                self._log.debug('Stream ended less than 5m ago, delaying before final archive.')
+                sleep(300)
+
+                # refresh VOD metadata
+                self.vod.refresh_vod_metadata()
+                self._download()
 
             # set archival flag if ArchivedVod provided
             if isinstance(self.vod, ArchivedVod):
@@ -150,45 +173,24 @@ class Video(Downloader):
         except Exception as exc:
             self._log.error('Failed to update VOD duration. Error: %s', exc)
 
-    def _download_loop(self):
+    def _download(self):
         """
         Begin downloading segments, fetching new segments as they come out (if VOD live) until stream/VOD ends.
         """
         self.refresh_playlist()
         self.download_m3u8_playlist()
 
-        # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
-        # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
-        while self.vod.is_live():
-            for _ in range(VOD_OFFLINE_LOOPS + 1):
-                if _ >= VOD_OFFLINE_LOOPS:
-                    self._log.debug(f'{VOD_OFFLINE_LOOPS * CHECK_INTERVAL}s has passed since VOD duration changed - assuming it is no longer live.')
-                    return
+        # refresh mpegts segment playlist
+        self.refresh_playlist()
 
-                # todo : find a way to confirm the VOD is offline so we dont needs to wait 10 minutes
-                # if VOD is live check for new parts every 60s
-                self._log.debug(f'Waiting {CHECK_INTERVAL}s to see if VOD changes.')
-                sleep(CHECK_INTERVAL)
+        # fetch downloaded files in-case being run in parallel with stream archiver so we don't try and
+        # download anything already completed
+        self._completed_segments = self.get_completed_segments(self.output_dir)
 
-                try:
-                    # refresh mpegts segment playlist
-                    self.refresh_playlist()
-
-                    # fetch downloaded files in-case being run in parallel with stream archiver so we don't try and
-                    # download anything already completed
-                    self._completed_segments = self.get_completed_segments(self.output_dir)
-
-                    # if new segments found, download them
-                    if len(self._prev_index_playlist.segments) < len(self._index_playlist.segments):
-                        self._log.debug('New VOD parts found.')
-                        self.download_m3u8_playlist()
-                        # new segments downloaded - restart loop
-                        break
-
-                except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
-                    self._log.debug(
-                        'Error 403 or 404 returned when checking for new VOD parts - VOD was likely deleted.')
-                    return
+        # if new segments found, download them
+        if len(self._prev_index_playlist.segments) < len(self._index_playlist.segments):
+            self._log.debug('New VOD parts found.')
+            self.download_m3u8_playlist()
 
     @staticmethod
     def _extract_base_url(index_url: str):
