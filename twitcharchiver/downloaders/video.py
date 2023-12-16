@@ -443,7 +443,8 @@ class Merger:
 
         # export vod thumbnail
         if self.vod.thumbnail_url:
-            self._write_thumbnail()
+            if self.vod.thumbnail_url != "https://vod-secure.twitch.tv/_404/404_processing_90x60.png":
+                self._write_thumbnail()
 
         # merge and remux mpegts segments to single mp4
         self._log.info('Merging VOD parts. This may take a while.')
