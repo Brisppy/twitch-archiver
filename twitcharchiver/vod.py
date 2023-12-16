@@ -454,23 +454,16 @@ class Vod:
         self._log.debug('Token could not be retrieved for VOD %s: %s', self.v_id, _r.text)
         return ""
 
-    def get_index_playlist(self, index_url: str = ""):
+    def get_index_playlist(self, index_url: str):
         """
         Retrieves the playlist for a given VOD index along with updating the VOD duration.
 
-        :param index_url: url for playlist (fetches it if not provided)
+        :param index_url: url for playlist
         :type index_url: str
         :return: playlist of video segments
         :rtype str:
         """
-        if index_url == "":
-            index_url = self.get_index_url()
-
         _vod_playlist = self._api.get_request(index_url).text
-
-        # update vod json with m3u8 duration - more accurate than twitch API
-        _m = re.findall(r'(?<=#EXT-X-TWITCH-TOTAL-SECS:).*(?=\n)', _vod_playlist)[0]
-        self.duration = floor(float(_m))
 
         return _vod_playlist
 
