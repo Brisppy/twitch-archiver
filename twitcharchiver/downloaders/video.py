@@ -119,7 +119,7 @@ class Video(Downloader):
             # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
             # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
             while self.vod.is_live():
-                self._log.debug('VOD is still live, attempting to download new segments.')
+                self._log.debug('VOD is still live, attempting to download new video segments.')
                 _start_timestamp: float = datetime.now(timezone.utc).timestamp()
 
                 # refresh VOD metadata
