@@ -95,7 +95,10 @@ class Chat(Downloader):
                 self.vod.refresh_vod_metadata()
 
                 # begin downloader from offset of previous log
-                self._download(self._chat_log[-1]['contentOffsetSeconds'])
+                if self._chat_log:
+                    self._download(self._chat_log[-1]['contentOffsetSeconds'])
+                else:
+                    self._download()
                 self.export_chat_logs()
 
                 # sleep if processing time < CHECK_INTERVAL before fetching new messages
@@ -113,9 +116,9 @@ class Chat(Downloader):
                 self.vod.refresh_vod_metadata()
                 if self._chat_log:
                     self._download(self._chat_log[-1]['contentOffsetSeconds'])
-
                 else:
                     self._download()
+                self.export_chat_logs()
 
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.debug(
