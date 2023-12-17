@@ -88,7 +88,7 @@ class Chat(Downloader):
 
             # use while loop for archiving live VODs
             while self.vod.is_live():
-                self._log.debug('VOD is still live, attempting to download new segments.')
+                self._log.debug('VOD is still live, attempting to download new chat segments.')
                 _start_timestamp: float = datetime.now(timezone.utc).timestamp()
 
                 # refresh VOD metadata
