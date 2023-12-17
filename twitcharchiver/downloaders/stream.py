@@ -342,12 +342,12 @@ class Stream(Downloader):
             if self.vod.duration < TEMP_BUFFER_LEN:
                 self._buffer_stream(self.vod.duration)
 
-            # fetch VOD ID for output directory, disable segment alignment if there is no paired VOD ID
-            # todo: if a previous broadcast has a vod id, but the current one doesn't, what does the api return?
+            # fetch most recent channel broadcast ID
             broadcast_vod_id = self.channel.broadcast_v_id
-            if not broadcast_vod_id:
-                self._align_segments = False
-            else:
+
+            # if broadcast ID stream_id matches ours, they are paired.
+            broadcast_vod = Vod(broadcast_vod_id)
+            if broadcast_vod.s_id == self.vod.s_id:
                 self.vod = Vod(broadcast_vod_id)
 
                 # if a paired VOD exists for the stream we can discard our temporary buffer and any downloaded files
@@ -357,6 +357,10 @@ class Stream(Downloader):
 
                 if self.output_dir and Path(self.output_dir).exists():
                     shutil.rmtree(Path(self.output_dir))
+
+            # stream is not paired with broadcast VOD - must be stream-only
+            else:
+                self._align_segments = False
 
         # build and create actual output directory
         self.output_dir = (
