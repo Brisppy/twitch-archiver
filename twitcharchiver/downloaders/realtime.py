@@ -83,7 +83,7 @@ class RealTime(Downloader):
             process_logger.start()
 
             workers = [ProcessWithLogging(target=self.stream.start),
-                       ProcessWithLogging(target=self.video.start, args=_q)]
+                       ProcessWithLogging(target=self.video.start, args=[_q])]
 
             if self.archive_chat:
                 workers.append(ProcessWithLogging(target=self.chat.start))
