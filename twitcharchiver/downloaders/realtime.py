@@ -10,8 +10,9 @@ from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.exceptions import VodMergeError
+from twitcharchiver.exceptions import VodMergeError, VodDownloadError
 from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
+from twitcharchiver.utils import ProcessWithExceptionHandling
 from twitcharchiver.vod import Vod, ArchivedVod
 
 
@@ -81,18 +82,18 @@ class RealTime(Downloader):
             process_logger = ProcessLogger.create_global_logger()
             process_logger.start()
 
-            workers = [ProcessWithLogging(self.stream.start),
-                       ProcessWithLogging(self.video.start, [_q])]
+            workers = [ProcessWithLogging(target=self.stream.start),
+                       ProcessWithLogging(target=self.video.start, args=_q)]
 
             if self.archive_chat:
-                workers.append(ProcessWithLogging(self.chat.start))
+                workers.append(ProcessWithLogging(target=self.chat.start))
 
         else:
-            workers = [multiprocessing.Process(target=self.stream.start),
-                       multiprocessing.Process(target=self.video.start, args=[_q])]
+            workers = [ProcessWithExceptionHandling(target=self.stream.start),
+                       ProcessWithExceptionHandling(target=self.video.start, args=[_q])]
 
             if self.archive_chat:
-                workers.append(multiprocessing.Process(target=self.chat.start))
+                workers.append(ProcessWithExceptionHandling(target=self.chat.start))
 
         try:
             for _w in workers:
@@ -101,8 +102,14 @@ class RealTime(Downloader):
             # get returned video downloader
             self.video: Video = _q.get()
 
+            # wait until all workers are done
             for _w in workers:
                 _w.join()
+
+            # catch exception in any worker process and send it up the stack
+            for _w in workers:
+                if _w.exception:
+                    raise VodDownloadError(_w.exception)
 
             # set archival flag if ArchivedVod provided
             if isinstance(self.vod, ArchivedVod):
