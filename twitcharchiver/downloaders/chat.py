@@ -111,7 +111,11 @@ class Chat(Downloader):
 
                 # refresh VOD metadata
                 self.vod.refresh_vod_metadata()
-                self._download()
+                if self._chat_log:
+                    self._download(self._chat_log[-1]['contentOffsetSeconds'])
+
+                else:
+                    self._download()
 
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.debug(
