@@ -501,11 +501,11 @@ class Merger:
             # create file with list of parts for ffmpeg
             with open(Path(self._output_dir, 'parts', 'segments.txt'), 'w', encoding='utf8') as _segment_file:
                 for _part in self._completed_parts:
-                    _segment_file.write(f"file '{_part}'\n")
+                    _segment_file.write(f"file '{Path(self._output_dir, 'parts', _part)}'\n")
 
             with subprocess.Popen(f'ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i '
-                                  f'"{str(Path(self._output_dir, "parts", "segments.txt"))}"'
-                                  f' -c copy "{str(Path(self._output_dir, "merged.ts"))}"',
+                                  f'"{str(Path(self._output_dir, "parts", "segments.txt"))}" '
+                                  f'-c copy "{str(Path(self._output_dir, "merged.ts"))}"',
                                   shell=True, stderr=subprocess.PIPE, universal_newlines=True, encoding='cp437') as _p:
                 # get progress from ffmpeg output and print progress bar
                 if not self._quiet:
