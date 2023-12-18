@@ -119,14 +119,12 @@ class ProcessLogger(multiprocessing.Process):
     @staticmethod
     def configure():
         root = Logger.setup_logger()
-        # Windows doesn't properly share the global logging instance and so it has to be re-added when we setup
-        # multiprocess logging. Linux doesn't have this problem and so the logger configured during `__init__` is all
-        # that's needed.
-        if not root.handlers:
-            # limit to 5x 100MB log files
-            h = logging.handlers.RotatingFileHandler('debug.log', 'a', 100*1024**2, 5, encoding='utf8')
-            h.setFormatter(FILE_FORMATTER)
-            root.addHandler(h)
+        # The global logging instance isn't properly shared with `spawn` and so it has to be re-added when we setup
+        # multiprocess logging.
+        # limit to 5x 100MB log files
+        h = logging.handlers.RotatingFileHandler('debug.log', 'a', 100*1024**2, 5, encoding='utf8')
+        h.setFormatter(FILE_FORMATTER)
+        root.addHandler(h)
 
     def stop(self):
         self.queue.put_nowait(None)
