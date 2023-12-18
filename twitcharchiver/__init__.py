@@ -28,6 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import argparse
+import multiprocessing
 import os
 import sys
 import tempfile
@@ -123,6 +124,9 @@ def main():
     parser.add_argument('--version', action='version', version=f'Twitch Archiver v{__version__}',
                         help='Show version number and exit.')
     parser.add_argument('--show-config', action='store_true', help='Show saved config and exit.', default=False)
+
+    # set multiprocessing start mode
+    multiprocessing.set_start_method('spawn')
 
     # setup arguments
     args = Arguments()
