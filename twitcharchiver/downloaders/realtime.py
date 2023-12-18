@@ -69,31 +69,20 @@ class RealTime(Downloader):
         self.stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
         self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 
-        process_logger = None
-
         Path(logging_dir).mkdir(exist_ok=True, parents=True)
-        # use different logging method on Windows systems
-        if os.name == 'nt':
-            # logging directory is used and moved into as Windows doesn't properly share the global logger, so it is
-            # reconfigured using a relative path as it is much easier than passing a designated file to the
-            # processlogger instance.
-            os.chdir(logging_dir)
+        # logging directory is used and moved into as Windows doesn't properly share the global logger, so it is
+        # reconfigured using a relative path as it is much easier than passing a designated file to the
+        # processlogger instance.
+        os.chdir(logging_dir)
 
-            process_logger = ProcessLogger.create_global_logger()
-            process_logger.start()
+        process_logger = ProcessLogger.create_global_logger()
+        process_logger.start()
 
-            workers = [ProcessWithLogging(target=self.stream.start),
-                       ProcessWithLogging(target=self.video.start, args=[_q])]
+        workers = [ProcessWithLogging(target=self.stream.start),
+                   ProcessWithLogging(target=self.video.start, args=[_q])]
 
-            if self.archive_chat:
-                workers.append(ProcessWithLogging(target=self.chat.start))
-
-        else:
-            workers = [ProcessWithExceptionHandling(target=self.stream.start),
-                       ProcessWithExceptionHandling(target=self.video.start, args=[_q])]
-
-            if self.archive_chat:
-                workers.append(ProcessWithExceptionHandling(target=self.chat.start))
+        if self.archive_chat:
+            workers.append(ProcessWithLogging(target=self.chat.start))
 
         try:
             for _w in workers:
