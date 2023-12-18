@@ -118,11 +118,12 @@ class Chat(Downloader):
                     self._download(self._chat_log[-1]['contentOffsetSeconds'])
                 else:
                     self._download()
-                self.export_chat_logs()
 
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.debug(
                 'Error 403 or 404 returned when checking for new chat segments - VOD was likely deleted.')
+
+        finally:
             self.export_chat_logs()
 
         # logging
@@ -205,10 +206,8 @@ class Chat(Downloader):
             except RequestError:
                 continue
 
-        self._log.error(
-            'Maximum attempts reached while downloading chat segment at cursor or offset: %s, %s.',
-            cursor, offset)
-        raise ChatDownloadError
+        raise ChatDownloadError(
+            f'Maximum attempts reached while downloading chat segment at cursor or offset: {cursor}, {offset}')
 
     def generate_readable_chat_log(self, chat_log: list):
         """
