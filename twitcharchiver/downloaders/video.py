@@ -363,7 +363,8 @@ class Video(Downloader):
                 # re-downloaded. instead we just assume the corrupt segment is OK.
                 except FileNotFoundError:
                     self._log.debug("Segment %s could not be re-downloaded - it may no longer be available so the "
-                                    "potentially corrupt segment will be used.")
+                                    "potentially corrupt segment will be used.", segment.id)
+                    self._completed_segments.add(segment)
                     shutil.move(Path(self.output_dir, 'parts', segment_fp + '.corrupt'),
                                 Path(self.output_dir, 'parts', segment_fp))
                     segment.muted = True
