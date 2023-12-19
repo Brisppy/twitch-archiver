@@ -319,12 +319,20 @@ class Stream(Downloader):
         # downloader impossible, so we need the option to provide our own VOD to sync with.
         if not self.vod:
             self._log.debug('Fetching required stream information.')
-            stream_vod = ArchivedVod.convert_from_vod(Vod.from_stream_json(self.channel.get_stream_info()), video_archived=True)
-            stream_vod.channel = self.channel
-            if not stream_vod:
-                self._log.info('%s is offline.', self.channel.name)
-                raise StreamOfflineError(self.channel)
-            self.vod = stream_vod
+            # retry loop to avoid StreamOfflineError if stream just went live
+            for _ in range(4):
+                if _ == 3:
+                    self._log.info('%s is offline.', self.channel.name)
+                    raise StreamOfflineError(self.channel)
+
+                stream_vod = ArchivedVod.convert_from_vod(Vod.from_stream_json(self.channel.get_stream_info()), video_archived=True)
+                stream_vod.channel = self.channel
+                if not stream_vod:
+                    sleep(5)
+                    continue
+
+                self.vod = stream_vod
+                break
 
         # fetch index
         try:
