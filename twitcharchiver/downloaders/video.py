@@ -134,7 +134,7 @@ class Video(Downloader):
             # delay final archive pass if stream just ended
             self.vod.refresh_vod_metadata()
             if time_since_date(self.vod.created_at + self.vod.duration) < 300:
-                self._log.debug('Stream ended less than 5m ago, delaying before final archive.')
+                self._log.debug('Stream ended less than 5m ago, delaying before final video archive attempt.')
                 sleep(300)
 
                 # refresh VOD metadata
