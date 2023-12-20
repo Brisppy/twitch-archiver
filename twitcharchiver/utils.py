@@ -440,9 +440,8 @@ class ProcessWithExceptionHandling(multiprocessing.Process):
         try:
             self.target(*self.args, **self.kwargs)
             self._cconn.send(None)
-        except Exception:
-            tb = traceback.format_exc()
-            self._cconn.send(tb)
+        except Exception as exc:
+            self._cconn.send(exc)
 
     @property
     def exception(self):

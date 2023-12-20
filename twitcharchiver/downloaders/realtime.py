@@ -98,7 +98,7 @@ class RealTime(Downloader):
             # catch exception in any worker process and send it up the stack
             for _w in workers:
                 if _w.exception:
-                    raise VodDownloadError(_w.exception)
+                    raise VodDownloadError('Error occurred in multiprocessing worker.') from _w.exception
 
             # set archival flag if ArchivedVod provided
             if isinstance(self.vod, ArchivedVod):
