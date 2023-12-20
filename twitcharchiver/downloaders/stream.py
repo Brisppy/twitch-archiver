@@ -230,6 +230,8 @@ class Stream(Downloader):
         self._processed_parts: set[StreamSegment.Part] = set()
         self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
 
+        self._unsupported_parts = set()
+
         # channel-specific vars
         self.channel: Channel = channel
         self.output_dir: Path = None
@@ -451,7 +453,6 @@ class Stream(Downloader):
         """
         Creates queue of segments being downloaded using the incoming part buffer and already processed segments.
         """
-        _unsupported_parts = set()
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
             if _part.title != 'live':
@@ -465,9 +466,9 @@ class Stream(Downloader):
             # instead of just 1 as the final part (or two) in the stream is often shorter than 2.0.
             if self._align_segments and _part.duration != 2.0:
                 self._log.debug('Found part with unsupported duration (%s).', _part.duration)
-                _unsupported_parts.add(_part)
+                self._unsupported_parts.add(_part)
 
-            if len(_unsupported_parts) > 2:
+            if len(self._unsupported_parts) > 2:
                 raise UnsupportedStreamPartDuration
 
             # add part to segment download queue
