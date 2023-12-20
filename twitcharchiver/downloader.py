@@ -9,7 +9,7 @@ from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.database import Database, INSERT_VOD
-from twitcharchiver.exceptions import VodLockedError
+from twitcharchiver.exceptions import VodLockedError, VodDownloadError
 from twitcharchiver.vod import ArchivedVod, Vod
 
 
@@ -102,7 +102,7 @@ class DownloadHandler:
         if isinstance(exc_val, BaseException):
             self._log.debug('Exception occurred inside DownloadHandler.')
             traceback.print_tb(exc_tb)
-            raise exc_type(exc_val).with_traceback(exc_tb)
+            raise VodDownloadError(exc_type).with_traceback(exc_tb)
 
         # add VOD to database if exit not due to exception
         if self._with_database:
