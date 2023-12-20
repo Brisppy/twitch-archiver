@@ -99,14 +99,14 @@ class DownloadHandler:
         if self.remove_lock():
             self._log.debug('Failed to remove lock file.')
 
+        # don't bother adding to database if exception occurs
         if isinstance(exc_val, BaseException):
-            self._log.debug('Exception occurred inside DownloadHandler.')
-            traceback.print_tb(exc_tb)
-            raise VodDownloadError(exc_type).with_traceback(exc_tb)
+            self._log.error('Exception occurred inside DownloadHandler.')
 
-        # add VOD to database if exit not due to exception
-        if self._with_database:
-            self.insert_into_database()
+        else:
+            # add VOD to database if exit not due to exception
+            if self._with_database:
+                self.insert_into_database()
 
     def create_lock(self):
         """
