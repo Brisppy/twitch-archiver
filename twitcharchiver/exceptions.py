@@ -6,190 +6,148 @@ import logging
 import tempfile
 from pathlib import Path
 
+import requests
+
 log = logging.getLogger()
 
 
-class RequestError(Exception):
-    def __init__(self, url, error):
-        message = f'API request to {url} failed. Error: {error}'
-
-        super().__init__(message)
-
-
-class TwitchAPIError(Exception):
-    def __init__(self, response):
-        message = \
-            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
-
-        super().__init__(message)
+# Docstring for exception are used as exception message`.
+# reference:
+#   https://stackoverflow.com/a/66491013
+class TwitchArchiverError(Exception):
+    """Subclass exceptions use docstring as default message."""
+    def __init__(self, msg=None, *args, **kwargs):
+        self.__dict__.update(kwargs)
+        super().__init__(msg or (self.__doc__, *args))
 
 
-class TwitchAPIErrorForbidden(Exception):
-    def __init__(self, response):
-        self.response = response
-        message = \
-            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
 
-        super().__init__(message)
-
-
-class TwitchAPIErrorBadRequest(Exception):
-    def __init__(self, response):
-        message = \
-            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
-
-        super().__init__(message)
-
-
-class TwitchAPIErrorNotFound(Exception):
-    def __init__(self, response):
-        self.response = response
-        message = \
-            f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
-
-        super().__init__(message)
-
-
-class VodDownloadError(Exception):
-    def __init__(self, error):
-        message = f'Video download failed. Error: {error}'
-
-        super().__init__(message)
-
-
-class VodPartDownloadError(Exception):
-    def __init__(self, error):
-        message = f'Error occurred while downloading VOD part. Error: {error}'
-
-        super().__init__(message)
-
-
-class StreamFetchError(Exception):
-    def __init__(self, channel_name, error):
-        message = f'Error occurred while fetching information for stream by {channel_name}. Error: {error}'
-
-        super().__init__(message)
-
-
-class StreamDownloadError(Exception):
-    def __init__(self, channel_name, error):
-        message = f'Error occurred while downloading stream by {channel_name}. Error: {error}'
-
-        super().__init__(message)
-
-
-class StreamSegmentDownloadError(Exception):
-    def __init__(self, segment_id, channel_name, error):
-        message = f'Error occurred while downloading stream segment {segment_id} for {channel_name}. Error: {error}'
-
-        super().__init__(message)
-
-
-class VodMergeError(Exception):
-    def __init__(self, error):
-        message = f'Part merging failed. Error: {error}'
-
-        super().__init__(message)
-
-
-class VodVerificationError(Exception):
-    def __init__(self, error):
-        message = f'{error}'
-
-        super().__init__(message)
-
-
-class VodConvertError(Exception):
-    def __init__(self, error):
-        message = f'Video conversion failed. Error: {error}'
-
-        super().__init__(message)
-
-
-class CorruptPartError(Exception):
-    def __init__(self, parts):
-        """Raised when a corrupt part is detected by FFmpeg.
-
-        :param parts: list of parts
+class RequestError(TwitchArchiverError):
+    def __init__(self, url=None, exception=None):
         """
+        :param url: url which returned an error
+        :type url: str
+        :param exception: exception object
+        :type exception: Exception
+        """
+        message = ""
+        if url and exception:
+            message = f'API request to {url} failed. Error: {exception}'
+
+        super().__init__(message)
+
+
+class TwitchAPIError(TwitchArchiverError):
+    def __init__(self, response=None):
+        """
+        :param response: request object
+        :type response: requests.Response
+        """
+        message = ""
+        if response:
+            message = f'Twitch API returned status code {response.status_code}. URL: {response.url}, Response: {response.text}'
+
+        super().__init__(message)
+
+
+class TwitchAPIErrorForbidden(TwitchAPIError):
+    """Twitch API returned 403 Forbidden."""
+
+
+class TwitchAPIErrorBadRequest(TwitchAPIError):
+    """Twitch API returned 400 Bad Request."""
+
+
+class TwitchAPIErrorNotFound(TwitchAPIError):
+    """Twitch API returned 404 Not Found."""
+
+
+class StreamFetchError(TwitchArchiverError):
+    """Error occurred while fetching stream information."""
+    def __init__(self, channel=None):
+        message = ""
+        if channel:
+            message = f'Error occurred while fetching information for stream by {channel.name}.'
+
+        super().__init__(message)
+
+
+class StreamArchiveError(TwitchArchiverError):
+    """Error occurred while archiving stream video."""
+
+
+class StreamDownloadError(StreamArchiveError):
+    """Error occurred while downloading stream."""
+    def __init__(self, message=None):
+        super().__init__(message)
+
+
+class StreamSegmentDownloadError(StreamDownloadError):
+    """Error occurred while downloading stream segment."""
+    def __init__(self, segment=None, channel=None):
+        message = ""
+        if segment and channel:
+            message = f'Error occurred while downloading stream segment {segment.id} for {channel.name}.'
+
+        super().__init__(message)
+
+
+class UnsupportedStreamPartDuration(StreamDownloadError):
+    def __init__(self):
+        message = 'Multiple parts with unsupported duration found which cannot be accurately combined. ' \
+                  'Falling back to VOD archiver only.'
+
+        super().__init__(message)
+
+
+class StreamOfflineError(StreamArchiveError):
+    def __init__(self, channel):
+        message = f'Requested stream ({channel.name}) is not currently live.'
+
+        super().__init__(message)
+
+
+class VideoArchiveError(TwitchArchiverError):
+    """Error occurred while archiving VOD video."""
+
+
+class VideoDownloadError(VideoArchiveError):
+    """Error occurred while downloading VOD video."""
+
+
+class VideoPartDownloadError(VideoDownloadError):
+    """Error occurred while downloading VOD part."""
+
+
+class VideoMergeError(VideoArchiveError):
+    """Error occurred while merging VOD."""
+
+
+class VideoVerificationError(VideoMergeError):
+    """VOD failed verification check."""
+
+
+class VideoConvertError(VideoMergeError):
+    """Error occurred while converting VOD."""
+
+
+class CorruptPartError(VideoConvertError):
+    """Corrupt part(s) found while converting VOD. Delete VOD and re-download if issue persists."""
+    def __init__(self, parts=None):
+        """
+        :param parts: set of corrupt parts
+        :type parts: set[Part]
+        """
+        message = None
         self.parts = parts
-
-        message = f'Corrupt parts found when converting VOD file. Delete VOD and re-download if issue persists. Parts: {[p.id for p in parts]}'
-
-        super().__init__(message)
-
-
-class ChatDownloadError(Exception):
-    def __init__(self, error):
-        message = f'Chat download failed. Error: {error}'
+        if parts:
+            message = (f'Corrupt parts found when converting VOD file. Delete VOD and re-download if issue persists. '
+                       f'Parts: {[p.id for p in parts]}')
 
         super().__init__(message)
 
 
-class ChatExportError(Exception):
-    def __init__(self, error):
-        message = f'Chat export failed. Error: {error}'
-
-        super().__init__(message)
-
-
-class ChannelOfflineError(Exception):
-    def __init__(self, channel_name):
-        message = f'{channel_name} is offline.'
-
-        super().__init__(message)
-
-
-class DatabaseError(Exception):
-    def __init__(self, error, vod_id=None):
-        if vod_id:
-            message = f'VOD {vod_id} database query failed.'
-
-        else:
-            message = 'Sqlite database connection failed.'
-
-        message = f'{message} Error: {error}'
-
-        super().__init__(message)
-
-
-class DatabaseQueryError(Exception):
-    def __init__(self, error):
-        message = f'Error querying database. Error: {error}'
-
-        super().__init__(message)
-
-
-class VodAlreadyCompleted(Exception):
-    def __init__(self, vod):
-        message = f"VOD {vod.v_id} has already been completed in the requested formats according to the VOD database."
-
-        super().__init__(message)
-
-
-class VodUnlockingError(Exception):
-    def __init__(self, vod):
-        if vod.v_id:
-            message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
-                      f"downloaded correctly and remove '.lock.{vod.v_id}' file from config directory."
-        else:
-            message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
-                      f"downloaded correctly and remove '.lock.{vod.s_id}-stream' file from config directory."
-
-        super().__init__(message)
-
-
-class VodLockedError(Exception):
-    def __init__(self, vod):
-        if vod.v_id:
-            message = f"Lock file (.lock.{vod.v_id}) already present for VOD {vod.v_id} by {vod.channel.name}."
-        else:
-            message = f"Lock file (.lock.{vod.s_id}-stream) already present for stream {vod.v_id} by {vod.channel.name}."
-
-        super().__init__(message)
-
-
-class UnhandledDownloadError(Exception):
+class UnhandledDownloadError(TwitchArchiverError):
     def __init__(self, vod):
         # handle unsynced stream download (no vod id)
         if vod.v_id == 0:
@@ -205,16 +163,73 @@ class UnhandledDownloadError(Exception):
         super().__init__(message)
 
 
-class UnsupportedStreamPartDuration(Exception):
-    def __init__(self):
-        message = 'Multiple parts with unsupported duration found which cannot be accurately combined. ' \
-                  'Falling back to VOD archiver only.'
+class ChatArchiveError(TwitchArchiverError):
+    """Error occurred while archiving chat for VOD."""
+
+
+class ChatDownloadError(ChatArchiveError):
+    """Error occurred while downloading VOD chat logs."""
+
+
+class ChatExportError(ChatArchiveError):
+    """Error occurred while exporting VOD chat logs."""
+    def __init__(self, error):
+        message = f'Chat export failed. Error: {error}'
 
         super().__init__(message)
 
 
-class StreamOfflineError(Exception):
+class ChannelOfflineError(TwitchArchiverError):
     def __init__(self, channel):
-        message = f'Requested stream ({channel.name}) is not currently live.'
+        message = f'{channel.name} is offline.'
+
+        super().__init__(message)
+
+
+class DatabaseError(TwitchArchiverError):
+    def __init__(self, error, vod_id=None):
+        if vod_id:
+            message = f'VOD {vod_id} database query failed.'
+
+        else:
+            message = 'Sqlite database connection failed.'
+
+        message = f'{message} Error: {error}'
+
+        super().__init__(message)
+
+
+class DatabaseQueryError(TwitchArchiverError):
+    def __init__(self, error):
+        message = f'Error querying database. Error: {error}'
+
+        super().__init__(message)
+
+
+class VodAlreadyCompleted(TwitchArchiverError):
+    def __init__(self, vod):
+        message = f"VOD {vod.v_id} has already been completed in the requested formats according to the VOD database."
+
+        super().__init__(message)
+
+
+class VodUnlockingError(TwitchArchiverError):
+    def __init__(self, vod):
+        if vod.v_id:
+            message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
+                      f"downloaded correctly and remove '.lock.{vod.v_id}' file from config directory."
+        else:
+            message = f"Failed to remove lock file for stream {vod.v_id} by {vod.channel.name}. Check stream " \
+                      f"downloaded correctly and remove '.lock.{vod.s_id}-stream' file from config directory."
+
+        super().__init__(message)
+
+
+class VodLockedError(TwitchArchiverError):
+    def __init__(self, vod):
+        if vod.v_id:
+            message = f"Lock file (.lock.{vod.v_id}) already present for VOD {vod.v_id} by {vod.channel.name}."
+        else:
+            message = f"Lock file (.lock.{vod.s_id}-stream) already present for stream {vod.v_id} by {vod.channel.name}."
 
         super().__init__(message)

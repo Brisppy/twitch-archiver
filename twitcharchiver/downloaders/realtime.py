@@ -10,7 +10,7 @@ from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.exceptions import VodMergeError, VodDownloadError
+from twitcharchiver.exceptions import VideoMergeError, VideoDownloadError
 from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
 from twitcharchiver.utils import ProcessWithExceptionHandling
 from twitcharchiver.vod import Vod, ArchivedVod
@@ -98,7 +98,7 @@ class RealTime(Downloader):
             # catch exception in any worker process and send it up the stack
             for _w in workers:
                 if _w.exception:
-                    raise VodDownloadError('Error occurred in multiprocessing worker.') from _w.exception
+                    raise VideoDownloadError('Error occurred in multiprocessing worker.') from _w.exception
 
             # set archival flag if ArchivedVod provided
             if isinstance(self.vod, ArchivedVod):
@@ -119,7 +119,7 @@ class RealTime(Downloader):
             self.video.merge()
 
         except Exception as exc:
-            raise VodMergeError('Exception raised while merging VOD.') from exc
+            raise VideoMergeError('Exception raised while merging VOD.') from exc
 
     def cleanup_temp_files(self):
         self.chat.cleanup_temp_files()

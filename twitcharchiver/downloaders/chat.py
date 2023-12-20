@@ -204,10 +204,11 @@ class Chat(Downloader):
                 return [], None
 
             except RequestError:
+                self._log.error(f'Error downloading chat segment at cursor or offset: {cursor or offset}')
                 continue
 
         raise ChatDownloadError(
-            f'Maximum attempts reached while downloading chat segment at cursor or offset: {cursor}, {offset}')
+            f'Maximum attempts reached while downloading chat segment at cursor or offset: {cursor or offset}')
 
     def generate_readable_chat_log(self, chat_log: list):
         """

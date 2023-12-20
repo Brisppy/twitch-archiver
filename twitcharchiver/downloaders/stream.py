@@ -16,8 +16,9 @@ import requests
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.video import MpegSegment, Merger
-from twitcharchiver.exceptions import TwitchAPIErrorNotFound, UnsupportedStreamPartDuration, StreamDownloadError, \
-    StreamSegmentDownloadError, StreamFetchError, StreamOfflineError, VodMergeError, RequestError
+from twitcharchiver.exceptions import (TwitchAPIErrorNotFound, UnsupportedStreamPartDuration,
+                                      StreamSegmentDownloadError, StreamFetchError, StreamOfflineError,
+                                       VideoMergeError, RequestError)
 from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -287,7 +288,7 @@ class Stream(Downloader):
             merger.cleanup_temp_files()
 
         except Exception as exc:
-            raise VodMergeError('Exception raised while merging VOD.') from exc
+            raise VideoMergeError('Exception raised while merging VOD.') from exc
 
     def single_download_pass(self):
         """
@@ -307,10 +308,6 @@ class Stream(Downloader):
             self._log.info('%s is offline or stream ended.', self.channel.name)
             if self._download_queue:
                 self._get_final_segment()
-
-        # catch any other exception
-        except Exception as exc:
-            raise StreamDownloadError(self.channel.name, exc) from exc
 
     def _do_setup(self):
         """
@@ -532,7 +529,7 @@ class Stream(Downloader):
                 break
 
             except Exception as exc:
-                raise StreamSegmentDownloadError(segment.id, self.channel.name, exc) from exc
+                raise StreamSegmentDownloadError(segment.id, self.channel.name) from exc
 
     def _get_final_segment(self):
         """
