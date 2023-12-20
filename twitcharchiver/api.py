@@ -54,10 +54,10 @@ class Api:
         :param p: parameter(s) to pass with request
         :return: entire requests response
         :raises requestError: on requests module error
-        :raises twitchAPIErrorBadRequest: on http code 400
-        :raises twitchAPIErrorForbidden: on http code 403
-        :raises twitchAPIErrorNotFound: on http code 404
-        :raises twitchAPIError: on any http code other than 400, 403, 404 or 200
+        :raises TwitchAPIErrorBadRequest: on http code 400
+        :raises TwitchAPIErrorForbidden: on http code 403
+        :raises TwitchAPIErrorNotFound: on http code 404
+        :raises TwitchAPIError: on any http code other than 400, 403, 404 or 200
         """
         try:
             if p is None:

@@ -15,7 +15,7 @@ from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.realtime import RealTime
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.exceptions import RequestError, VodDownloadError, VodMergeError, VodLockedError, VodAlreadyCompleted
+from twitcharchiver.exceptions import VodLockedError, VodAlreadyCompleted
 from twitcharchiver.utils import send_push
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -227,14 +227,6 @@ class Processing:
         except KeyboardInterrupt:
             self.log.info('Termination signal received, halting VOD downloader.')
             sys.exit(0)
-
-        # catch halting errors
-        except (RequestError, VodDownloadError, VodMergeError) as exc:
-            self.log.error('Error archiving VOD %s.', _downloader.vod, exc_info=True)
-            if self.pushbullet_key:
-                send_push(self.pushbullet_key, f'Error downloading VOD "{_downloader.vod.v_id or _downloader.vod.s_id}"'
-                                               f' by {_downloader.vod.channel.name}.', str(exc))
-            sys.exit(1)
 
         # catch unhandled exceptions
         except BaseException as exc:
