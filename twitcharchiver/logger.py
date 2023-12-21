@@ -11,8 +11,6 @@ import sys
 import traceback
 from pathlib import Path
 
-from twitcharchiver.utils import ProcessWithExceptionHandling
-
 CONSOLE_FORMATTER = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
 FILE_FORMATTER = logging.Formatter(
     '%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s', '%Y-%m-%d %H:%M:%S')
@@ -152,9 +150,17 @@ def configure_new_process(log_process_queue):
     Logger.suppress_unnecessary()
 
 
-class ProcessWithLogging(ProcessWithExceptionHandling):
+class ProcessWithLogging(multiprocessing.Process):
     def __init__(self, target, args=None, kwargs=None, log_process=None):
-        super().__init__(target, args, kwargs)
+        super().__init__()
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+
+        self.target = target
+        self.args = args
+        self.kwargs = kwargs
 
         if log_process is None:
             log_process = ProcessLogger.get_global_logger()
@@ -162,4 +168,4 @@ class ProcessWithLogging(ProcessWithExceptionHandling):
 
     def run(self):
         configure_new_process(self.log_process_queue)
-        super().run()
+        self.target(*self.args, **self.kwargs)

@@ -10,9 +10,8 @@ from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.exceptions import VideoMergeError, VideoDownloadError
+from twitcharchiver.exceptions import VideoMergeError
 from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
-from twitcharchiver.utils import ProcessWithExceptionHandling
 from twitcharchiver.vod import Vod, ArchivedVod
 
 
@@ -95,16 +94,7 @@ class RealTime(Downloader):
             for _w in workers:
                 _w.join()
 
-            # catch exception in any worker process and send it up the stack
-            for _w in workers:
-                if _w.exception:
-                    raise VideoDownloadError('Error occurred in multiprocessing worker.') from _w.exception
-
-            # set archival flag if ArchivedVod provided
-            if isinstance(self.vod, ArchivedVod):
-                self.vod.video_archived = True
-                if self.archive_chat:
-                    self.vod.chat_archived = True
+            self._handle_errors(workers)
 
         finally:
             _q.close()
@@ -113,6 +103,43 @@ class RealTime(Downloader):
             if process_logger:
                 process_logger.stop()
                 process_logger.join()
+
+    def _handle_errors(self, workers):
+        errors = []
+
+        # discover errors based on exit codes of archivers
+        # [0] is stream worker
+        if workers[0].exitcode == 1:
+            self._log.error('Real-time stream archiver exited with error.')
+            errors.append(Stream)
+
+        # [1] is video worker
+        if workers[1].exitcode == 1:
+            self._log.error('Real-time video archiver exited with error.')
+            errors.append(Video)
+
+        # [2] is chat worker
+        if len(workers) > 2:
+            if workers[2].exitcode == 1:
+                self._log.error('Real-time chat archiver exited with error.')
+                errors.append(Chat)
+
+        # handle various error cases. stream archiver failing is recoverable as long as video archiver finishes
+        # successfully.
+        if Video in errors:
+            self._log.error('Real-time archiver failed as video archiver exited with error. '
+                            'See log for details.')
+        else:
+            if isinstance(self.vod, ArchivedVod):
+                self.vod.video_archived = True
+
+        if Chat in errors:
+            self._log.error('Real-time archiver failed as chat archiver exited with error. '
+                            'See log for details.')
+        else:
+            if self.archive_chat and isinstance(self.vod, ArchivedVod):
+                self.vod.chat_archived = True
+
 
     def merge(self):
         try:

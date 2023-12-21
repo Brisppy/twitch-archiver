@@ -417,39 +417,6 @@ def write_json_file(data, file: Path):
         log.error('Failed to write json data to "%s". Error: %s', Path(file), exc)
 
 
-# Exception handling multiprocessing module
-# Reference:
-#   https://stackoverflow.com/a/33599967
-class ProcessWithExceptionHandling(multiprocessing.Process):
-    def __init__(self, target, args=None, kwargs=None):
-        super().__init__()
-
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
-
-        self._pconn, self._cconn = multiprocessing.Pipe()
-        self._exception = None
-
-        self.target = target
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        try:
-            self.target(*self.args, **self.kwargs)
-            self._cconn.send(None)
-        except Exception as exc:
-            self._cconn.send(exc)
-
-    @property
-    def exception(self):
-        if self._pconn.poll():
-            self._exception = self._pconn.recv()
-        return self._exception
-
-
 class Progress:
     """
     Functions for displaying progress.
