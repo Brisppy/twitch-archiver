@@ -15,7 +15,7 @@ from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.realtime import RealTime
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.exceptions import VodLockedError, VodAlreadyCompleted
+from twitcharchiver.exceptions import VodLockedError, VodAlreadyCompleted, UnsupportedStreamPartDuration
 from twitcharchiver.utils import send_push
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -70,20 +70,25 @@ class Processing:
 
             channel_live = channel.is_live(force_refresh=True)
             if channel_live:
-                # fetch current stream info
-                stream: Stream = Stream(channel, Vod(), self.output_dir, self.quality, self.quiet)
+                try:
+                    # fetch current stream info
+                    stream: Stream = Stream(channel, Vod(), self.output_dir, self.quality, self.quiet)
 
-                # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
-                # otherwise we add it to the download queue
-                if stream.vod.v_id:
-                    self.log.debug('Current stream has a paired VOD.')
-                    if stream.vod.v_id not in [v.v_id for v in channel_videos]:
-                        channel_videos.insert(0, Vod(stream.vod.v_id))
+                    # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
+                    # otherwise we add it to the download queue
+                    if stream.vod.v_id:
+                        self.log.debug('Current stream has a paired VOD.')
+                        if stream.vod.v_id not in [v.v_id for v in channel_videos]:
+                            channel_videos.insert(0, Vod(stream.vod.v_id))
 
-                # no paired VOD exists, so we archive the stream before moving onto VODs
-                elif self.archive_video and not self.archive_only:
-                    self.log.debug('Current stream has no paired VOD - beginning stream downloader.')
-                    self._start_download(stream)
+                    # no paired VOD exists, so we archive the stream before moving onto VODs
+                    elif self.archive_video and not self.archive_only:
+                        self.log.debug('Current stream has no paired VOD - beginning stream downloader.')
+                        self._start_download(stream)
+
+                except UnsupportedStreamPartDuration:
+                    self.log.debug('Failed to buffer stream as parts have an unsupported duration.')
+                    continue
 
             # move on if channel offline and `live-only` set
             elif self.live_only:

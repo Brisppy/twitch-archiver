@@ -347,10 +347,7 @@ class Stream(Downloader):
         # meantime in case there is no vod and thus no way to retrieve them after the fact
         if not self.vod.v_id:
             if self.vod.duration < TEMP_BUFFER_LEN:
-                try:
-                    self._buffer_stream(self.vod.duration)
-                except UnsupportedStreamPartDuration:
-                    self._log.debug('Failed to buffer stream as parts have an unsupported duration.')
+                self._buffer_stream(self.vod.duration)
 
             # fetch most recent channel broadcast ID
             broadcast_vod_id = self.channel.broadcast_v_id
