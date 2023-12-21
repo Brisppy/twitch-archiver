@@ -142,11 +142,7 @@ class RealTime(Downloader):
 
 
     def merge(self):
-        try:
-            self.video.merge()
-
-        except Exception as exc:
-            raise VideoMergeError('Exception raised while merging VOD.') from exc
+        self.video.merge()
 
     def cleanup_temp_files(self):
         self.chat.cleanup_temp_files()
