@@ -10,7 +10,6 @@ from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
-from twitcharchiver.exceptions import VideoMergeError
 from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -140,6 +139,8 @@ class RealTime(Downloader):
             if self.archive_chat and isinstance(self.vod, ArchivedVod):
                 self.vod.chat_archived = True
 
+    def export_metadata(self):
+        self.video.export_metadata()
 
     def merge(self):
         self.video.merge()

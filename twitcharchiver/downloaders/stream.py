@@ -19,7 +19,7 @@ from twitcharchiver.downloaders.video import MpegSegment, Merger
 from twitcharchiver.exceptions import (TwitchAPIErrorNotFound, UnsupportedStreamPartDuration,
                                       StreamSegmentDownloadError, StreamFetchError, StreamOfflineError,
                                        VideoMergeError, RequestError)
-from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name
+from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name, write_json_file
 from twitcharchiver.vod import Vod, ArchivedVod
 
 TEMP_BUFFER_LEN = 120
@@ -243,6 +243,9 @@ class Stream(Downloader):
 
     def __repr__(self):
         return str({'channel': self.channel, 'index_uri': self._index_uri, 'stream': self.vod})
+
+    def export_metadata(self):
+        write_json_file(self.vod.to_dict(), Path(self.output_dir, 'vod.json'))
 
     def start(self):
         """
