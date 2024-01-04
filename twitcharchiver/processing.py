@@ -219,6 +219,7 @@ class Processing:
             with DownloadHandler(_downloader.vod) as _dh:
                 self.log.debug('Beginning download of VOD %s.', _downloader.vod.v_id)
                 _downloader.start()
+                _downloader.export_metadata()
                 _downloader.merge()
                 _downloader.cleanup_temp_files()
 

@@ -43,6 +43,12 @@ class Downloader:
         """
         return
 
+    def export_metadata(self):
+        """
+        Export metadata for the stored VOD.
+        """
+        return
+
     def cleanup_temp_files(self):
         """
         Delete all temporary files.

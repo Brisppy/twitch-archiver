@@ -24,7 +24,7 @@ from twitcharchiver.exceptions import VideoPartDownloadError, TwitchAPIErrorNotF
     VideoDownloadError, VideoConvertError, CorruptPartError, VideoMergeError, VideoVerificationError
 from twitcharchiver.twitch import MpegSegment
 from twitcharchiver.utils import Progress, safe_move, build_output_dir_name, get_hash, format_vod_chapters, \
-    time_since_date
+    time_since_date, write_json_file
 from twitcharchiver.vod import Vod, ArchivedVod
 
 # time in seconds between checking for new VOD parts if VOD is currently live and being updated
@@ -77,6 +77,9 @@ class Video(Downloader):
         self._base_url: str = ""
         self._index_playlist: m3u8 = None
         self._prev_index_playlist: m3u8 = None
+
+    def export_metadata(self):
+        write_json_file(self.vod.to_dict(), Path(self.output_dir, 'vod.json'))
 
     @staticmethod
     def get_completed_segments(directory):

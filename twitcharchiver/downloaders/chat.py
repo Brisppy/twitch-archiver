@@ -48,6 +48,9 @@ class Chat(Downloader):
         # load chat from file if a download was attempted previously
         self.load_from_file()
 
+    def export_metadata(self):
+        write_json_file(self.vod.to_dict(), Path(self.output_dir, 'vod.json'))
+
     def load_from_file(self):
         """
         Loads the chat log stored in the output directory.
