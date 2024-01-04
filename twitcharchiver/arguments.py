@@ -31,7 +31,7 @@ class Arguments:
                     print(config.read())
                     sys.exit(0)
             except FileNotFoundError:
-                sys.exit('Config not found. Run Twitch-Archiver once with your Client ID and Secret to generate one.')
+                sys.exit('Config file not found. Run Twitch-Archiver once to generate one.')
 
         # validate mutual exclusivity of arguments passed via CLI and environment variables
         # required as values set via environment variables bypass argparse mutex handling
