@@ -530,7 +530,7 @@ class Merger:
         _progress = Progress()
         _corrupt_parts: set[MpegSegment] = set()
 
-        # get dts offset of first part
+        # get dts offset of first available part
         _dts_offset = self._get_dts_offset()
 
         # create ffmpeg command
@@ -588,14 +588,29 @@ class Merger:
             raise CorruptPartError(_corrupt_parts)
 
     def _get_dts_offset(self):
-        with subprocess.Popen(f'ffprobe -v quiet -print_format json -show_format -show_streams '
-                              f'"{Path(self._output_dir, "parts", "00000.ts")}"', shell=True,
-                              stdout=subprocess.PIPE, universal_newlines=True, encoding='cp437') as _p:
-            _ts_file_data = ''
-            for _line in _p.stdout:
-                _ts_file_data += _line.rstrip()
+        """
+        Finds the DTS offset for a given stream based on the lowest available part.
+        """
 
-            return float(json.loads(_ts_file_data)['format']['start_time']) * 90000
+        # fetch parts from dir
+        _parts = self.get_completed_parts()
+
+        if _parts:
+            # fetch id of first part
+            _part_id = int(_parts[0].replace('.ts', ''))
+
+            with subprocess.Popen(f'ffprobe -v quiet -print_format json -show_format -show_streams '
+                                  f'"{Path(self._output_dir, "parts", _parts[0])}"', shell=True,
+                                  stdout=subprocess.PIPE, universal_newlines=True, encoding='cp437') as _p:
+                _ts_file_data = ''
+                for _line in _p.stdout:
+                    _ts_file_data += _line.rstrip()
+
+                # retrieve dts start_time of part, subtracting the offset of the part itself and multiplying the value
+                # by 90000 (default timescale)
+                return (float(json.loads(_ts_file_data)['format']['start_time']) - (_part_id * 10)) * 90000
+
+        raise FileNotFoundError('No parts available to fetch DTS offset of stream.')
 
     def verify_length(self):
         """Verifies the length of the downloaded VOD.
