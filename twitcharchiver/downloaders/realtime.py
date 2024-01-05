@@ -1,4 +1,3 @@
-import multiprocessing
 import os
 import tempfile
 from multiprocessing import Queue
@@ -19,12 +18,19 @@ class RealTime(Downloader):
     Class used for downloading currently live broadcasts, using parallel download functions to grab both the stream
     and VOD video and chat.
     """
+
     # class vars
     _api: Api = Api()
-    _quality: str = ''
+    _quality: str = ""
 
-    def __init__(self, vod: Vod, parent_dir: Path = os.getcwd(), archive_chat: bool = True, quality: str = 'best',
-                 threads: int = 20):
+    def __init__(
+        self,
+        vod: Vod,
+        parent_dir: Path = os.getcwd(),
+        archive_chat: bool = True,
+        quality: str = "best",
+        threads: int = 20,
+    ):
         """
         Class constructor.
 
@@ -57,14 +63,16 @@ class RealTime(Downloader):
         # variables into it
         logging_dir = Path(tempfile.gettempdir(), str(self.vod.s_id))
         conf = Configuration.get()
-        if conf['log_dir']:
-            logging_dir = Path(conf['log_dir'])
+        if conf["log_dir"]:
+            logging_dir = Path(conf["log_dir"])
 
         _q = Queue()
 
         # create downloaders
         self.chat = Chat(self.vod, self.parent_dir, True)
-        self.stream = Stream(self.vod.channel, self.vod, self.parent_dir, self.quality, True)
+        self.stream = Stream(
+            self.vod.channel, self.vod, self.parent_dir, self.quality, True
+        )
         self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 
         Path(logging_dir).mkdir(exist_ok=True, parents=True)
@@ -76,8 +84,10 @@ class RealTime(Downloader):
         process_logger = ProcessLogger.create_global_logger()
         process_logger.start()
 
-        workers = [ProcessWithLogging(target=self.stream.start),
-                   ProcessWithLogging(target=self.video.start, args=[_q])]
+        workers = [
+            ProcessWithLogging(target=self.stream.start),
+            ProcessWithLogging(target=self.video.start, args=[_q]),
+        ]
 
         if self.archive_chat:
             workers.append(ProcessWithLogging(target=self.chat.start))
@@ -109,32 +119,36 @@ class RealTime(Downloader):
         # discover errors based on exit codes of archivers
         # [0] is stream worker
         if workers[0].exitcode == 1:
-            self._log.error('Real-time stream archiver exited with error.')
+            self._log.error("Real-time stream archiver exited with error.")
             errors.append(Stream)
 
         # [1] is video worker
         if workers[1].exitcode == 1:
-            self._log.error('Real-time video archiver exited with error.')
+            self._log.error("Real-time video archiver exited with error.")
             errors.append(Video)
 
         # [2] is chat worker
         if len(workers) > 2:
             if workers[2].exitcode == 1:
-                self._log.error('Real-time chat archiver exited with error.')
+                self._log.error("Real-time chat archiver exited with error.")
                 errors.append(Chat)
 
         # handle various error cases. stream archiver failing is recoverable as long as video archiver finishes
         # successfully.
         if Video in errors:
-            self._log.error('Real-time archiver failed as video archiver exited with error. '
-                            'See log for details.')
+            self._log.error(
+                "Real-time archiver failed as video archiver exited with error. "
+                "See log for details."
+            )
         else:
             if isinstance(self.vod, ArchivedVod):
                 self.vod.video_archived = True
 
         if Chat in errors:
-            self._log.error('Real-time archiver failed as chat archiver exited with error. '
-                            'See log for details.')
+            self._log.error(
+                "Real-time archiver failed as chat archiver exited with error. "
+                "See log for details."
+            )
         else:
             if self.archive_chat and isinstance(self.vod, ArchivedVod):
                 self.vod.chat_archived = True

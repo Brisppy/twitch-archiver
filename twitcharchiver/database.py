@@ -12,6 +12,7 @@ __db_version__ = 5
 
 
 class Database:
+
     """
     Functions for interacting with the VOD database.
     """
@@ -26,42 +27,48 @@ class Database:
         self.database_path = str(database_path)
 
         try:
-            self.log.debug('Database path: %s', self.database_path)
+            self.log.debug("Database path: %s", self.database_path)
             self.connection = sqlite3.connect(self.database_path)
             self.cursor = self.connection.cursor()
-            self.log.debug('Connection to SQLite DB successful.')
+            self.log.debug("Connection to SQLite DB successful.")
 
         except Error as exc:
-            raise DatabaseError(f'Connection to SQLite DB failed: {exc}') from exc
+            raise DatabaseError(f"Connection to SQLite DB failed: {exc}") from exc
 
     def setup(self):
         """
         Creates or updates database as needed.
         """
         # check db version
-        version = self.execute_query('pragma user_version')[0][0]
+        version = self.execute_query("pragma user_version")[0][0]
 
         if version != __db_version__:
             # incremental database updating based on version number
             # create the latest db schema if none exists
             if version == 0:
-                self.log.debug('No schema found, creating database.')
+                self.log.debug("No schema found, creating database.")
                 [self.execute_query(_query) for _query in create_vods_table]
 
             # update version 2 schema to version 3
             if version == 2:
-                self.log.debug('Performing incremental DB update. Version 2 -> Version 3.')
+                self.log.debug(
+                    "Performing incremental DB update. Version 2 -> Version 3."
+                )
                 self.update_database(2)
                 version = 3
 
             # update version 3 schema to version 4
             if version == 3:
-                self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
+                self.log.debug(
+                    "Performing incremental DB update. Version 3 -> Version 4."
+                )
                 self.update_database(3)
                 version = 4
 
             if version == 4:
-                self.log.debug('Performing incremental DB update. Version 3 -> Version 4.')
+                self.log.debug(
+                    "Performing incremental DB update. Version 3 -> Version 4."
+                )
                 self.update_database(4)
 
     def update_database(self, version):
@@ -90,7 +97,6 @@ class Database:
         return self
 
     def __exit__(self, ext_type, exc_value, traceback):
-
         self.cursor.close()
         if isinstance(exc_value, Exception):
             self.connection.rollback()
@@ -107,13 +113,13 @@ class Database:
         :param values: values to pass if inserting data - 'None' sends no other data
         :return: response from sqlite database to statement
         """
-        self.log.debug('Executing SQL statement: %s', command)
+        self.log.debug("Executing SQL statement: %s", command)
 
         try:
             if not values:
                 _r = self.cursor.execute(command).fetchall()
             else:
-                self.log.debug('Values: %s', values)
+                self.log.debug("Values: %s", values)
                 _r = self.cursor.execute(command, list(values.values())).fetchall()
 
         except Exception as exc:
@@ -141,7 +147,8 @@ create_vods_table = [
         PRIMARY KEY("vod_id","stream_id")
     );""",
     f"PRAGMA user_version = {__db_version__};",
-    "PRAGMA journal_mode=WAL;"]
+    "PRAGMA journal_mode=WAL;",
+]
 
 INSERT_VOD = """
 REPLACE INTO
@@ -179,7 +186,8 @@ version_2_to_3_upgrade = [
     );""",
     "INSERT INTO vods SELECT * FROM vods_bak;",
     "DROP TABLE vods_bak;",
-    "PRAGMA user_version = 3;"]
+    "PRAGMA user_version = 3;",
+]
 
 # renamed id -> vod_id
 # changed pk from user_id + created_at -> vod_id + stream_id
@@ -219,7 +227,8 @@ version_3_to_4_upgrade = [
     "published_at, url, thumbnail_url, viewable, view_count, language, type, duration_seconds, muted_segments, "
     "store_directory, 1, 1 FROM vods_bak;",
     "DROP TABLE vods_bak;",
-    "PRAGMA user_version = 4;"]
+    "PRAGMA user_version = 4;",
+]
 
 # add field for VOD chapters
 # remove user_login, url, view_count, viewable, language, type, store_directory fields
@@ -248,4 +257,5 @@ version_4_to_5_upgrade = [
     "created_at, published_at, thumbnail_url, duration, muted_segments, video_archived, chat_archived FROM vods_bak;",
     "DROP TABLE vods_bak;",
     "PRAGMA user_version = 5;",
-    "PRAGMA journal_mode=WAL;"]
+    "PRAGMA journal_mode=WAL;",
+]

@@ -9,13 +9,13 @@ class TestChannel(unittest.TestCase):
     def setUp(self) -> None:
         tracemalloc.start()
         # pewdiepie is used as the channel is 24/7 reruns
-        self.channel_a = Channel('pewdiepie')
+        self.channel_a = Channel("pewdiepie")
 
         if not self.channel_a.is_live():
             raise StreamOfflineError(self.channel_a)
 
         # reckful is used as VODs are unlikely to change
-        self.channel_b = Channel('reckful')
+        self.channel_b = Channel("reckful")
 
     def test_is_live(self):
         self.assertTrue(self.channel_a.is_live())
@@ -42,5 +42,5 @@ class TestChannel(unittest.TestCase):
         self.assertEqual(745, len(self.channel_b.get_channel_videos()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

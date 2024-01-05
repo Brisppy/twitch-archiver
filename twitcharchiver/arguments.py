@@ -12,6 +12,7 @@ class Arguments:
     """
     Function for parsing arguments for access later.
     """
+
     __args = {}
     _log = logging.getLogger()
 
@@ -25,13 +26,17 @@ class Arguments:
         for argument in args:
             cls.set(argument, args[argument])
 
-        if cls.get('show_config'):
+        if cls.get("show_config"):
             try:
-                with open(Path(cls.get('config_dir'), 'config.ini'), 'r', encoding='utf8') as config:
+                with open(
+                    Path(cls.get("config_dir"), "config.ini"), "r", encoding="utf8"
+                ) as config:
                     print(config.read())
                     sys.exit(0)
             except FileNotFoundError:
-                sys.exit('Config file not found. Run Twitch-Archiver once to generate one.')
+                sys.exit(
+                    "Config file not found. Run Twitch-Archiver once to generate one."
+                )
 
         # validate mutual exclusivity of arguments passed via CLI and environment variables
         # required as values set via environment variables bypass argparse mutex handling
@@ -39,31 +44,33 @@ class Arguments:
             mutex_arg_0, mutex_arg_1 = cls.get(mutex_args[0]), cls.get(mutex_args[1])
             # check if both mutex args have been set
             if mutex_arg_0 and mutex_arg_1:
-                raise ValueError("Cannot accept both of the following mutually exclusive arguments: '"
-                                 f"{mutex_args[0]}={mutex_arg_0}' and '{mutex_args[1]}={mutex_arg_1}'")
+                raise ValueError(
+                    "Cannot accept both of the following mutually exclusive arguments: '"
+                    f"{mutex_args[0]}={mutex_arg_0}' and '{mutex_args[1]}={mutex_arg_1}'"
+                )
 
         # get both video and chat logs if neither selected
-        if not cls.get('chat') and not cls.get('video'):
-            cls.set('chat', True)
-            cls.set('video', True)
+        if not cls.get("chat") and not cls.get("video"):
+            cls.set("chat", True)
+            cls.set("video", True)
 
         # generate list from comma-separated VODs
         try:
-            if cls.get('vod'):
-                cls.extract_vods_and_channels('vod')
+            if cls.get("vod"):
+                cls.extract_vods_and_channels("vod")
 
             # generate list from comma-separated channels
-            elif cls.get('channel'):
-                cls.extract_vods_and_channels('channel')
+            elif cls.get("channel"):
+                cls.extract_vods_and_channels("channel")
         except TypeError:
-            print('Error parsing provided channel or VOD argument.')
+            print("Error parsing provided channel or VOD argument.")
 
         # split quality into [resolution, framerate]
-        if cls.get('quality') not in ['best', 'worst']:
-            cls.set('quality', cls.get('quality').split('p'))
+        if cls.get("quality") not in ["best", "worst"]:
+            cls.set("quality", cls.get("quality").split("p"))
 
-        if cls.get('watch'):
-            print('Launching Twitch-Archiver in watch mode.')
+        if cls.get("watch"):
+            print("Launching Twitch-Archiver in watch mode.")
 
     @classmethod
     def set(cls, name, value):
@@ -102,22 +109,22 @@ class Arguments:
         parsed_args: list = []
 
         # extract vods ids if file being passed
-        if cls.get('file'):
+        if cls.get("file"):
             collected: list = []
-            for arg in cls.get(arg_name).split(','):
+            for arg in cls.get(arg_name).split(","):
                 # convert list to Path() variables and store for further processing
                 collected.extend(Arguments.load_file_line_by_line(Path(arg)))
 
-            cls.set(arg_name, ','.join(collected))
+            cls.set(arg_name, ",".join(collected))
 
         # format urls to just vod ids or channel names
-        for arg in cls.get(arg_name).split(','):
+        for arg in cls.get(arg_name).split(","):
             # skip empty args
-            if arg == '':
+            if arg == "":
                 continue
 
             # extract VOD ID or channel name if url passed
-            if '/videos/' in arg:
+            if "/videos/" in arg:
                 match = re.findall(r"(?<=twitch\.tv/videos/)[0-9]*", arg)
             else:
                 match = re.findall(r"(?<=twitch\.tv/)[a-zA-Z]*", arg)
@@ -140,9 +147,9 @@ class Arguments:
         :rtype: list[str]
         """
         try:
-            with open(Path(file_path), 'r') as _fp:
+            with open(Path(file_path), "r") as _fp:
                 return [line.rstrip() for line in _fp]
 
         except Exception as exc:
-            cls._log.error('Failed to read from provided input file. %s', exc)
+            cls._log.error("Failed to read from provided input file. %s", exc)
             return None

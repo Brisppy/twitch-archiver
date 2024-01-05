@@ -8,13 +8,15 @@ import os
 
 
 class Configuration:
+
     """
     Generation, saving and loading of twitch-archive configuration.
     """
+
     # reference:
     #   https://stackoverflow.com/questions/6198372/most-pythonic-way-to-provide-global-configuration-variables-in-config-py/
     __conf = {
-        'pushbullet_key': '',
+        "pushbullet_key": "",
     }
 
     _log = logging.getLogger()
@@ -26,12 +28,12 @@ class Configuration:
         :param args: dict of arguments to generate config from
         :type args: dict
         """
-        self._log.debug('Generating config from provided arguments.')
+        self._log.debug("Generating config from provided arguments.")
 
         # overwrite configuration with passed args (if set) as they have precedence
         for argument in args:
             # don't copy value if it is empty and config value set
-            if args.get(argument) == '' and self.get(argument):
+            if args.get(argument) == "" and self.get(argument):
                 continue
 
             self.set(argument, args.get(argument))
@@ -44,17 +46,17 @@ class Configuration:
         """
         # create conf file if it doesn't exist
         if not os.path.isfile(conf_file):
-            self._log.debug('Config file not found - creating one now.')
+            self._log.debug("Config file not found - creating one now.")
             self.create_config_file(conf_file)
 
-        self._log.debug('Loading config from file.')
+        self._log.debug("Loading config from file.")
 
         config = configparser.ConfigParser()
         config.read(conf_file)
 
         # load individual settings from file
-        for setting in config['settings']:
-            self.set(setting, config['settings'][setting])
+        for setting in config["settings"]:
+            self.set(setting, config["settings"][setting])
 
     def create_config_file(self, conf_file):
         """
@@ -62,19 +64,19 @@ class Configuration:
 
         :param conf_file: path to configuration file
         """
-        self._log.debug('Creating directories for configuration file.')
+        self._log.debug("Creating directories for configuration file.")
         os.makedirs(conf_file.parent, exist_ok=True)
 
         config = configparser.ConfigParser()
-        config.add_section('settings')
-        self._log.debug('Current config: %s', self.get())
+        config.add_section("settings")
+        self._log.debug("Current config: %s", self.get())
 
         for setting in self.__conf:
-            config.set('settings', setting, self.get(setting))
+            config.set("settings", setting, self.get(setting))
 
-        self._log.debug('Writing config to %s', conf_file)
+        self._log.debug("Writing config to %s", conf_file)
 
-        with open(conf_file, 'w', encoding='utf8') as _f:
+        with open(conf_file, "w", encoding="utf8") as _f:
             config.write(_f)
 
     @classmethod
@@ -122,9 +124,9 @@ class Configuration:
         :return: requested value(s)
         """
         configuration = cls.__conf.copy()
-        for key in ['pushbullet_key']:
+        for key in ["pushbullet_key"]:
             if configuration[key]:
-                configuration.update({key: 24 * '*' + configuration[key][24:]})
+                configuration.update({key: 24 * "*" + configuration[key][24:]})
 
         if name is None:
             return configuration
@@ -137,7 +139,7 @@ class Configuration:
         """
         Saves the running configuration to the configuration ini.
         """
-        self._log.debug('Saving config variable(s) to ini file.')
+        self._log.debug("Saving config variable(s) to ini file.")
 
         # import saved config
         config = configparser.ConfigParser()
@@ -147,16 +149,16 @@ class Configuration:
         if name is None:
             # overwrite with running config
             for setting in Configuration.get():
-                config.set('settings', setting, str(Configuration.get(setting)))
+                config.set("settings", setting, str(Configuration.get(setting)))
 
             # save to disk
-            with open(conf_file, 'w', encoding='utf8') as _f:
+            with open(conf_file, "w", encoding="utf8") as _f:
                 config.write(_f)
 
         # overwrite one var
         else:
-            config.set('settings', name, str(Configuration.get(name)))
+            config.set("settings", name, str(Configuration.get(name)))
 
             # save to disk
-            with open(conf_file, 'w', encoding='utf8') as _f:
+            with open(conf_file, "w", encoding="utf8") as _f:
                 config.write(_f)

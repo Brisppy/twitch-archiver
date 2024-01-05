@@ -9,18 +9,33 @@ from time import sleep
 
 from twitcharchiver.api import Api
 from twitcharchiver.downloader import Downloader
-from twitcharchiver.exceptions import TwitchAPIErrorNotFound, RequestError, ChatDownloadError, TwitchAPIErrorForbidden
-from twitcharchiver.utils import (Progress, get_time_difference, write_json_file, write_file_line_by_line,
-                                  build_output_dir_name, time_since_date)
+from twitcharchiver.exceptions import (
+    TwitchAPIErrorNotFound,
+    RequestError,
+    ChatDownloadError,
+    TwitchAPIErrorForbidden,
+)
+from twitcharchiver.utils import (
+    Progress,
+    get_time_difference,
+    write_json_file,
+    write_file_line_by_line,
+    build_output_dir_name,
+    time_since_date,
+)
 from twitcharchiver.vod import Vod, ArchivedVod
 
 CHECK_INTERVAL = 60
+
 
 class Chat(Downloader):
     """
     Class which handles the downloading, updating and importing of chat logs and the subsequent fomatting and archival.
     """
-    def __init__(self, vod: Vod, parent_dir: Path = Path(os.getcwd()), quiet: bool = False):
+
+    def __init__(
+        self, vod: Vod, parent_dir: Path = Path(os.getcwd()), quiet: bool = False
+    ):
         """
         Initialize class variables.
 
@@ -33,13 +48,15 @@ class Chat(Downloader):
 
         # setup api with required header
         self._api = Api()
-        self._api.add_headers({'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'})
+        self._api.add_headers({"Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"})
 
         # vod-specific vars
         self.vod: Vod = vod
         # create output dir
-        self.output_dir = Path(self._parent_dir,
-                               build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id))
+        self.output_dir = Path(
+            self._parent_dir,
+            build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id),
+        )
 
         # store chat log and seen message ids
         self._chat_log: list = []
@@ -49,26 +66,29 @@ class Chat(Downloader):
         self.load_from_file()
 
     def export_metadata(self):
-        write_json_file(self.vod.to_dict(), Path(self.output_dir, 'vod.json'))
+        write_json_file(self.vod.to_dict(), Path(self.output_dir, "vod.json"))
 
     def load_from_file(self):
         """
         Loads the chat log stored in the output directory.
         """
         try:
-            with open(Path(self.output_dir, 'verbose_chat.json'), 'r', encoding='utf8') as chat_file:
-                self._log.debug('Loading chat log from file.')
+            with open(
+                Path(self.output_dir, "verbose_chat.json"), "r", encoding="utf8"
+            ) as chat_file:
+                self._log.debug("Loading chat log from file.")
                 chat_log = json.loads(chat_file.read())
 
             # ignore chat logs created with older incompatible schema - see v2.2.1 changes
-            if chat_log and 'contentOffsetSeconds' not in chat_log[0].keys():
-                self._log.debug('Ignoring chat log loaded from file as it is incompatible.')
+            if chat_log and "contentOffsetSeconds" not in chat_log[0].keys():
+                self._log.debug(
+                    "Ignoring chat log loaded from file as it is incompatible."
+                )
                 return
-
-            self._log.debug('Chat log found for VOD %s.', self.vod)
+            self._log.debug("Chat log found for VOD %s.", self.vod)
             self._chat_log = chat_log
             # add chat messages to id set
-            self._chat_message_ids.update(m['id'] for m in chat_log)
+            self._chat_message_ids.update(m["id"] for m in chat_log)
             return
 
         except FileNotFoundError:
@@ -91,7 +111,9 @@ class Chat(Downloader):
 
             # use while loop for archiving live VODs
             while self.vod.is_live():
-                self._log.debug('VOD is still live, attempting to download new chat segments.')
+                self._log.debug(
+                    "VOD is still live, attempting to download new chat segments."
+                )
                 _start_timestamp: float = datetime.now(timezone.utc).timestamp()
 
                 # refresh VOD metadata
@@ -99,38 +121,43 @@ class Chat(Downloader):
 
                 # begin downloader from offset of previous log
                 if self._chat_log:
-                    self._download(self._chat_log[-1]['contentOffsetSeconds'])
+                    self._download(self._chat_log[-1]["contentOffsetSeconds"])
                 else:
                     self._download()
                 self.export_chat_logs()
 
                 # sleep if processing time < CHECK_INTERVAL before fetching new messages
-                _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
+                _loop_time = int(
+                    datetime.now(timezone.utc).timestamp() - _start_timestamp
+                )
                 if _loop_time < CHECK_INTERVAL:
                     sleep(CHECK_INTERVAL - _loop_time)
 
             # delay final archive pass if stream just ended
             self.vod.refresh_vod_metadata()
             if time_since_date(self.vod.created_at + self.vod.duration) < 300:
-                self._log.debug('Stream ended less than 5m ago, delaying before final chat archive attempt.')
+                self._log.debug(
+                    "Stream ended less than 5m ago, delaying before final chat archive attempt."
+                )
                 sleep(300)
 
                 # refresh VOD metadata
                 self.vod.refresh_vod_metadata()
                 if self._chat_log:
-                    self._download(self._chat_log[-1]['contentOffsetSeconds'])
+                    self._download(self._chat_log[-1]["contentOffsetSeconds"])
                 else:
                     self._download()
 
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.debug(
-                'Error 403 or 404 returned when checking for new chat segments - VOD was likely deleted.')
+                "Error 403 or 404 returned when checking for new chat segments - VOD was likely deleted."
+            )
 
         finally:
             self.export_chat_logs()
 
         # logging
-        self._log.info('Found %s chat messages.', len(self._chat_log))
+        self._log.info("Found %s chat messages.", len(self._chat_log))
 
         # set archival flag if ArchivedVod provided
         if isinstance(self.vod, ArchivedVod):
@@ -149,24 +176,32 @@ class Chat(Downloader):
 
         # grab initial chat segment containing cursor
         _initial_segment, _cursor = self._get_chat_segment(offset=offset)
-        self._chat_log.extend([m for m in _initial_segment if m['id'] not in self._chat_message_ids])
-        self._chat_message_ids.update([m['id'] for m in _initial_segment])
+        self._chat_log.extend(
+            [m for m in _initial_segment if m["id"] not in self._chat_message_ids]
+        )
+        self._chat_message_ids.update([m["id"] for m in _initial_segment])
 
         while True:
             if not _cursor:
-                self._log.debug(f'{len(self._chat_log) - start_len} messages retrieved from Twitch.')
+                self._log.debug(
+                    f"{len(self._chat_log) - start_len} messages retrieved from Twitch."
+                )
                 break
 
-            self._log.debug('Fetching chat segments at cursor: %s.', _cursor)
+            self._log.debug("Fetching chat segments at cursor: %s.", _cursor)
             # grab next chat segment along with cursor for next segment
             _segment, _cursor = self._get_chat_segment(cursor=_cursor)
-            self._chat_log.extend([m for m in _segment if m['id'] not in self._chat_message_ids])
-            self._chat_message_ids.update([m['id'] for m in _segment])
+            self._chat_log.extend(
+                [m for m in _segment if m["id"] not in self._chat_message_ids]
+            )
+            self._chat_message_ids.update([m["id"] for m in _segment])
             # vod duration in seconds is used as the total for progress bar
             # comment offset is used to track what's been done
             # could be done properly if there was a way to get the total number of comments
             if not self._quiet:
-                _progress.print_progress(int(_segment[-1]['contentOffsetSeconds']), self.vod.duration)
+                _progress.print_progress(
+                    int(_segment[-1]["contentOffsetSeconds"]), self.vod.duration
+                )
 
     def _get_chat_segment(self, offset: int = 0, cursor: str = ""):
         """
@@ -181,37 +216,56 @@ class Chat(Downloader):
         """
         # build payload
         if offset != 0:
-            _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
-                   "variables": {"videoID": str(self.vod.v_id), "contentOffsetSeconds": offset}}]
+            _p = [
+                {
+                    "operationName": "VideoCommentsByOffsetOrCursor",
+                    "variables": {
+                        "videoID": str(self.vod.v_id),
+                        "contentOffsetSeconds": offset,
+                    },
+                }
+            ]
 
         else:
-            _p = [{"operationName": "VideoCommentsByOffsetOrCursor",
-                   "variables": {"videoID": str(self.vod.v_id), "cursor": cursor}}]
+            _p = [
+                {
+                    "operationName": "VideoCommentsByOffsetOrCursor",
+                    "variables": {"videoID": str(self.vod.v_id), "cursor": cursor},
+                }
+            ]
 
-        _p[0]['extensions'] =\
-            {'persistedQuery': {'version': 1,
-                                'sha256Hash': "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a"}}
+        _p[0]["extensions"] = {
+            "persistedQuery": {
+                "version": 1,
+                "sha256Hash": "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a",
+            }
+        }
 
         for _ in range(5):
             try:
-                _r = self._api.post_request('https://gql.twitch.tv/gql', j=_p).json()
-                _comments = _r[0]['data']['video']['comments']
+                _r = self._api.post_request("https://gql.twitch.tv/gql", j=_p).json()
+                _comments = _r[0]["data"]["video"]["comments"]
 
                 # check if next page exists
                 if _comments:
-                    if _comments['pageInfo']['hasNextPage']:
-                        return [c['node'] for c in _comments['edges']], _comments['edges'][-1]['cursor']
+                    if _comments["pageInfo"]["hasNextPage"]:
+                        return [c["node"] for c in _comments["edges"]], _comments[
+                            "edges"
+                        ][-1]["cursor"]
 
-                    return [c['node'] for c in _comments['edges']], None
+                    return [c["node"] for c in _comments["edges"]], None
 
                 return [], None
 
             except RequestError:
-                self._log.error(f'Error downloading chat segment at cursor or offset: {cursor or offset}')
+                self._log.error(
+                    f"Error downloading chat segment at cursor or offset: {cursor or offset}"
+                )
                 continue
 
         raise ChatDownloadError(
-            f'Maximum attempts reached while downloading chat segment at cursor or offset: {cursor or offset}')
+            f"Maximum attempts reached while downloading chat segment at cursor or offset: {cursor or offset}"
+        )
 
     def generate_readable_chat_log(self, chat_log: list):
         """
@@ -223,44 +277,54 @@ class Chat(Downloader):
         _r_chat_log = []
         for _comment in chat_log:
             # format comments with / without millisecond timestamp
-            if '.' in _comment['createdAt']:
-                _created_time = (datetime.strptime(_comment['createdAt'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                                 .replace(tzinfo=timezone.utc).timestamp())
+            if "." in _comment["createdAt"]:
+                _created_time = (
+                    datetime.strptime(_comment["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    .replace(tzinfo=timezone.utc)
+                    .timestamp()
+                )
             else:
-                _created_time = (datetime.strptime(_comment['createdAt'], '%Y-%m-%dT%H:%M:%SZ')
-                                 .replace(tzinfo=timezone.utc).timestamp())
+                _created_time = (
+                    datetime.strptime(_comment["createdAt"], "%Y-%m-%dT%H:%M:%SZ")
+                    .replace(tzinfo=timezone.utc)
+                    .timestamp()
+                )
 
-            _comment_time = f'{get_time_difference(self.vod.created_at, _created_time):.3f}'
+            _comment_time = (
+                f"{get_time_difference(self.vod.created_at, _created_time):.3f}"
+            )
 
             # catch comments without commenter information
-            if _comment['commenter']:
-                _user_name = str(_comment['commenter']['displayName'])
+            if _comment["commenter"]:
+                _user_name = str(_comment["commenter"]["displayName"])
             else:
-                _user_name = '~MISSING_COMMENTER_INFO~'
+                _user_name = "~MISSING_COMMENTER_INFO~"
 
             # catch comments without data
-            if _comment['message']['fragments']:
-                _user_message = str(_comment['message']['fragments'][0]['text'])
+            if _comment["message"]["fragments"]:
+                _user_message = str(_comment["message"]["fragments"][0]["text"])
             else:
-                _user_message = '~MISSING_MESSAGE_INFO~'
+                _user_message = "~MISSING_MESSAGE_INFO~"
 
-            _user_badges = ''
+            _user_badges = ""
             try:
-                for _badge in _comment['message']['userBadges']:
-                    if 'broadcaster' in _badge['setID']:
-                        _user_badges += '(B)'
+                for _badge in _comment["message"]["userBadges"]:
+                    if "broadcaster" in _badge["setID"]:
+                        _user_badges += "(B)"
 
-                    if 'moderator' in _badge['setID']:
-                        _user_badges += '(M)'
+                    if "moderator" in _badge["setID"]:
+                        _user_badges += "(M)"
 
-                    if 'subscriber' in _badge['setID']:
-                        _user_badges += '(S)'
+                    if "subscriber" in _badge["setID"]:
+                        _user_badges += "(S)"
 
             except KeyError:
                 pass
 
             # FORMAT: [TIME] (B1)(B2)NAME: MESSAGE
-            _r_chat_log.append(f'[{_comment_time}] {_user_badges}{_user_name}: {_user_message}')
+            _r_chat_log.append(
+                f"[{_comment_time}] {_user_badges}{_user_name}: {_user_message}"
+            )
 
         return _r_chat_log
 
@@ -268,9 +332,11 @@ class Chat(Downloader):
         """
         Exports a readable and a JSON-formatted chat log to the output directory.
         """
-        write_file_line_by_line(self.generate_readable_chat_log(self._chat_log),
-                                Path(self.output_dir, 'readable_chat.txt'))
-        write_json_file(self._chat_log, Path(self.output_dir, 'verbose_chat.json'))
+        write_file_line_by_line(
+            self.generate_readable_chat_log(self._chat_log),
+            Path(self.output_dir, "readable_chat.txt"),
+        )
+        write_json_file(self._chat_log, Path(self.output_dir, "verbose_chat.json"))
 
     def get_message_count(self):
         """
