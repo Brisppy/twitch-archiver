@@ -17,6 +17,7 @@ class TestVideo(TestCase):
     """
     Class containing functions for integration testing of video download and other related functions.
     """
+
     def setUp(self) -> None:
         """
         Performs setup required for testing.
@@ -39,6 +40,8 @@ class TestVideo(TestCase):
         Deletes downloaded video files.
         """
         vod = self.video_a.vod
-        vod_dir = Path(os.getcwd(), build_output_dir_name(vod.title, vod.created_at, vod.v_id))
+        vod_dir = Path(
+            os.getcwd(), build_output_dir_name(vod.title, vod.created_at, vod.v_id)
+        )
         if vod_dir.exists():
             shutil.rmtree(vod_dir)

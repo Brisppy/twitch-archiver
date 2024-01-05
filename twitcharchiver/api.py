@@ -6,14 +6,20 @@ from time import sleep
 
 import requests
 
-from twitcharchiver.exceptions import RequestError, TwitchAPIError, TwitchAPIErrorNotFound, TwitchAPIErrorForbidden, \
-    TwitchAPIErrorBadRequest
+from twitcharchiver.exceptions import (
+    RequestError,
+    TwitchAPIError,
+    TwitchAPIErrorNotFound,
+    TwitchAPIErrorForbidden,
+    TwitchAPIErrorBadRequest,
+)
 
 
 class Api:
     """
     Handles communication with the Twitch API.
     """
+
     def __init__(self):
         """
         Class constructor.
@@ -98,14 +104,20 @@ class Api:
         :return: entire requests response
         """
         if not (d or j):
-            raise ValueError('Either data (d) or json (j) must be included with request.')
+            raise ValueError(
+                "Either data (d) or json (j) must be included with request."
+            )
 
         try:
             if j is None:
-                _r = self._session.post(url, data=d, headers=h if h else self._headers, timeout=10)
+                _r = self._session.post(
+                    url, data=d, headers=h if h else self._headers, timeout=10
+                )
 
             elif d is None:
-                _r = self._session.post(url, json=j, headers=h if h else self._headers, timeout=10)
+                _r = self._session.post(
+                    url, json=j, headers=h if h else self._headers, timeout=10
+                )
 
             if _r.status_code != 200:
                 raise TwitchAPIError(_r)
@@ -126,30 +138,35 @@ class Api:
         :rtype: requests.Response
         """
         # Uses default client header
-        _h = {'Client-Id': 'ue6666qo983tsx6so1t0vnawi233wa'}
-        _q = [{
-            "extensions": {
-                "persistedQuery": {
-                    "sha256Hash": query_hash,
-                    "version": 1
-                }
-            },
-            "operationName": operation,
-            "variables": variables
-        }]
+        _h = {"Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"}
+        _q = [
+            {
+                "extensions": {
+                    "persistedQuery": {"sha256Hash": query_hash, "version": 1}
+                },
+                "operationName": operation,
+                "variables": variables,
+            }
+        ]
 
         # retry loop for 'service error' responses
         _attempt = 0
         while True:
-            _r = self.post_request('https://gql.twitch.tv/gql', j=_q, h=_h)
+            _r = self.post_request("https://gql.twitch.tv/gql", j=_q, h=_h)
 
             if _attempt >= 5:
-                self.logging.error('Maximum attempts reached while querying GQL API. Error: %s', _r.json())
+                self.logging.error(
+                    "Maximum attempts reached while querying GQL API. Error: %s",
+                    _r.json(),
+                )
                 raise TwitchAPIError(_r)
 
-            if 'errors' in _r.json()[0].keys():
+            if "errors" in _r.json()[0].keys():
                 _attempt += 1
-                self.logging.error('Error returned when querying GQL API, retrying. Error: %s', _r.json())
+                self.logging.error(
+                    "Error returned when querying GQL API, retrying. Error: %s",
+                    _r.json(),
+                )
                 sleep(_attempt * 10)
                 continue
 

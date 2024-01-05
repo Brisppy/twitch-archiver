@@ -17,6 +17,7 @@ class Downloader:
     """
     Strategy pattern for downloading methods.
     """
+
     def __init__(self, parent_dir: Path, quiet: bool):
         """
         Class Constructor.
@@ -60,6 +61,7 @@ class DownloadHandler:
     """
     Handles file locking and database insertion for VOD archiving.
     """
+
     def __init__(self, vod: ArchivedVod):
         """
         Class constructor.
@@ -73,16 +75,22 @@ class DownloadHandler:
 
         _conf: dict = Configuration.get()
         self._lock_file = None
-        self._config_dir: Path = _conf['config_dir']
-        self._with_database: bool = bool(_conf['channel'])
+        self._config_dir: Path = _conf["config_dir"]
+        self._with_database: bool = bool(_conf["channel"])
         self.vod: ArchivedVod = vod
 
         # build path to lock file based on if vod being archived or not
         if self.vod.v_id == 0:
-            self._lock_fp = Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id) + '.lock-stream')
+            self._lock_fp = Path(
+                tempfile.gettempdir(),
+                "twitch-archiver",
+                str(self.vod.s_id) + ".lock-stream",
+            )
 
         else:
-            self._lock_fp = Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id) + '.lock')
+            self._lock_fp = Path(
+                tempfile.gettempdir(), "twitch-archiver", str(self.vod.v_id) + ".lock"
+            )
 
     def __enter__(self):
         """
@@ -103,11 +111,14 @@ class DownloadHandler:
         """
         # attempt to delete lock file
         if self.remove_lock():
-            self._log.debug('Failed to remove lock file.')
+            self._log.debug("Failed to remove lock file.")
 
         # don't bother adding to database if exception occurs
         if isinstance(exc_val, BaseException):
-            self._log.error('Exception occurred inside DownloadHandler. %s', traceback.format_tb(exc_tb))
+            self._log.error(
+                "Exception occurred inside DownloadHandler. %s",
+                traceback.format_tb(exc_tb),
+            )
 
         else:
             # add VOD to database if exit not due to exception
@@ -122,11 +133,11 @@ class DownloadHandler:
         :rtype: bool
         """
         try:
-            self._lock_file = open(self._lock_fp, 'x')
+            self._lock_file = open(self._lock_fp, "x")
             return False
 
         except FileExistsError:
-            self._log.debug('Lock file exists for VOD %s.', self.vod)
+            self._log.debug("Lock file exists for VOD %s.", self.vod)
             return True
 
     def remove_lock(self):
@@ -141,7 +152,7 @@ class DownloadHandler:
             return None
 
         except Exception as exc:
-            self._log.debug('Failed to remove lock file for VOD %s. %s', self.vod, exc)
+            self._log.debug("Failed to remove lock file for VOD %s. %s", self.vod, exc)
             return exc
 
     def insert_into_database(self):
@@ -149,16 +160,23 @@ class DownloadHandler:
         Inserts (or updates) the VOD in the VOD database.
         """
         # check if VOD already in database
-        with Database(Path(self._config_dir, 'vods.db')) as _db:
-            downloaded_vod = ArchivedVod.import_from_db(_db.execute_query(
-                'SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?',
-                {'stream_id': self.vod.s_id}))
+        with Database(Path(self._config_dir, "vods.db")) as _db:
+            downloaded_vod = ArchivedVod.import_from_db(
+                _db.execute_query(
+                    "SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?",
+                    {"stream_id": self.vod.s_id},
+                )
+            )
 
             # if already present update it
             if downloaded_vod:
                 # set flags for updating
-                self.vod.chat_archived = self.vod.chat_archived or downloaded_vod.chat_archived
-                self.vod.video_archived = self.vod.video_archived or downloaded_vod.video_archived
+                self.vod.chat_archived = (
+                    self.vod.chat_archived or downloaded_vod.chat_archived
+                )
+                self.vod.video_archived = (
+                    self.vod.video_archived or downloaded_vod.video_archived
+                )
                 _db.execute_query(INSERT_VOD, self.vod.ordered_db_dict())
 
             else:

@@ -11,15 +11,20 @@ import sys
 import traceback
 from pathlib import Path
 
-CONSOLE_FORMATTER = logging.Formatter('%(asctime)s [%(levelname)8s] %(message)s', '%Y-%m-%d %H:%M:%S')
+CONSOLE_FORMATTER = logging.Formatter(
+    "%(asctime)s [%(levelname)8s] %(message)s", "%Y-%m-%d %H:%M:%S"
+)
 FILE_FORMATTER = logging.Formatter(
-    '%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s', '%Y-%m-%d %H:%M:%S')
+    "%(asctime)s [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s",
+    "%Y-%m-%d %H:%M:%S",
+)
 
 
 class Logger:
     """
     Sets up logging for the script.
     """
+
     @staticmethod
     def setup_logger(quiet: bool = False, debug: bool = False, logging_dir: str = ""):
         """Sets up logging module.
@@ -60,13 +65,19 @@ class Logger:
         :return: logging object
         """
         if Path(logging_dir).is_file():
-            raise FileExistsError('Error configuring logging, file exists in place of log directory.')
+            raise FileExistsError(
+                "Error configuring logging, file exists in place of log directory."
+            )
 
         Path(logging_dir).mkdir(parents=True, exist_ok=True)
 
         # use rotating file handler with max size of 100MB * 5
         file = logging.handlers.RotatingFileHandler(
-            Path(logging_dir, 'debug.log'), maxBytes=100000000, backupCount=5, encoding='utf8')
+            Path(logging_dir, "debug.log"),
+            maxBytes=100000000,
+            backupCount=5,
+            encoding="utf8",
+        )
         file.setLevel(logging.DEBUG)
         file.setFormatter(FILE_FORMATTER)
         logger.addHandler(file)
@@ -88,9 +99,9 @@ class Logger:
     @staticmethod
     def suppress_unnecessary():
         # supress other messages
-        logging.getLogger('requests').setLevel(logging.WARNING)
-        logging.getLogger('urllib3').setLevel(logging.WARNING)
-        logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
+        logging.getLogger("requests").setLevel(logging.WARNING)
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("charset_normalizer").setLevel(logging.WARNING)
 
 
 # logging handler used with realtime archiver
@@ -120,7 +131,9 @@ class ProcessLogger(multiprocessing.Process):
         # The global logging instance isn't properly shared with `spawn` and so it has to be re-added when we setup
         # multiprocess logging.
         # limit to 5x 100MB log files
-        h = logging.handlers.RotatingFileHandler('debug.log', 'a', 100*1024**2, 5, encoding='utf8')
+        h = logging.handlers.RotatingFileHandler(
+            "debug.log", "a", 100 * 1024**2, 5, encoding="utf8"
+        )
         h.setFormatter(FILE_FORMATTER)
         root.addHandler(h)
 
@@ -137,7 +150,7 @@ class ProcessLogger(multiprocessing.Process):
                 logger = logging.getLogger(record.name)
                 logger.handle(record)
             except Exception:
-                print('Multiprocess logger error:', file=sys.stderr)
+                print("Multiprocess logger error:", file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
 
 

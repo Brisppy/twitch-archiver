@@ -16,10 +16,21 @@ import requests
 from twitcharchiver.channel import Channel
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.downloaders.video import MpegSegment, Merger
-from twitcharchiver.exceptions import (TwitchAPIErrorNotFound, UnsupportedStreamPartDuration,
-                                      StreamSegmentDownloadError, StreamFetchError, StreamOfflineError,
-                                       VideoMergeError, RequestError)
-from twitcharchiver.utils import time_since_date, safe_move, build_output_dir_name, write_json_file
+from twitcharchiver.exceptions import (
+    TwitchAPIErrorNotFound,
+    UnsupportedStreamPartDuration,
+    StreamSegmentDownloadError,
+    StreamFetchError,
+    StreamOfflineError,
+    VideoMergeError,
+    RequestError,
+)
+from twitcharchiver.utils import (
+    time_since_date,
+    safe_move,
+    build_output_dir_name,
+    write_json_file,
+)
 from twitcharchiver.vod import Vod, ArchivedVod
 
 TEMP_BUFFER_LEN = 120
@@ -30,8 +41,11 @@ class StreamSegmentList:
     """
     Parses and stores segments of a Twitch livestream and the parts they are derived from.
     """
-    def __init__(self, stream_created_at: float, align_segments: bool = True, start_id: int = 0):
-        self.segments: dict[int: StreamSegment] = {}
+
+    def __init__(
+        self, stream_created_at: float, align_segments: bool = True, start_id: int = 0
+    ):
+        self.segments: dict[int:StreamSegment] = {}
         self.current_id = start_id + 1
         self._align_segments = align_segments
         self.stream_created_at = stream_created_at
@@ -126,6 +140,7 @@ class StreamSegment:
     In *most* circumstances, each part is 2 seconds long, and can be combined into a 10s 'Segment'. These segments can
     then be matched directly with Segments which make up a Twitch VOD.
     """
+
     def __init__(self, segment_id: int):
         """
         Defines a video segment made up of 5 StreamSegment parts.
@@ -140,17 +155,26 @@ class StreamSegment:
         """
         A Part advertised by Twitch and later combined into a segment.
         """
+
         def __init__(self, part):
             """
             Defines a part of a segment.
             """
             self.url: str = part.uri
-            self.timestamp: float = part.program_date_time.replace(tzinfo=timezone.utc).timestamp()
+            self.timestamp: float = part.program_date_time.replace(
+                tzinfo=timezone.utc
+            ).timestamp()
             self.duration: float = part.duration
             self.title = part.title
 
         def __repr__(self):
-            return str({'url': self.url, 'timestamp': self.timestamp, 'duration': self.duration})
+            return str(
+                {
+                    "url": self.url,
+                    "timestamp": self.timestamp,
+                    "duration": self.duration,
+                }
+            )
 
         def __eq__(self, other):
             if isinstance(other, StreamSegment.Part):
@@ -182,7 +206,7 @@ class StreamSegment:
         return False
 
     def __repr__(self):
-        return str({'id': self.id, 'duration': self.duration, 'parts': self.parts})
+        return str({"id": self.id, "duration": self.duration, "parts": self.parts})
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -197,9 +221,17 @@ class Stream(Downloader):
     """
     Class which handles the downloading of video files for a given Twitch stream.
     """
-    _quality: str = ''
-    def __init__(self, channel: Channel, vod: Vod = Vod(), parent_dir: Path = Path(os.getcwd()), quality: str = 'best',
-                 quiet: bool = 'False'):
+
+    _quality: str = ""
+
+    def __init__(
+        self,
+        channel: Channel,
+        vod: Vod = Vod(),
+        parent_dir: Path = Path(os.getcwd()),
+        quality: str = "best",
+        quiet: bool = "False",
+    ):
         """
         Class constructor.
 
@@ -216,7 +248,7 @@ class Stream(Downloader):
         """
         super().__init__(parent_dir, quiet)
 
-        self.__setattr__('_quality', quality)
+        self.__setattr__("_quality", quality)
 
         # create segments for combining with archived VOD parts. If true we will try to recreate the segment numbering
         # scheme Twitch uses, otherwise we use our own numbering scheme. Only used when archiving a live stream without
@@ -242,17 +274,19 @@ class Stream(Downloader):
         self._do_setup()
 
     def __repr__(self):
-        return str({'channel': self.channel, 'index_uri': self._index_uri, 'stream': self.vod})
+        return str(
+            {"channel": self.channel, "index_uri": self._index_uri, "stream": self.vod}
+        )
 
     def export_metadata(self):
-        write_json_file(self.vod.to_dict(), Path(self.output_dir, 'vod.json'))
+        write_json_file(self.vod.to_dict(), Path(self.output_dir, "vod.json"))
 
     def start(self):
         """
         Begins downloading the stream for the channel until stopped or stream ends.
         """
         # create output  dir if not already created
-        Path(self.output_dir, 'parts').mkdir(parents=True, exist_ok=True)
+        Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
 
         # loop until stream ends
         while True:
@@ -265,11 +299,16 @@ class Stream(Downloader):
                 # perform secondary check to see if stream is actually offline
                 _stream_info = self.channel.get_stream_info()
                 # check channel stream id matches ours
-                if _stream_info['stream'] and int(_stream_info['stream']['id']) == self.vod.s_id:
+                if (
+                    _stream_info["stream"]
+                    and int(_stream_info["stream"]["id"]) == self.vod.s_id
+                ):
                     pass
 
                 else:
-                    self._log.debug('Assuming stream has ended as 20 seconds passed since last segment announced.')
+                    self._log.debug(
+                        "Assuming stream has ended as 20 seconds passed since last segment announced."
+                    )
                     self._get_final_segment()
                     break
 
@@ -283,7 +322,13 @@ class Stream(Downloader):
         Attempt to merge downloaded segments.
         """
         # we pass all possible segments as muted segments so that corrupt parts are ignored.
-        merger = Merger(self.vod, self.output_dir, self._completed_segments, [MpegSegment(i, 10) for i in range(10000)], self._quiet)
+        merger = Merger(
+            self.vod,
+            self.output_dir,
+            self._completed_segments,
+            [MpegSegment(i, 10) for i in range(10000)],
+            self._quiet,
+        )
 
         # attempt to merge - no verification done as unsynced streams have no accurate duration to verify against
         try:
@@ -291,7 +336,7 @@ class Stream(Downloader):
             merger.cleanup_temp_files()
 
         except Exception as exc:
-            raise VideoMergeError('Exception raised while merging VOD.') from exc
+            raise VideoMergeError("Exception raised while merging VOD.") from exc
 
     def single_download_pass(self):
         """
@@ -308,7 +353,7 @@ class Stream(Downloader):
 
         # stream offline
         except TwitchAPIErrorNotFound:
-            self._log.info('%s is offline or stream ended.', self.channel.name)
+            self._log.info("%s is offline or stream ended.", self.channel.name)
             if self._download_queue:
                 self._get_final_segment()
 
@@ -320,14 +365,17 @@ class Stream(Downloader):
         # channel stream information can differ from video / VOD information making parallel archiving with the video
         # downloader impossible, so we need the option to provide our own VOD to sync with.
         if not self.vod:
-            self._log.debug('Fetching required stream information.')
+            self._log.debug("Fetching required stream information.")
             # retry loop to avoid StreamOfflineError if stream just went live
             for _ in range(4):
                 if _ == 3:
-                    self._log.info('%s is offline.', self.channel.name)
+                    self._log.info("%s is offline.", self.channel.name)
                     raise StreamOfflineError(self.channel)
 
-                stream_vod = ArchivedVod.convert_from_vod(Vod.from_stream_json(self.channel.get_stream_info()), video_archived=True)
+                stream_vod = ArchivedVod.convert_from_vod(
+                    Vod.from_stream_json(self.channel.get_stream_info()),
+                    video_archived=True,
+                )
                 stream_vod.channel = self.channel
                 if not stream_vod:
                     sleep(5)
@@ -344,7 +392,7 @@ class Stream(Downloader):
 
         # ensure enough time has passed for VOD api to update before archiving. this is important as it changes
         # the way we archive if the stream is not being archived to a VOD.
-        self._log.debug('Current stream length: %s', self.vod.duration)
+        self._log.debug("Current stream length: %s", self.vod.duration)
 
         # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
         # meantime in case there is no vod and thus no way to retrieve them after the fact
@@ -373,13 +421,17 @@ class Stream(Downloader):
                 self._align_segments = False
 
         # build and create actual output directory
-        self.output_dir = (
-            Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id)))
+        self.output_dir = Path(
+            self._parent_dir,
+            build_output_dir_name(self.vod.title, self.vod.created_at, self.vod.v_id),
+        )
 
         if self.output_dir.exists():
             # get existing parts to resume counting if archiving halted
-            self._completed_segments = {MpegSegment(int(Path(p).name.removesuffix('.ts')), 10)
-                                        for p in list(Path(self.output_dir, 'parts').glob('*.ts'))}
+            self._completed_segments = {
+                MpegSegment(int(Path(p).name.removesuffix(".ts")), 10)
+                for p in list(Path(self.output_dir, "parts").glob("*.ts"))
+            }
 
         self._init_download_queue()
 
@@ -390,13 +442,17 @@ class Stream(Downloader):
 
         :param stream_length: time in seconds stream has been live
         """
-        self._log.debug('Stream began less than 120s ago, delaying archival start until VOD API updated.')
+        self._log.debug(
+            "Stream began less than 120s ago, delaying archival start until VOD API updated."
+        )
 
         self._init_download_queue()
 
         # create temporary download directory
-        self.output_dir = Path(self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at))
-        Path(self.output_dir, 'parts').mkdir(parents=True, exist_ok=True)
+        self.output_dir = Path(
+            self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at)
+        )
+        Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
 
         # download new parts every CHECK_INTERVAL time
         for _ in range(int((TEMP_BUFFER_LEN - stream_length) / CHECK_INTERVAL)):
@@ -416,10 +472,12 @@ class Stream(Downloader):
         _latest_segment = MpegSegment(-1, 0)
         if self._completed_segments:
             # set start segment for download queue
-            _latest_segment = max(self._completed_segments, key=attrgetter('id'))
+            _latest_segment = max(self._completed_segments, key=attrgetter("id"))
 
         # pass stream created to segment list to be used for determining part and segment ids
-        self._download_queue = StreamSegmentList(self.vod.created_at, self._align_segments, _latest_segment.id)
+        self._download_queue = StreamSegmentList(
+            self.vod.created_at, self._align_segments, _latest_segment.id
+        )
 
     def _fetch_advertised_parts(self):
         """
@@ -429,12 +487,20 @@ class Stream(Downloader):
         for _ in range(6):
             try:
                 if _ >= 5:
-                    raise StreamFetchError(self.channel.name, 'Request timed out while fetching new segments.')
+                    raise StreamFetchError(
+                        self.channel.name,
+                        "Request timed out while fetching new segments.",
+                    )
 
                 # fetch advertised stream parts
-                announced_parts = m3u8.loads(self.channel.get_stream_playlist(self._index_uri)).segments
-                self._last_part_announce = \
-                    announced_parts[-1].program_date_time.replace(tzinfo=timezone.utc).timestamp()
+                announced_parts = m3u8.loads(
+                    self.channel.get_stream_playlist(self._index_uri)
+                ).segments
+                self._last_part_announce = (
+                    announced_parts[-1]
+                    .program_date_time.replace(tzinfo=timezone.utc)
+                    .timestamp()
+                )
 
                 for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
                     # add new parts to part buffer
@@ -446,7 +512,11 @@ class Stream(Downloader):
 
             # retry if request times out
             except RequestError as exc:
-                self._log.debug('Error attempting to fetch new stream segments. (Attempt %s). Error: %s', _ + 1, exc)
+                self._log.debug(
+                    "Error attempting to fetch new stream segments. (Attempt %s). Error: %s",
+                    _ + 1,
+                    exc,
+                )
                 continue
 
     def _build_download_queue(self):
@@ -455,17 +525,24 @@ class Stream(Downloader):
         """
         # add parts to the associated segment
         for _part in self._incoming_part_buffer:
-            if _part.title != 'live':
+            if _part.title != "live":
                 self._log.debug(
-                    'Ignoring advertisement part %s.', {'url': '(hash)' + str(hash(_part.url)),
-                                                        'timestamp': _part.timestamp, 'duration': _part.duration})
+                    "Ignoring advertisement part %s.",
+                    {
+                        "url": "(hash)" + str(hash(_part.url)),
+                        "timestamp": _part.timestamp,
+                        "duration": _part.duration,
+                    },
+                )
                 continue
 
             # some streams have part lengths other than the default of 2.0. these cannot be aligned, and so we raise
             # an error if we encounter more than one if we are attempting to align the segments. we check for >2
             # instead of just 1 as the final part (or two) in the stream is often shorter than 2.0.
             if self._align_segments and _part.duration != 2.0:
-                self._log.debug('Found part with unsupported duration (%s).', _part.duration)
+                self._log.debug(
+                    "Found part with unsupported duration (%s).", _part.duration
+                )
                 self._unsupported_parts.add(_part)
 
             if len(self._unsupported_parts) > 2:
@@ -473,8 +550,13 @@ class Stream(Downloader):
 
             # add part to segment download queue
             self._log.debug(
-                'Adding part %s to download queue.', {'url': '(hash)' + str(hash(_part.url)),
-                                                      'timestamp': _part.timestamp, 'duration': _part.duration})
+                "Adding part %s to download queue.",
+                {
+                    "url": "(hash)" + str(hash(_part.url)),
+                    "timestamp": _part.timestamp,
+                    "duration": _part.duration,
+                },
+            )
             self._download_queue.add_part(_part)
 
         # wipe part buffer
@@ -494,18 +576,26 @@ class Stream(Downloader):
         :param segment: StreamSegment to download.
         """
         # generate buffer file path
-        _temp_buffer_file = Path(tempfile.gettempdir(), 'twitch-archiver',
-                                 str(self.vod.s_id), str(f'{segment.id:05d}' + '.ts'))
+        _temp_buffer_file = Path(
+            tempfile.gettempdir(),
+            "twitch-archiver",
+            str(self.vod.s_id),
+            str(f"{segment.id:05d}" + ".ts"),
+        )
         _temp_buffer_file.parent.mkdir(parents=True, exist_ok=True)
 
         # begin retry loop for download
         for _ in range(6):
             if _ >= 5:
-                self._log.error('Maximum attempts reached while downloading segment %s.', segment.id)
+                self._log.error(
+                    "Maximum attempts reached while downloading segment %s.", segment.id
+                )
                 return
 
-            self._log.debug('Downloading segment %s to %s.', segment.id, _temp_buffer_file)
-            with open(_temp_buffer_file, 'wb') as _tmp_file:
+            self._log.debug(
+                "Downloading segment %s to %s.", segment.id, _temp_buffer_file
+            )
+            with open(_temp_buffer_file, "wb") as _tmp_file:
                 # iterate through each part of the segment, downloading them in order
                 for _part in segment.parts:
                     try:
@@ -519,13 +609,20 @@ class Stream(Downloader):
                             _tmp_file.write(chunk)
 
                     except RequestError as exc:
-                        self._log.debug('Error downloading stream segment %s: %s', segment.id, str(exc))
+                        self._log.debug(
+                            "Error downloading stream segment %s: %s",
+                            segment.id,
+                            str(exc),
+                        )
 
             # move finished ts file to destination storage
             try:
-                safe_move(Path(_temp_buffer_file), Path(self.output_dir, 'parts', str(f'{segment.id:05d}' + '.ts')))
+                safe_move(
+                    Path(_temp_buffer_file),
+                    Path(self.output_dir, "parts", str(f"{segment.id:05d}" + ".ts")),
+                )
                 self._completed_segments.add(segment)
-                self._log.debug('Stream segment: %s completed.', segment.id)
+                self._log.debug("Stream segment: %s completed.", segment.id)
                 break
 
             except Exception as exc:
@@ -537,15 +634,23 @@ class Stream(Downloader):
         """
         # ensure final segment present
         if self._download_queue.is_segment_present(self._download_queue.current_id):
-            self._log.debug('Fetching final stream segment.')
-            self._download_segment(self._download_queue.get_segment_by_id(self._download_queue.current_id))
+            self._log.debug("Fetching final stream segment.")
+            self._download_segment(
+                self._download_queue.get_segment_by_id(self._download_queue.current_id)
+            )
 
     def cleanup_temp_files(self):
         """
         Deletes all temporary files and directories.
         """
-        shutil.rmtree(Path(self.output_dir, 'parts'), ignore_errors=True)
+        shutil.rmtree(Path(self.output_dir, "parts"), ignore_errors=True)
         if self.vod.v_id:
-            shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.v_id)), ignore_errors=True)
+            shutil.rmtree(
+                Path(tempfile.gettempdir(), "twitch-archiver", str(self.vod.v_id)),
+                ignore_errors=True,
+            )
         else:
-            shutil.rmtree(Path(tempfile.gettempdir(), 'twitch-archiver', str(self.vod.s_id)), ignore_errors=True)
+            shutil.rmtree(
+                Path(tempfile.gettempdir(), "twitch-archiver", str(self.vod.s_id)),
+                ignore_errors=True,
+            )

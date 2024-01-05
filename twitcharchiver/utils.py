@@ -37,9 +37,13 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
     :rtype: str
     """
     if vod_id != 0:
-        _dir_name = ' - '.join([format_timestamp(created_at), sanitize_text(title), str(vod_id)])
+        _dir_name = " - ".join(
+            [format_timestamp(created_at), sanitize_text(title), str(vod_id)]
+        )
     else:
-        _dir_name = ' - '.join([format_timestamp(created_at), sanitize_text(title), 'STREAM_ONLY'])
+        _dir_name = " - ".join(
+            [format_timestamp(created_at), sanitize_text(title), "STREAM_ONLY"]
+        )
     return _dir_name
 
 
@@ -58,7 +62,9 @@ def export_json(vod_json: dict):
 
     :param vod_json: dict of vod parameters retrieved from twitch
     """
-    with open(Path(vod_json['store_directory'], 'vod.json'), 'w', encoding='utf8') as json_out_file:
+    with open(
+        Path(vod_json["store_directory"], "vod.json"), "w", encoding="utf8"
+    ) as json_out_file:
         json_out_file.write(json.dumps(vod_json))
 
 
@@ -67,8 +73,10 @@ def import_json(vod_json: dict):
 
     :param vod_json: dict of vod parameters retrieved from twitch
     """
-    if Path(vod_json['store_directory'], 'vod.json').exists():
-        with open(Path(vod_json['store_directory'], 'vod.json'), 'r', encoding='utf8') as json_in_file:
+    if Path(vod_json["store_directory"], "vod.json").exists():
+        with open(
+            Path(vod_json["store_directory"], "vod.json"), "r", encoding="utf8"
+        ) as json_in_file:
             return json.loads(json_in_file.read())
 
     return []
@@ -96,7 +104,7 @@ def sanitize_text(string: str):
     if not string:
         return ""
 
-    return re.sub(r'[/\\:|<>"?*\0-\x1f]', '_', string)
+    return re.sub(r'[/\\:|<>"?*\0-\x1f]', "_", string)
 
 
 def sanitize_date(date):
@@ -105,7 +113,7 @@ def sanitize_date(date):
     :param date: date retrieved from twitch to sanitize
     :return: sanitized date
     """
-    for r in (('T', '_'), (':', '-'), ('Z', '')):
+    for r in (("T", "_"), (":", "-"), ("Z", "")):
         date = date.replace(*r)
 
     return date
@@ -117,7 +125,7 @@ def convert_to_seconds(duration):
     :param duration: time in HHhMMmSSs format to be converted
     :return: time in seconds
     """
-    duration = duration.replace('h', ':').replace('m', ':').replace('s', '').split(':')
+    duration = duration.replace("h", ":").replace("m", ":").replace("s", "").split(":")
 
     if len(duration) == 1:
         return int(duration[0])
@@ -173,16 +181,19 @@ def get_latest_version():
     :return: latest release notes
     """
     try:
-        _r = requests.get('https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest', timeout=10)
+        _r = requests.get(
+            "https://api.github.com/repos/Brisppy/twitch-vod-archiver/releases/latest",
+            timeout=10,
+        )
         # catch error codes such as 403 in case of rate limiting
         if _r.status_code != 200:
-            return '0.0.0', ''
-        latest_version = _r.json()['tag_name'].replace('v', '')
-        release_notes = _r.json()['body']
+            return "0.0.0", ""
+        latest_version = _r.json()["tag_name"].replace("v", "")
+        release_notes = _r.json()["body"]
 
     # return a dummy value if request fails
     except Exception:
-        return '0.0.0', ''
+        return "0.0.0", ""
 
     return latest_version, release_notes
 
@@ -208,14 +219,17 @@ def check_update_available(local_version, remote_version):
     :return: True if remote version has a higher version number, otherwise False
     """
     # check if local version is 'special', as in a development build or release candidate
-    local_version_parts = local_version.split('.')
+    local_version_parts = local_version.split(".")
     if len(local_version_parts) > 3:
         log.warning(
-            'Currently using a development or release candidate build. These may be unfinished or contain serious '
-            'bugs. Report any issues you encounter to https://github.com/Brisppy/twitch-archiver/issues.')
+            "Currently using a development or release candidate build. These may be unfinished or contain serious "
+            "bugs. Report any issues you encounter to https://github.com/Brisppy/twitch-archiver/issues."
+        )
         # update is available if we are using a dev or release candidate build equal to or prior to
         # the latest stable release
-        if version_tuple('.'.join(local_version_parts[:-1])) <= version_tuple(remote_version):
+        if version_tuple(".".join(local_version_parts[:-1])) <= version_tuple(
+            remote_version
+        ):
             return True
 
     elif version_tuple(local_version) < version_tuple(remote_version):
@@ -224,7 +238,7 @@ def check_update_available(local_version, remote_version):
     return False
 
 
-def send_push(pushbullet_key, title, body=''):
+def send_push(pushbullet_key, title, body=""):
     """
     Sends a push to an account based on a given pushbullet key.
 
@@ -232,23 +246,34 @@ def send_push(pushbullet_key, title, body=''):
     :param title: title to send with push
     :param body: body to send with push
     """
-    h = {'content-type': 'application/json', 'Authorization': f'Bearer {pushbullet_key}'}
-    d = {'type': 'note', 'title': f'[twitch-archiver] {title}', 'body': body}
+    h = {
+        "content-type": "application/json",
+        "Authorization": f"Bearer {pushbullet_key}",
+    }
+    d = {"type": "note", "title": f"[twitch-archiver] {title}", "body": body}
 
     try:
-        _r = requests.post(url="https://api.pushbullet.com/v2/pushes", headers=h, data=json.dumps(d),
-                           timeout=10)
+        _r = requests.post(
+            url="https://api.pushbullet.com/v2/pushes",
+            headers=h,
+            data=json.dumps(d),
+            timeout=10,
+        )
 
         if _r.status_code != 200:
-            if _r.json()['error']['code'] == 'pushbullet_pro_required':
-                log.error('Error sending push. Likely rate limited (500/month). '
-                          'Error %s: %s', _r.status_code, _r.text)
+            if _r.json()["error"]["code"] == "pushbullet_pro_required":
+                log.error(
+                    "Error sending push. Likely rate limited (500/month). "
+                    "Error %s: %s",
+                    _r.status_code,
+                    _r.text,
+                )
 
             else:
-                log.error('Error sending push. Error %s: %s', _r.status_code, _r.text)
+                log.error("Error sending push. Error %s: %s", _r.status_code, _r.text)
 
     except Exception as exc:
-        log.error('Error sending push. Error: %s', exc)
+        log.error("Error sending push. Error: %s", exc)
 
 
 # reference:
@@ -261,7 +286,7 @@ def get_hash(file):
     """
     f_hash = hashlib.md5()
 
-    with open(Path(file), 'rb') as f:
+    with open(Path(file), "rb") as f:
         while True:
             # read in next chunk
             _d = f.read(65536)
@@ -289,7 +314,7 @@ def safe_move(src_file, dst_file):
         # remove source file if it matches destination file
         dst_exists = os.path.exists(dst_file)
         if dst_exists and os.path.samefile(src_file, dst_file):
-            log.debug('%s already exists and matches %s.', dst_file, src_file)
+            log.debug("%s already exists and matches %s.", dst_file, src_file)
             os.remove(src_file)
         else:
             if dst_exists:
@@ -327,7 +352,9 @@ def getenv(name, default_val=None, is_bool=False):
         if val.upper() == "FALSE":
             return False
 
-        raise ValueError(f"Invalid boolean value (true or false) received for environment variable: {name}={val}")
+        raise ValueError(
+            f"Invalid boolean value (true or false) received for environment variable: {name}={val}"
+        )
 
     # default return
     return val
@@ -341,21 +368,24 @@ def format_vod_chapters(chapters: Chapters):
     :return: chapters formatted as a string readable by ffmpeg
     """
     formatted_chapters = ";FFMETADATA1\n"
-    chapter_base = dedent("""\
+    chapter_base = dedent(
+        """\
     [CHAPTER]
     TIMEBASE=1/1000
     START={start}
     END={end}
     title={title}
     
-    """)
+    """
+    )
 
     # some chapters have no game attached and so the 'description' is used instead
     for chapter in chapters:
         formatted_chapters += chapter_base.format(
             start=chapter.segment.position * 1000,
             end=(chapter.segment.position + chapter.segment.duration) * 1000,
-            title=chapter.description)
+            title=chapter.description,
+        )
 
     return formatted_chapters
 
@@ -370,7 +400,7 @@ def write_file(data: str, file: Path):
     :type file: Path
     """
     try:
-        with open(Path(file), 'w', encoding='utf8') as _f:
+        with open(Path(file), "w", encoding="utf8") as _f:
             _f.write(data)
 
     except Exception as exc:
@@ -392,9 +422,9 @@ def write_file_line_by_line(data: list, file: Path):
             Path(file).unlink()
 
         # write each message line by line to readable log
-        with open(Path(file), 'a+', encoding="utf-8") as _f:
+        with open(Path(file), "a+", encoding="utf-8") as _f:
             for _element in data:
-                _f.write(f'{_element}\n')
+                _f.write(f"{_element}\n")
 
     except Exception as exc:
         log.error('Failed to write data to "%s". Error: %s', Path(file), exc)
@@ -410,7 +440,7 @@ def write_json_file(data, file: Path):
     :type file: Path
     """
     try:
-        with open(Path(file), 'w', encoding='utf8') as _f:
+        with open(Path(file), "w", encoding="utf8") as _f:
             _f.write(json.dumps(data))
 
     except Exception as exc:
@@ -421,6 +451,7 @@ class Progress:
     """
     Functions for displaying progress.
     """
+
     start_time = 0
 
     def __init__(self):
@@ -441,7 +472,7 @@ class Progress:
         """
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
-        return f'{h:0>2}:{m:0>2}:{s:0>2}'
+        return f"{h:0>2}:{m:0>2}:{s:0>2}"
 
     def print_progress(self, cur: int, total: int):
         """Prints and updates a nice progress bar.
@@ -451,23 +482,36 @@ class Progress:
         """
         last_frame = cur == total
         percent = floor(100 * (cur / total))
-        progress = floor((0.25 * percent)) * '#' + ceil(25 - (0.25 * percent)) * ' '
+        progress = floor((0.25 * percent)) * "#" + ceil(25 - (0.25 * percent)) * " "
         if cur == 0 or self.start_time == 0:
-            remaining_time = '?'
+            remaining_time = "?"
 
         else:
             remaining_time = self.to_hms(
-                ceil(((int(datetime.now(timezone.utc).timestamp()) - self.start_time) / cur) * (total - cur)))
+                ceil(
+                    (
+                        (int(datetime.now(timezone.utc).timestamp()) - self.start_time)
+                        / cur
+                    )
+                    * (total - cur)
+                )
+            )
 
         if len(str(percent)) < 3:
-            percent = ' ' * (3 - len(str(percent))) + str(percent)
+            percent = " " * (3 - len(str(percent))) + str(percent)
 
         if len(str(cur)) < len(str(total)):
-            cur = ' ' * (len(str(total)) - len(str(cur))) + str(cur)
+            cur = " " * (len(str(total)) - len(str(cur))) + str(cur)
 
         # end with newline rather than return
         if last_frame:
-            print(f'  100%  -  [#########################]  -  {cur} / {total}  -  ETA: 00:00:00', end='\n')
+            print(
+                f"  100%  -  [#########################]  -  {cur} / {total}  -  ETA: 00:00:00",
+                end="\n",
+            )
 
         else:
-            print(f'  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}', end='\r')
+            print(
+                f"  {percent}%  -  [{progress}]  -  {cur} / {total}  -  ETA: {remaining_time}",
+                end="\r",
+            )
