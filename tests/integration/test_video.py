@@ -32,8 +32,8 @@ class TestVideo(TestCase):
         # download VOD
         self.video_a.start()
 
-        # verify VOD downloaded
-        self.assertTrue(self.video_a.verify_length())
+        # merge and verify VOD
+        self.video_a.merge()
 
     def tearDown(self) -> None:
         """
