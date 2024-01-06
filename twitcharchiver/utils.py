@@ -174,6 +174,30 @@ def get_time_difference(start_time, end_time):
     return end_time - start_time
 
 
+def parse_twitch_timestamp(timestamp):
+    """
+    Parses the provided timestamp depending on its format.
+
+    :param timestamp: timestamp to interpret
+    :type timestamp: str
+    :return: interpreted timestamp
+    :rtype: float
+    """
+    # older twitch timestamps may include microseconds
+    if "." in timestamp:
+        return (
+            datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+            .replace(tzinfo=timezone.utc)
+            .timestamp()
+        )
+    else:
+        return (
+            datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            .replace(tzinfo=timezone.utc)
+            .timestamp()
+        )
+
+
 def get_latest_version():
     """Fetches the latest release information from GitHub.
 

@@ -13,7 +13,7 @@ from twitcharchiver.api import Api
 from twitcharchiver.channel import Channel
 from twitcharchiver.exceptions import TwitchAPIErrorForbidden
 from twitcharchiver.twitch import Category, Chapters, MpegSegment
-from twitcharchiver.utils import time_since_date
+from twitcharchiver.utils import parse_twitch_timestamp, time_since_date
 
 
 class Vod:
@@ -100,27 +100,17 @@ class Vod:
             self.v_id = int(vod_info["id"])
         self.category = Category(vod_info["game"])
         self.duration = vod_info["lengthSeconds"]
-        self.published_at = (
-            datetime.strptime(vod_info["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
-            .replace(tzinfo=timezone.utc)
-            .timestamp()
-        )
+        self.published_at = parse_twitch_timestamp(vod_info["publishedAt"])
         self.thumbnail_url = vod_info["previewThumbnailURL"]
         self.title = vod_info["title"]
         self.view_count = vod_info["viewCount"]
 
         # use published_at as created_at if not provided
         if "createdAt" in vod_info.keys():
-            self.created_at = (
-                datetime.strptime(vod_info["createdAt"], "%Y-%m-%dT%H:%M:%SZ")
-                .replace(tzinfo=timezone.utc)
-                .timestamp()
-            )
+            self.created_at = parse_twitch_timestamp(vod_info["createdAt"])
         elif "publishedAt" in vod_info.keys():
-            self.created_at = (
-                datetime.strptime(vod_info["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
-                .replace(tzinfo=timezone.utc)
-                .timestamp()
+            self.created_at = self.created_at = parse_twitch_timestamp(
+                vod_info["publishedAt"]
             )
 
         # set description if provided
@@ -227,13 +217,8 @@ class Vod:
                 if _stream_info["stream"]:
                     try:
                         # if stream live and vod start time matches
-                        _stream_created_time = (
-                            datetime.strptime(
-                                _stream_info["stream"]["createdAt"],
-                                "%Y-%m-%dT%H:%M:%SZ",
-                            )
-                            .replace(tzinfo=timezone.utc)
-                            .timestamp()
+                        _stream_created_time = parse_twitch_timestamp(
+                            _stream_info["stream"]["createdAt"]
                         )
 
                         # if vod created within 10s of stream created time
@@ -606,11 +591,7 @@ class Vod:
         _stream.s_id = int(stream_json["stream"]["id"])
 
         _stream.category = Category(stream_json["stream"]["game"])
-        _stream.created_at = (
-            datetime.strptime(stream_json["stream"]["createdAt"], "%Y-%m-%dT%H:%M:%SZ")
-            .replace(tzinfo=timezone.utc)
-            .timestamp()
-        )
+        _stream.created_at = parse_twitch_timestamp(stream_json["stream"]["createdAt"])
         _stream.duration = time_since_date(_stream.created_at)
         _stream.published_at = _stream.created_at
         _stream.title = stream_json["broadcastSettings"]["title"]
