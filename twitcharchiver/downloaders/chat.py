@@ -22,6 +22,7 @@ from twitcharchiver.utils import (
     write_file_line_by_line,
     build_output_dir_name,
     time_since_date,
+    parse_twitch_timestamp,
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -276,19 +277,7 @@ class Chat(Downloader):
         """
         _r_chat_log = []
         for _comment in chat_log:
-            # format comments with / without millisecond timestamp
-            if "." in _comment["createdAt"]:
-                _created_time = (
-                    datetime.strptime(_comment["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
-                    .replace(tzinfo=timezone.utc)
-                    .timestamp()
-                )
-            else:
-                _created_time = (
-                    datetime.strptime(_comment["createdAt"], "%Y-%m-%dT%H:%M:%SZ")
-                    .replace(tzinfo=timezone.utc)
-                    .timestamp()
-                )
+            _created_time = parse_twitch_timestamp(_comment["createdAt"])
 
             _comment_time = (
                 f"{get_time_difference(self.vod.created_at, _created_time):.3f}"
