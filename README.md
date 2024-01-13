@@ -95,7 +95,7 @@ requires one of:
     -v VOD, --vod VOD_ID / URL
             VOD ID(s) to download, separated with commas or a file path with `-f | --file` arg.
 
-*Both video and chat logs are grabbed by default.*
+Both the video and chat logs are grabbed if neither are specified.
 
 options:
   -h, --help            show this help message and exit
@@ -103,7 +103,7 @@ options:
                         A single twitch channel to download, or multiple comma-separated channels.
   -v VOD, --vod VOD, --vod-id VOD
                         A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).
-  -f, --file            Denotes that the value(s) provided to `-c | --channel` or `-v | --vod` is a
+  -f, --file            Denotes that the value provided to `-c | --channel` or `-v | --vod` is a
                         path to a file. Each line should contain a VOD ID or channel name.
   -C, --chat            Only save chat logs.
   -V, --video           Only save video.
@@ -116,7 +116,7 @@ options:
   -d DIRECTORY, --directory DIRECTORY
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
                         (default: current directory)
-  -w, --watch           Check every 10 seconds for new streams / VODs from the provided channel(s).
+  -w, --watch           Continually check every 10 seconds for new streams/VODs from a specified channel.
   -l, --live-only       Only download streams / VODs which are currently live.
   -a, --archive-only    Don't download streams / VODs which are currently live.
   -R, --real-time-archiver
@@ -126,7 +126,7 @@ options:
                         Output logs to specified directory.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
                         Directory to store configuration and VOD database.
-                        (default: $HOME/.config/twitch-archiver)
+                        (default: C:\Users\HC\.config\twitch-archiver)
   -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
                         Pushbullet key for sending pushes on error. Enabled by supplying key.
   -Q, --quiet           Disable all log output.
