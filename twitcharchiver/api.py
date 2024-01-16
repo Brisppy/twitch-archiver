@@ -52,12 +52,13 @@ class Api:
         self._headers.update(headers)
         return self._headers
 
-    def get_request(self, url: str, p: dict = None):
+    def get_request(self, url: str, p: dict = None, h: dict = None):
         """
         Wrapper for get requests for catching exceptions and status code issues.\n
 
         :param url: http/s endpoint to send request to
         :param p: parameter(s) to pass with request
+        :param h: header to pass with request (overrides class headers)
         :return: entire requests response
         :raises requestError: on requests module error
         :raises TwitchAPIErrorBadRequest: on http code 400
@@ -65,12 +66,11 @@ class Api:
         :raises TwitchAPIErrorNotFound: on http code 404
         :raises TwitchAPIError: on any http code other than 400, 403, 404 or 200
         """
-        try:
-            if p is None:
-                _r = self._session.get(url, headers=self._headers, timeout=10)
+        _headers = h or self._headers
+        _params = p
 
-            else:
-                _r = self._session.get(url, params=p, timeout=10)
+        try:
+            _r = self._session.get(url, headers=_headers, params=_params, timeout=10)
 
         except requests.exceptions.RequestException as err:
             raise RequestError(url, err) from err
