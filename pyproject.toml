@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "twitch-archiver"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
     "requests>=2.28.0",
     "m3u8>=0.3.12",

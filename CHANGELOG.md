@@ -1,3 +1,7 @@
+**(2024-01-17) Version 4.0.2**
+**Changes and Fixes:**
+ * Fix issues with channels containing non-english display names (Fix issues with channels containing non-english display names).
+
 **(2024-01-13) Version 4.0.1**
 
 This update has been a long time coming, pretty much all the central processing code was refactored to follow better, more modern coding standards. This was primarily to make it easier to find and fix bugs, and to develop new features.
