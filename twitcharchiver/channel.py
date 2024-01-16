@@ -16,7 +16,7 @@ class Channel:
     Class for storing and retrieving data for a single Twitch channel / user.
     """
 
-    def __init__(self, channel_name: str = "", owner: dict = None):
+    def __init__(self, channel_name: str = "", channel_id: int = 0, owner: dict = None):
         """
         Initialize class variables.
 
@@ -28,8 +28,9 @@ class Channel:
         self._api: Api = Api()
         self._log = logging.getLogger()
 
-        self.id: int = int()
+        self.id: int = channel_id
         self.name: str = channel_name
+        self.display_name = ""
         self.stream: dict = {}
         self._broadcast_v_id = int()
 
@@ -38,7 +39,7 @@ class Channel:
         if owner:
             self._parse_dict(owner)
 
-        elif self.name:
+        elif self.name or self.id:
             self._parse_dict(self._fetch_metadata())
 
     def __repr__(self):
@@ -62,7 +63,12 @@ class Channel:
         :return: dict of channel id, name and stream info.
         :rtype: dict
         """
-        return {"id": self.id, "name": self.name, "stream": self.stream}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "display_name": self.display_name,
+            "stream": self.stream,
+        }
 
     def _parse_dict(self, owner: dict):
         """
@@ -71,7 +77,8 @@ class Channel:
         :param owner: channel owner object retrieved from Twitch
         """
         self.id = int(owner["id"])
-        self.name = owner["displayName"]
+        self.name = owner["login"]
+        self.display_name = owner["displayName"]
         self.stream = owner["stream"]
 
     def _fetch_metadata(self):
@@ -81,10 +88,13 @@ class Channel:
         :return: retrieved user data
         :rtype dict
         """
+        if self.id and not self.name:
+            self.name = self._user_from_id(self.id)["login"]
+
         _r = self._api.gql_request(
             "ChannelShell",
             "580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe",
-            {"login": f"{self.name.lower()}"},
+            {"login": f"{self.name}"},
         )
         _user_data = _r.json()[0]["data"]["userOrError"]
         self._log.debug("User data for %s: %s", self.name, _user_data)
@@ -95,6 +105,21 @@ class Channel:
             return _user_data
 
         return {}
+
+    def _user_from_id(self, channel_id: int):
+        """
+        Fetch information for the channel with the provided ID.
+
+        :param channel_id: id of channel to fetch
+        :return: dict of channel information
+        :rtype: dict
+        """
+        _r = self._api.get_request(
+            f"https://api.twitch.tv/helix/users?id={channel_id}",
+            h={"Client-ID": "gh70y1spw727ohtgzbhc0hppvq9br2"},
+        )
+
+        return _r.json()["data"][0]
 
     def is_live(self, force_refresh=False):
         """
@@ -182,8 +207,6 @@ class Channel:
     def broadcast_v_id(self):
         """
         Fetch, store and return most recent broadcast VOD ID.
-
-
         """
         if not self._broadcast_v_id:
             self._broadcast_v_id = self._get_broadcast_v_id()

@@ -336,7 +336,7 @@ class Vod:
             },
         )
 
-        _channel = Channel(_r.json()[0]["data"]["video"]["owner"]["displayName"])
+        _channel = Channel(channel_id=_r.json()[0]["data"]["video"]["owner"]["id"])
         return _channel
 
     @property
