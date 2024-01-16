@@ -465,7 +465,7 @@ def write_json_file(data, file: Path):
     """
     try:
         with open(Path(file), "w", encoding="utf8") as _f:
-            _f.write(json.dumps(data))
+            _f.write(json.dumps(data, default=str))
 
     except Exception as exc:
         log.error('Failed to write json data to "%s". Error: %s', Path(file), exc)
