@@ -36,6 +36,15 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
     :return: name of output folder for given VOD or stream parameters
     :rtype: str
     """
+    # trim titles to 128 characters (leaves ~90 characters for the base directory)
+    if len(title) > 128:
+        title = title[:128] + "..."
+
+    # trim long stream names based on byte length (ext4 has a max filename size of 255 bytes)
+    if len(title.encode("utf-8")) > 192:
+        # encode to utf-8, truncate then decode
+        title = title.encode("utf-8")[:192].decode("utf-8", "ignore") + "..."
+
     if vod_id != 0:
         _dir_name = " - ".join(
             [format_timestamp(created_at), sanitize_text(title), str(vod_id)]
