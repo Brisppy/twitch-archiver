@@ -1,6 +1,13 @@
-**(2024-01-17) Version 4.0.2**
+**(2024-01-18) Version 4.0.3**
+
 **Changes and Fixes:**
- * Fix issues with channels containing non-english display names (Fix issues with channels containing non-english display names).
+ * Fix issues with stream titles containing multibyte characters (https://github.com/Brisppy/twitch-archiver/issues/27).
+ * Fix issue with long stream titles resulting in file paths longer than Windows can handle.
+
+**(2024-01-17) Version 4.0.2**
+
+**Changes and Fixes:**
+ * Fix issues with channels containing non-english display names (https://github.com/Brisppy/twitch-archiver/issues/26).
 
 **(2024-01-13) Version 4.0.1**
 
