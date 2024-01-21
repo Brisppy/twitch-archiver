@@ -69,25 +69,31 @@ class Api:
         _headers = h or self._headers
         _params = p
 
-        try:
-            _r = self._session.get(url, headers=_headers, params=_params, timeout=10)
+        # request retry loop
+        for _ in range(6):
+            try:
+                _r = self._session.get(
+                    url, headers=_headers, params=_params, timeout=10
+                )
 
-        except requests.exceptions.RequestException as err:
-            raise RequestError(url, err) from err
+                # unrecoverable exceptions
+                if _r.status_code == 400:
+                    raise TwitchAPIErrorBadRequest(_r)
+                if _r.status_code == 403:
+                    raise TwitchAPIErrorForbidden(_r)
+                if _r.status_code == 404:
+                    raise TwitchAPIErrorNotFound(_r)
+                if _r.status_code != 200:
+                    raise TwitchAPIError(_r)
 
-        if _r.status_code == 400:
-            raise TwitchAPIErrorBadRequest(_r)
+                return _r
 
-        if _r.status_code == 403:
-            raise TwitchAPIErrorForbidden(_r)
-
-        if _r.status_code == 404:
-            raise TwitchAPIErrorNotFound(_r)
-
-        if _r.status_code != 200:
-            raise TwitchAPIError(_r)
-
-        return _r
+            # recoverable exceptions
+            except requests.exceptions.RequestException as err:
+                if _ == 5:
+                    raise RequestError(url, err) from err
+                sleep(_ * 10)
+                continue
 
     def post_request(self, url, d=None, j=None, h=None):
         """
@@ -108,24 +114,29 @@ class Api:
                 "Either data (d) or json (j) must be included with request."
             )
 
-        try:
-            if j is None:
-                _r = self._session.post(
-                    url, data=d, headers=h if h else self._headers, timeout=10
-                )
+        # request retry loop
+        for _ in range(6):
+            try:
+                if j is None:
+                    _r = self._session.post(
+                        url, data=d, headers=h if h else self._headers, timeout=10
+                    )
+                elif d is None:
+                    _r = self._session.post(
+                        url, json=j, headers=h if h else self._headers, timeout=10
+                    )
 
-            elif d is None:
-                _r = self._session.post(
-                    url, json=j, headers=h if h else self._headers, timeout=10
-                )
+                if _r.status_code != 200:
+                    raise TwitchAPIError(_r)
 
-            if _r.status_code != 200:
-                raise TwitchAPIError(_r)
+                return _r
 
-            return _r
+            except requests.exceptions.RequestException as err:
+                if _ == 5:
+                    raise RequestError(url, err) from err
 
-        except requests.exceptions.RequestException as err:
-            raise RequestError(url, err) from err
+                sleep(_ * 10)
+                continue
 
     def gql_request(self, operation: str, query_hash: str, variables: dict):
         """
@@ -150,26 +161,22 @@ class Api:
         ]
 
         # retry loop for 'service error' responses
-        _attempt = 0
-        while True:
+        for _ in range(6):
             _r = self.post_request("https://gql.twitch.tv/gql", j=_q, h=_h)
 
-            if _attempt >= 5:
-                self.logging.error(
-                    "Maximum attempts reached while querying GQL API. Error: %s",
-                    _r.json(),
-                )
-                raise TwitchAPIError(_r)
-
             if "errors" in _r.json()[0].keys():
-                _attempt += 1
+                if _ == 5:
+                    self.logging.error(
+                        "Maximum attempts reached while querying GQL API. Error: %s",
+                        _r.json(),
+                    )
+                    raise TwitchAPIError(_r)
+
                 self.logging.error(
                     "Error returned when querying GQL API, retrying. Error: %s",
                     _r.json(),
                 )
-                sleep(_attempt * 10)
+                sleep(_ * 10)
                 continue
 
-            break
-
-        return _r
+            return _r
