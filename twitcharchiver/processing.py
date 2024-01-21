@@ -71,7 +71,11 @@ class Processing:
             self.output_dir = Path(self._parent_dir, channel.name)
 
             # retrieve available vods and extract required info
-            channel_videos: list[Vod] = channel.get_channel_videos()
+            # only need the most recent VOD if running in live-only mode
+            if self.live_only:
+                channel_videos: list[Vod] = list(channel.get_latest_video())
+            else:
+                channel_videos: list[Vod] = channel.get_channel_videos()
 
             channel_live = channel.is_live(force_refresh=True)
             if channel_live:
