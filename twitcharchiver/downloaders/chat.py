@@ -242,31 +242,19 @@ class Chat(Downloader):
             }
         }
 
-        for _ in range(5):
-            try:
-                _r = self._api.post_request("https://gql.twitch.tv/gql", j=_p).json()
-                _comments = _r[0]["data"]["video"]["comments"]
+        _r = self._api.post_request("https://gql.twitch.tv/gql", j=_p).json()
+        _comments = _r[0]["data"]["video"]["comments"]
 
-                # check if next page exists
-                if _comments:
-                    if _comments["pageInfo"]["hasNextPage"]:
-                        return [c["node"] for c in _comments["edges"]], _comments[
-                            "edges"
-                        ][-1]["cursor"]
+        # check if next page exists
+        if _comments:
+            if _comments["pageInfo"]["hasNextPage"]:
+                return [c["node"] for c in _comments["edges"]], _comments["edges"][-1][
+                    "cursor"
+                ]
 
-                    return [c["node"] for c in _comments["edges"]], None
+            return [c["node"] for c in _comments["edges"]], None
 
-                return [], None
-
-            except RequestError:
-                self._log.error(
-                    f"Error downloading chat segment at cursor or offset: {cursor or offset}"
-                )
-                continue
-
-        raise ChatDownloadError(
-            f"Maximum attempts reached while downloading chat segment at cursor or offset: {cursor or offset}"
-        )
+        return [], None
 
     def generate_readable_chat_log(self, chat_log: list):
         """

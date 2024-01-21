@@ -484,40 +484,27 @@ class Stream(Downloader):
         Fetch parts being advertised by Twitch for stream.
         """
         # attempt to grab new parts from Twitch
-        for _ in range(6):
-            try:
-                if _ >= 5:
-                    raise StreamFetchError(
-                        self.channel.name,
-                        "Request timed out while fetching new segments.",
-                    )
+        try:
+            # fetch advertised stream parts
+            announced_parts = m3u8.loads(
+                self.channel.get_stream_playlist(self._index_uri)
+            ).segments
+            self._last_part_announce = (
+                announced_parts[-1]
+                .program_date_time.replace(tzinfo=timezone.utc)
+                .timestamp()
+            )
 
-                # fetch advertised stream parts
-                announced_parts = m3u8.loads(
-                    self.channel.get_stream_playlist(self._index_uri)
-                ).segments
-                self._last_part_announce = (
-                    announced_parts[-1]
-                    .program_date_time.replace(tzinfo=timezone.utc)
-                    .timestamp()
-                )
+            for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
+                # add new parts to part buffer
+                if _part not in self._processed_parts:
+                    self._processed_parts.add(_part)
+                    self._incoming_part_buffer.append(_part)
+                    self.vod.duration = int(_part.timestamp - self.vod.created_at)
 
-                for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
-                    # add new parts to part buffer
-                    if _part not in self._processed_parts:
-                        self._processed_parts.add(_part)
-                        self._incoming_part_buffer.append(_part)
-                        self.vod.duration = int(_part.timestamp - self.vod.created_at)
-                break
-
-            # retry if request times out
-            except RequestError as exc:
-                self._log.debug(
-                    "Error attempting to fetch new stream segments. (Attempt %s). Error: %s",
-                    _ + 1,
-                    exc,
-                )
-                continue
+        # retry if request times out
+        except Exception as exc:
+            raise StreamFetchError(self.channel.name) from exc
 
     def _build_download_queue(self):
         """
