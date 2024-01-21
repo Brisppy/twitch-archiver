@@ -91,7 +91,12 @@ class Api:
             # recoverable exceptions
             except requests.exceptions.RequestException as err:
                 if _ == 5:
+                    self.logging.error("Maximum attempts reached for request.")
                     raise RequestError(url, err) from err
+
+                self.logging.error(
+                    "Exception encountered during GET request, retrying. Error: %s", err
+                )
                 sleep(_ * 10)
                 continue
 
@@ -133,8 +138,13 @@ class Api:
 
             except requests.exceptions.RequestException as err:
                 if _ == 5:
+                    self.logging.error("Maximum attempts reached for request.")
                     raise RequestError(url, err) from err
 
+                self.logging.error(
+                    "Exception encountered during POST request, retrying. Error: %s",
+                    err,
+                )
                 sleep(_ * 10)
                 continue
 
