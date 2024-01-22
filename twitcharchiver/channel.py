@@ -342,7 +342,11 @@ class Channel:
         :return: The most recent VOD for the channel
         :rtype: Vod
         """
-        return self._get_most_recent_videos()[0]
+        _videos = self._get_most_recent_videos()
+        if _videos:
+            return _videos[0]
+
+        return []
 
     def get_channel_videos(self):
         """
