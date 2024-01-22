@@ -573,6 +573,7 @@ class Stream(Downloader):
 
         # begin retry loop for download
         for _ in range(6):
+            _download_error: bool = False
             if _ >= 5:
                 self._log.error(
                     "Maximum attempts reached while downloading segment %s.", segment.id
@@ -595,25 +596,32 @@ class Stream(Downloader):
                         for chunk in _r.iter_content(chunk_size=262144):
                             _tmp_file.write(chunk)
 
-                    except RequestError as exc:
+                    except requests.exceptions.RequestException as exc:
                         self._log.debug(
                             "Error downloading stream segment %s: %s",
                             segment.id,
                             str(exc),
                         )
+                        _download_error = True
+                        break
 
-            # move finished ts file to destination storage
-            try:
-                safe_move(
-                    Path(_temp_buffer_file),
-                    Path(self.output_dir, "parts", str(f"{segment.id:05d}" + ".ts")),
-                )
-                self._completed_segments.add(segment)
-                self._log.debug("Stream segment: %s completed.", segment.id)
-                break
+            if not _download_error:
+                # move finished ts file to destination storage
+                try:
+                    safe_move(
+                        Path(_temp_buffer_file),
+                        Path(
+                            self.output_dir, "parts", str(f"{segment.id:05d}" + ".ts")
+                        ),
+                    )
+                    self._completed_segments.add(segment)
+                    self._log.debug("Stream segment: %s completed.", segment.id)
+                    break
 
-            except Exception as exc:
-                raise StreamSegmentDownloadError(segment.id, self.channel.name) from exc
+                except Exception as exc:
+                    raise StreamSegmentDownloadError(
+                        segment.id, self.channel.name
+                    ) from exc
 
     def _get_final_segment(self):
         """
