@@ -42,6 +42,7 @@ class Vod:
         self.published_at: float = 0
         self.thumbnail_url: str = ""
         self.title: str = ""
+        self.type = ""
         self.view_count: int = 0
 
         self._channel = Channel()
@@ -116,6 +117,11 @@ class Vod:
         # set description if provided
         if "description" in vod_info.keys():
             self.description = vod_info["description"]
+
+        # set broadcast type if provided
+        # can be any of ARCHIVE, HIGHLIGHT
+        if "broadcastType" in vod_info.keys():
+            self.type = vod_info["broadcastType"]
 
     def _fetch_metadata(self):
         """

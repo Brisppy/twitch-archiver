@@ -193,6 +193,13 @@ class Processing:
         for _vod in download_queue:
             self.log.debug("Processing VOD %s from download queue.", _vod.v_id)
 
+            if _vod.type == "HIGHLIGHT":
+                self.log.error(
+                    "VOD %s is a highlight which is not currently supported by Twitch Archiver.",
+                    _vod.v_id or _vod.s_id,
+                )
+                continue
+
             if _vod.channel not in _channel_cache:
                 self.log.debug(
                     "Channel '%s' missing from cache - adding now.", _vod.channel
