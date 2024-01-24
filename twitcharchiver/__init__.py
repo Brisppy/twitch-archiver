@@ -44,7 +44,7 @@ from twitcharchiver.logger import Logger
 from twitcharchiver.processing import Processing
 from twitcharchiver.utils import getenv, check_update_available, get_latest_version
 
-__version__ = "4.0.3"
+__version__ = "4.0.4"
 
 from twitcharchiver.vod import Vod, ArchivedVod
 

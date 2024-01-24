@@ -1,3 +1,11 @@
+**(2024-01-24) Version 4.0.4**
+
+**Changes and Fixes:**
+ * Add retrying to all API functions.
+ * Reduce processing time for channel videos when running in `live-only` mode.
+ * Fix issues with retry loop in stream downloader not functioning (https://github.com/Brisppy/twitch-archiver/issues/29).
+ * Add catch and unsupported log message for highlight videos.
+
 **(2024-01-18) Version 4.0.3**
 
 **Changes and Fixes:**
