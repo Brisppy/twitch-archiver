@@ -42,7 +42,12 @@ class TestVod(unittest.TestCase):
 
     def test_get_vod_owner(self):
         self.assertEqual(
-            "{'id': 9072112, 'name': 'Reckful', 'stream': None}",
+            {
+                "id": 9072112,
+                "name": "reckful",
+                "display_name": "Reckful",
+                "stream": None,
+            },
             str(self.vod_a.channel),
         )
 
