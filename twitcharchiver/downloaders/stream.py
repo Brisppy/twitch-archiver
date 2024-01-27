@@ -22,7 +22,6 @@ from twitcharchiver.exceptions import (
     StreamFetchError,
     StreamOfflineError,
     VideoMergeError,
-    RequestError,
 )
 from twitcharchiver.utils import (
     time_since_date,

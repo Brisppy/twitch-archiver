@@ -11,8 +11,6 @@ from twitcharchiver.api import Api
 from twitcharchiver.downloader import Downloader
 from twitcharchiver.exceptions import (
     TwitchAPIErrorNotFound,
-    RequestError,
-    ChatDownloadError,
     TwitchAPIErrorForbidden,
 )
 from twitcharchiver.utils import (
