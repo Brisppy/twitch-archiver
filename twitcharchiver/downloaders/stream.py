@@ -564,7 +564,6 @@ class Stream(Downloader):
         # generate buffer file path
         _temp_buffer_file = Path(
             get_temp_dir(),
-            "twitch-archiver",
             str(self.vod.s_id),
             str(f"{segment.id:05d}" + ".ts"),
         )
@@ -640,11 +639,11 @@ class Stream(Downloader):
         shutil.rmtree(Path(self.output_dir, "parts"), ignore_errors=True)
         if self.vod.v_id:
             shutil.rmtree(
-                Path(get_temp_dir(), "twitch-archiver", str(self.vod.v_id)),
+                Path(get_temp_dir(), str(self.vod.v_id)),
                 ignore_errors=True,
             )
         else:
             shutil.rmtree(
-                Path(get_temp_dir(), "twitch-archiver", str(self.vod.s_id)),
+                Path(get_temp_dir(), str(self.vod.s_id)),
                 ignore_errors=True,
             )

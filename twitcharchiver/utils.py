@@ -489,7 +489,13 @@ def get_temp_dir():
     :returns: temporary directory
     :rtype: str
     """
-    return getenv("TWITCH_ARCHIVER_TEMP_DIR", tempfile.gettempdir(), False)
+    _tmp_dir = getenv("TWITCH_ARCHIVER_TEMP_DIR")
+
+    if _tmp_dir:
+        return Path(_tmp_dir)
+
+    else:
+        return Path(tempfile.gettempdir(), "twitch-archiver")
 
 
 class Progress:

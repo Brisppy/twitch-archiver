@@ -269,7 +269,7 @@ def main():
     log.debug("Settings after loading config: %s", config.get_sanitized())
 
     # create temp dir for downloads and lock files
-    Path(get_temp_dir(), "twitch-archiver").mkdir(exist_ok=True)
+    Path(get_temp_dir()).mkdir(exist_ok=True)
 
     process = Processing(Configuration.get())
 

@@ -133,9 +133,7 @@ class Video(Downloader):
         try:
             # create output directories
             Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
-            Path(get_temp_dir(), "twitch-archiver", str(self.vod.v_id)).mkdir(
-                parents=True, exist_ok=True
-            )
+            Path(get_temp_dir(), str(self.vod.v_id)).mkdir(parents=True, exist_ok=True)
 
             # delay archival start for new vods (started less than 5m ago)
             _time_since_start = self.vod.time_since_live()
@@ -335,7 +333,6 @@ class Video(Downloader):
         with open(
             Path(
                 get_temp_dir(),
-                "twitch-archiver",
                 str(self.vod.v_id),
                 f"{segment.id}.ts",
             ),
@@ -517,7 +514,7 @@ class Video(Downloader):
         self._log.debug("Deleting VOD parts - this may take a while.")
         shutil.rmtree(Path(self.output_dir, "parts"), ignore_errors=True)
         shutil.rmtree(
-            Path(get_temp_dir(), "twitch-archiver", str(self.vod.v_id)),
+            Path(get_temp_dir(), str(self.vod.v_id)),
             ignore_errors=True,
         )
 

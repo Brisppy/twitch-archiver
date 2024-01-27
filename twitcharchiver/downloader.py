@@ -83,14 +83,11 @@ class DownloadHandler:
         if self.vod.v_id == 0:
             self._lock_fp = Path(
                 get_temp_dir(),
-                "twitch-archiver",
                 str(self.vod.s_id) + ".lock-stream",
             )
 
         else:
-            self._lock_fp = Path(
-                get_temp_dir(), "twitch-archiver", str(self.vod.v_id) + ".lock"
-            )
+            self._lock_fp = Path(get_temp_dir(), str(self.vod.v_id) + ".lock")
 
     def __enter__(self):
         """

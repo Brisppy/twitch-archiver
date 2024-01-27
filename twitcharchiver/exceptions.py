@@ -163,14 +163,14 @@ class UnhandledDownloadError(TwitchArchiverError):
             message = (
                 f"An unhandled exception occurred while downloading stream {vod.s_id} by {vod.channel.name}. "
                 f"Check stream downloaded correctly and remove lock file "
-                f"({Path(get_temp_dir(), 'twitch-archiver', f'.lock.{vod.s_id}-stream-only')})."
+                f"({Path(get_temp_dir(), f'.lock.{vod.s_id}-stream-only')})."
             )
 
         else:
             message = (
                 f"An unhandled exception occurred while downloading VOD {vod.v_id} by {vod.channel.name}. "
                 f"Check stream downloaded correctly and remove lock file "
-                f"({Path(get_temp_dir(), 'twitch-archiver', f'.lock.{vod.s_id}')})."
+                f"({Path(get_temp_dir(), f'.lock.{vod.s_id}')})."
             )
 
         super().__init__(message)
