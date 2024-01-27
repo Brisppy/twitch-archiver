@@ -1,6 +1,7 @@
 import os
 from multiprocessing import Queue
 from pathlib import Path
+from time import sleep
 
 from twitcharchiver import Configuration
 from twitcharchiver.api import Api
@@ -103,9 +104,18 @@ class RealTime(Downloader):
             for _w in workers:
                 _w.join()
 
+        finally:
+            sleep(1)
+            # kill any still running workers
+            for worker in workers:
+                if worker.is_alive():
+                    worker.terminate()
+                    self._log.error(
+                        f"Worker %s failed to exit and was terminated.", worker
+                    )
+
             self._handle_errors(workers)
 
-        finally:
             _q.close()
             _q.join_thread()
 
