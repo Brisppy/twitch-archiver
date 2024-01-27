@@ -1,3 +1,14 @@
+**(2024-01-28) Version 4.0.5**
+
+**Additions**
+ * Add ability to change temporary download directory via the environment variable `TWITCH_ARCHIVER_TMP_DIR`.
+
+**Changes and Fixes:**
+ * Optimized imports.
+ * Fix test for `get_vod_owner()`
+ * Fix real-time archiver failing to exit on some exception.
+ * Fix fetching latest video if running in `live-only` mode.
+
 **(2024-01-24) Version 4.0.4**
 
 **Changes and Fixes:**

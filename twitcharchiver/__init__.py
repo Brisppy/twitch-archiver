@@ -48,7 +48,7 @@ from twitcharchiver.utils import (
     get_temp_dir,
 )
 
-__version__ = "4.0.4"
+__version__ = "4.0.5"
 
 from twitcharchiver.vod import Vod, ArchivedVod
 
