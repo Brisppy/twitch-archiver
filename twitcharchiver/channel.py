@@ -346,8 +346,6 @@ class Channel:
         if _videos:
             return _videos[0]
 
-        return []
-
     def get_channel_videos(self):
         """
         Retrieves all available VODs for the channel.

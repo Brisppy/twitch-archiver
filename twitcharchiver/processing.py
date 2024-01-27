@@ -73,7 +73,7 @@ class Processing:
             # retrieve available vods and extract required info
             # only need the most recent VOD if running in live-only mode
             if self.live_only:
-                channel_videos: list[Vod] = list(channel.get_latest_video())
+                channel_videos: list[Vod] = [channel.get_latest_video()]
             else:
                 channel_videos: list[Vod] = channel.get_channel_videos()
 
