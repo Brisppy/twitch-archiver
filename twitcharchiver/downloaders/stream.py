@@ -3,7 +3,6 @@ Module for downloading currently live Twitch broadcasts.
 """
 import os
 import shutil
-import tempfile
 from datetime import datetime, timezone
 from math import floor
 from operator import attrgetter
@@ -30,6 +29,7 @@ from twitcharchiver.utils import (
     safe_move,
     build_output_dir_name,
     write_json_file,
+    get_temp_dir,
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -564,7 +564,7 @@ class Stream(Downloader):
         """
         # generate buffer file path
         _temp_buffer_file = Path(
-            tempfile.gettempdir(),
+            get_temp_dir(),
             "twitch-archiver",
             str(self.vod.s_id),
             str(f"{segment.id:05d}" + ".ts"),
@@ -641,11 +641,11 @@ class Stream(Downloader):
         shutil.rmtree(Path(self.output_dir, "parts"), ignore_errors=True)
         if self.vod.v_id:
             shutil.rmtree(
-                Path(tempfile.gettempdir(), "twitch-archiver", str(self.vod.v_id)),
+                Path(get_temp_dir(), "twitch-archiver", str(self.vod.v_id)),
                 ignore_errors=True,
             )
         else:
             shutil.rmtree(
-                Path(tempfile.gettempdir(), "twitch-archiver", str(self.vod.s_id)),
+                Path(get_temp_dir(), "twitch-archiver", str(self.vod.s_id)),
                 ignore_errors=True,
             )

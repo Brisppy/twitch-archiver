@@ -32,7 +32,6 @@ import argparse
 import multiprocessing
 import os
 import sys
-import tempfile
 import textwrap
 from pathlib import Path
 from time import sleep
@@ -42,7 +41,12 @@ from twitcharchiver.channel import Channel
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.logger import Logger
 from twitcharchiver.processing import Processing
-from twitcharchiver.utils import getenv, check_update_available, get_latest_version
+from twitcharchiver.utils import (
+    getenv,
+    check_update_available,
+    get_latest_version,
+    get_temp_dir,
+)
 
 __version__ = "4.0.4"
 
@@ -265,7 +269,7 @@ def main():
     log.debug("Settings after loading config: %s", config.get_sanitized())
 
     # create temp dir for downloads and lock files
-    Path(tempfile.gettempdir(), "twitch-archiver").mkdir(exist_ok=True)
+    Path(get_temp_dir(), "twitch-archiver").mkdir(exist_ok=True)
 
     process = Processing(Configuration.get())
 

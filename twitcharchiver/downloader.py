@@ -3,13 +3,13 @@ Classes related to Downloading methods and managing the downloading of a given V
 """
 
 import logging
-import tempfile
 import traceback
 from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.database import Database, INSERT_VOD
 from twitcharchiver.exceptions import VodLockedError
+from twitcharchiver.utils import get_temp_dir
 from twitcharchiver.vod import ArchivedVod, Vod
 
 
@@ -82,14 +82,14 @@ class DownloadHandler:
         # build path to lock file based on if vod being archived or not
         if self.vod.v_id == 0:
             self._lock_fp = Path(
-                tempfile.gettempdir(),
+                get_temp_dir(),
                 "twitch-archiver",
                 str(self.vod.s_id) + ".lock-stream",
             )
 
         else:
             self._lock_fp = Path(
-                tempfile.gettempdir(), "twitch-archiver", str(self.vod.v_id) + ".lock"
+                get_temp_dir(), "twitch-archiver", str(self.vod.v_id) + ".lock"
             )
 
     def __enter__(self):

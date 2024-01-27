@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import traceback
+import tempfile
 from datetime import datetime, timezone
 from itertools import groupby
 from math import ceil, floor
@@ -478,6 +479,19 @@ def write_json_file(data, file: Path):
 
     except Exception as exc:
         log.error('Failed to write json data to "%s". Error: %s', Path(file), exc)
+
+
+def get_temp_dir():
+    """
+    Fetches a directory for use as a temporary download store / cache.
+
+    The environment variable `TWITCH_ARCHIVER_TEMP_DIR` has first priority, followed by the system's configured TEMP
+    directory.
+
+    :returns: temporary directory
+    :rtype: str
+    """
+    return getenv("TWITCH_ARCHIVER_TEMP_DIR", tempfile.gettempdir(), False)
 
 
 class Progress:

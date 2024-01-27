@@ -1,5 +1,4 @@
 import os
-import tempfile
 from multiprocessing import Queue
 from pathlib import Path
 
@@ -10,6 +9,7 @@ from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
 from twitcharchiver.logger import ProcessWithLogging, ProcessLogger
+from twitcharchiver.utils import get_temp_dir
 from twitcharchiver.vod import Vod, ArchivedVod
 
 
@@ -61,7 +61,7 @@ class RealTime(Downloader):
         # log files are stored in either the provided log directory or %TEMP%/STREAM_ID
         # we change to this directory as the multiprocessing logger has difficulties with passing
         # variables into it
-        logging_dir = Path(tempfile.gettempdir(), str(self.vod.s_id))
+        logging_dir = Path(get_temp_dir(), str(self.vod.s_id))
         conf = Configuration.get()
         if conf["log_dir"]:
             logging_dir = Path(conf["log_dir"])

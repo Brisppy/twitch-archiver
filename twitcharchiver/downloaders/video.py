@@ -7,7 +7,6 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from math import floor
@@ -39,6 +38,7 @@ from twitcharchiver.utils import (
     format_vod_chapters,
     time_since_date,
     write_json_file,
+    get_temp_dir,
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -133,7 +133,7 @@ class Video(Downloader):
         try:
             # create output directories
             Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
-            Path(tempfile.gettempdir(), "twitch-archiver", str(self.vod.v_id)).mkdir(
+            Path(get_temp_dir(), "twitch-archiver", str(self.vod.v_id)).mkdir(
                 parents=True, exist_ok=True
             )
 
@@ -334,7 +334,7 @@ class Video(Downloader):
         # create temporary file for downloading to
         with open(
             Path(
-                tempfile.gettempdir(),
+                get_temp_dir(),
                 "twitch-archiver",
                 str(self.vod.v_id),
                 f"{segment.id}.ts",
@@ -517,7 +517,7 @@ class Video(Downloader):
         self._log.debug("Deleting VOD parts - this may take a while.")
         shutil.rmtree(Path(self.output_dir, "parts"), ignore_errors=True)
         shutil.rmtree(
-            Path(tempfile.gettempdir(), "twitch-archiver", str(self.vod.v_id)),
+            Path(get_temp_dir(), "twitch-archiver", str(self.vod.v_id)),
             ignore_errors=True,
         )
 
