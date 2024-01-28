@@ -36,7 +36,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 [^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
 
 ## Requirements
-* **[Python](https://www.python.org/) >= 3.7**
+* **[Python](https://www.python.org/) >= 3.9**
 * **[FFmpeg](https://ffmpeg.org/) >= 4.3.1** and **ffprobe** (Accessible via your PATH - see [Installation](https://phoenixnap.com/kb/ffmpeg-windows))
 
 ## Installation & Usage

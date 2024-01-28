@@ -14,7 +14,7 @@ authors = [
 ]
 description = "A simple, fast, platform-independent tool for downloading Twitch streams, videos, and chat logs."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU Affero General Public License v3",
