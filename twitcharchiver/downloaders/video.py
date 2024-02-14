@@ -850,7 +850,7 @@ class Merger:
         try:
             self._log.debug("Downloading VOD thumbnail.")
             thumbnail = self._api.get_request(
-                self.vod.thumbnail_url.replace("%{width}x%{height}", "1920x1080")
+                self.vod.thumbnail_url.replace("90x60", "1920x1080")
             )
             with open(Path(self._output_dir, "thumbnail.jpg"), "wb") as thumbnail_file:
                 thumbnail_file.write(thumbnail.content)
