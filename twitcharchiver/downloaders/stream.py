@@ -32,7 +32,7 @@ from twitcharchiver.utils import (
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
-TEMP_BUFFER_LEN = 120
+TEMP_BUFFER_LEN = 180
 CHECK_INTERVAL = 4
 
 
@@ -442,7 +442,8 @@ class Stream(Downloader):
         :param stream_length: time in seconds stream has been live
         """
         self._log.debug(
-            "Stream began less than 120s ago, delaying archival start until VOD API updated."
+            "Stream began less than %s ago, delaying archival start until VOD API updated.",
+            TEMP_BUFFER_LEN,
         )
 
         self._init_download_queue()
