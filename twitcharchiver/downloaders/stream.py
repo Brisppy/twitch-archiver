@@ -32,7 +32,7 @@ from twitcharchiver.utils import (
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
-TEMP_BUFFER_LEN = 180
+TEMP_BUFFER_LEN = 300
 CHECK_INTERVAL = 4
 
 
