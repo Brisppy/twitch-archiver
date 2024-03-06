@@ -1,3 +1,11 @@
+**(2024-03-06) Version 4.0.6**
+
+**Changes and Fixes:**
+ * Fix downloaded thumbnails being very low resolution.
+ * Raise temporary buffer before archiving to reduce chance for the paired stream VOD being missed.
+ * Bump required Python version (3.7 -> 3.9).
+ * Update dockerfile to use updated Python version (https://github.com/Brisppy/twitch-archiver/pull/32 - Thanks @helmut1337).
+
 **(2024-01-28) Version 4.0.5**
 
 **Additions**
