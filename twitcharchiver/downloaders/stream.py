@@ -504,7 +504,7 @@ class Stream(Downloader):
 
         # retry if request times out
         except Exception as exc:
-            raise StreamFetchError(self.channel.name) from exc
+            raise StreamFetchError(self.channel) from exc
 
     def _build_download_queue(self):
         """
@@ -619,7 +619,7 @@ class Stream(Downloader):
 
                 except Exception as exc:
                     raise StreamSegmentDownloadError(
-                        segment.id, self.channel.name
+                        segment, self.channel.name
                     ) from exc
 
     def _get_final_segment(self):
