@@ -484,27 +484,46 @@ class Stream(Downloader):
         Fetch parts being advertised by Twitch for stream.
         """
         # attempt to grab new parts from Twitch
-        try:
-            # fetch advertised stream parts
-            announced_parts = m3u8.loads(
-                self.channel.get_stream_playlist(self._index_uri)
-            ).segments
-            self._last_part_announce = (
-                announced_parts[-1]
-                .program_date_time.replace(tzinfo=timezone.utc)
-                .timestamp()
-            )
+        for _ in range(5):
+            if _ >= 4:
+                self._log.error(
+                    "Failed to fetch advertised parts from stream by %s.",
+                    self.channel.name,
+                )
+                raise StreamFetchError(self.channel)
 
-            for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
-                # add new parts to part buffer
-                if _part not in self._processed_parts:
-                    self._processed_parts.add(_part)
-                    self._incoming_part_buffer.append(_part)
-                    self.vod.duration = int(_part.timestamp - self.vod.created_at)
+            try:
+                # fetch advertised stream parts
+                announced_parts = m3u8.loads(
+                    self.channel.get_stream_playlist(self._index_uri)
+                ).segments
+                self._last_part_announce = (
+                    announced_parts[-1]
+                    .program_date_time.replace(tzinfo=timezone.utc)
+                    .timestamp()
+                )
 
-        # retry if request times out
-        except Exception as exc:
-            raise StreamFetchError(self.channel) from exc
+                for _part in [StreamSegment.Part(_p) for _p in announced_parts]:
+                    # add new parts to part buffer
+                    if _part not in self._processed_parts:
+                        self._processed_parts.add(_part)
+                        self._incoming_part_buffer.append(_part)
+                        self.vod.duration = int(_part.timestamp - self.vod.created_at)
+
+                return
+
+            # 404 can be received if fetching stream playlist very soon after it goes live as the endpoint is not yet
+            # available.
+            except TwitchAPIErrorNotFound:
+                self._log.debug(
+                    "404 returned when fetching stream playlist, retrying..."
+                )
+                sleep(5)
+                continue
+
+            # retry if request times out
+            except Exception as exc:
+                raise StreamFetchError(self.channel) from exc
 
     def _build_download_queue(self):
         """
