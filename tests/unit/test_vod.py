@@ -41,14 +41,14 @@ class TestVod(unittest.TestCase):
         self.assertEqual(expected, str(self.vod_a.get_muted_segments()))
 
     def test_get_vod_owner(self):
-        self.assertEqual(
+        self.assertDictEqual(
             {
                 "id": 9072112,
                 "name": "reckful",
                 "display_name": "Reckful",
                 "stream": None,
             },
-            str(self.vod_a.channel),
+            self.vod_a.channel.get_info(),
         )
 
     def test_get_stream_id(self):

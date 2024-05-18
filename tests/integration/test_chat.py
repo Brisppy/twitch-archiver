@@ -27,8 +27,8 @@ class TestChat(TestCase):
         # download chat log
         self.chat_a.start()
 
-        # compare against known message count
-        self.assertEqual(981, self.chat_a.get_message_count())
+        # compare against known message count (may change due to user bans / account deletions)
+        self.assertAlmostEqual(981, self.chat_a.get_message_count(), delta=10)
 
     def test_exporting_and_loading(self):
         """
