@@ -1,4 +1,10 @@
+**(2024-05-19) Version 4.0.8**
+
+**Changes and Fixes:**
+ * Fix issue with fetching VOD access tokens.
+
 **(2024-05-07) Version 4.0.7**
+
 **Changes and Fixes:**
  * Fix error logging when downloading stream segments or fetching stream parts fails.
  * Fix issues with fetching stream parts for newly live streams.
