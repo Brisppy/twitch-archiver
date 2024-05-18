@@ -489,23 +489,11 @@ class Vod:
         """
         # only accepts the default client ID for non-authenticated clients
         _h = {"Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"}
-        _q = """
-        {{
-            videoPlaybackAccessToken(
-                id: {vod_id},
-                params: {{
-                    platform: "web",
-                    playerBackend: "mediaplayer",
-                    playerType: "site"
-                }}
-            ) {{
-                signature
-                value
-            }}
-        }}
-        """.format(
-            vod_id=self.v_id
+        _q = (
+            f'{{videoPlaybackAccessToken(id: "{self.v_id}", params: {{platform: "web", playerBackend: "mediaplayer", '
+            f'playerType: "site"}}) {{signature value}} }}'
         )
+
         _r = self._api.post_request("https://gql.twitch.tv/gql", j={"query": _q}, h=_h)
 
         _token = _r.json()["data"]["videoPlaybackAccessToken"]
