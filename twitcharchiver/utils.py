@@ -55,6 +55,23 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
     return _dir_name
 
 
+def sanitize_command(command: str):
+    """
+    Sanitizes a command to be passes to subprocess, single and double quotes mean different things depending on the
+    operating system.
+
+    :param command: Command to sanitize
+    :return: Sanitized command
+    """
+    if os.name == "nt":
+        # Windows command formatting
+        return command
+
+    # Linux / MacOS command formatting
+    elif os.name == "posix":
+        return command.replace('"', "'")
+
+
 def format_timestamp(timestamp: float):
     """
     Formats a given UTC timestamp to the YYYY-MM-DD_HH-MM-SS format.

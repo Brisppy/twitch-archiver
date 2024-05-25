@@ -39,6 +39,7 @@ from twitcharchiver.utils import (
     time_since_date,
     write_json_file,
     get_temp_dir,
+    sanitize_command,
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
@@ -630,10 +631,14 @@ class Merger:
                         f"file '{Path(self._output_dir, 'parts', _part)}'\n"
                     )
 
-            with subprocess.Popen(
+            _command = (
                 f"ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i "
-                f'"{str(Path(self._output_dir, "parts", "segments.txt"))}" '
-                f'-c copy "{str(Path(self._output_dir, "merged.ts"))}"',
+                f'\'{str(Path(self._output_dir, "parts", "segments.txt"))}\' '
+                f'-c copy \'{str(Path(self._output_dir, "merged.ts"))}\''
+            )
+
+            with subprocess.Popen(
+                sanitize_command(_command),
                 shell=True,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
@@ -678,17 +683,17 @@ class Merger:
 
         # create ffmpeg command
         _ffmpeg_cmd = (
-            f'ffmpeg -hide_banner -y -i "{Path(self._output_dir, "merged.ts")}" '
+            f'ffmpeg -hide_banner -y -i \'{Path(self._output_dir, "merged.ts")}\' '
         )
         # insert metadata if present
         if Path(self._output_dir, "parts", "chapters.txt").exists():
-            _ffmpeg_cmd += f'-i "{Path(self._output_dir, "parts", "chapters.txt")}" -map_metadata 1 '
+            _ffmpeg_cmd += f'-i \'{Path(self._output_dir, "parts", "chapters.txt")}\' -map_metadata 1 '
 
-        _ffmpeg_cmd += f'-c:a copy -c:v copy "{Path(self._output_dir, "vod.mp4")}"'
+        _ffmpeg_cmd += f'-c:a copy -c:v copy \'{Path(self._output_dir, "vod.mp4")}\''
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
-            _ffmpeg_cmd,
+            sanitize_command(_ffmpeg_cmd),
             shell=True,
             stderr=subprocess.PIPE,
             universal_newlines=True,
@@ -774,9 +779,13 @@ class Merger:
             # fetch id of first part
             _part_id = int(_parts[0].replace(".ts", ""))
 
-            with subprocess.Popen(
+            _command = (
                 f"ffprobe -v quiet -print_format json -show_format -show_streams "
-                f'"{Path(self._output_dir, "parts", _parts[0])}"',
+                f'"{Path(self._output_dir, "parts", _parts[0])}"'
+            )
+
+            with subprocess.Popen(
+                sanitize_command(_command),
                 shell=True,
                 stdout=subprocess.PIPE,
                 universal_newlines=True,
@@ -809,10 +818,14 @@ class Merger:
             self._log.debug(".ignorelength file present - skipping verification.")
             return True
 
+        _command = (
+            f'ffprobe -v quiet -i \'{Path(self._output_dir, "vod.mp4")}\' '
+            f"-show_entries format=duration -of default=noprint_wrappers=1:nokey=1"
+        )
+
         # retrieve vod file duration
         _p = subprocess.run(
-            f'ffprobe -v quiet -i "{Path(self._output_dir, "vod.mp4")}" '
-            f"-show_entries format=duration -of default=noprint_wrappers=1:nokey=1",
+            sanitize_command(_command),
             shell=True,
             capture_output=True,
             encoding="cp437",
