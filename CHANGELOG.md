@@ -1,7 +1,13 @@
+**(2024-05-26) Version 4.0.9**
+
+**Changes and Fixes:**
+ * Fix downloading of VODs with titles containing `!`.
+
 **(2024-05-19) Version 4.0.8**
 
 **Changes and Fixes:**
  * Fix issue with fetching VOD access tokens.
+ * Fix failing tests.
 
 **(2024-05-07) Version 4.0.7**
 
