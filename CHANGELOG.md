@@ -1,7 +1,13 @@
+**(2024-05-26) Version 4.0.10**
+
+**Changes and Fixes:**
+ * Fix regression introduced in v4.0.9 for VODs with titles containing `'` on Linux (https://github.com/Brisppy/twitch-archiver/issues/33).
+
+
 **(2024-05-26) Version 4.0.9**
 
 **Changes and Fixes:**
- * Fix downloading of VODs with titles containing `!`.
+ * Fix downloading of VODs with titles containing `!`  on Linux (https://github.com/Brisppy/twitch-archiver/issues/33).
 
 **(2024-05-19) Version 4.0.8**
 
