@@ -129,7 +129,11 @@ def sanitize_text(string: str):
     if not string:
         return ""
 
-    return re.sub(r'[/\\:|<>"?*\0-\x1f]', "_", string)
+    # pattern matches:
+    #   / \ : | < > " ? 0x0-0x1f 0x27
+    #                     ^        ^
+    #                ASCII Codes   '
+    return re.sub(r'[/\\:|<>"?*\0-\x1f\x27]', "_", string)
 
 
 def sanitize_date(date):
