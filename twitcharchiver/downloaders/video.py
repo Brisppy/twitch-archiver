@@ -633,8 +633,8 @@ class Merger:
 
             _command = (
                 f"ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i "
-                f'\'{str(Path(self._output_dir, "parts", "segments.txt"))}\' '
-                f'-c copy \'{str(Path(self._output_dir, "merged.ts"))}\''
+                f'"{str(Path(self._output_dir, "parts", "segments.txt"))}" '
+                f'-c copy "{str(Path(self._output_dir, "merged.ts"))}"'
             )
 
             with subprocess.Popen(
@@ -683,13 +683,13 @@ class Merger:
 
         # create ffmpeg command
         _ffmpeg_cmd = (
-            f'ffmpeg -hide_banner -y -i \'{Path(self._output_dir, "merged.ts")}\' '
+            f'ffmpeg -hide_banner -y -i "{Path(self._output_dir, "merged.ts")}" '
         )
         # insert metadata if present
         if Path(self._output_dir, "parts", "chapters.txt").exists():
-            _ffmpeg_cmd += f'-i \'{Path(self._output_dir, "parts", "chapters.txt")}\' -map_metadata 1 '
+            _ffmpeg_cmd += f'-i "{Path(self._output_dir, "parts", "chapters.txt")}" -map_metadata 1 '
 
-        _ffmpeg_cmd += f'-c:a copy -c:v copy \'{Path(self._output_dir, "vod.mp4")}\''
+        _ffmpeg_cmd += f'-c:a copy -c:v copy "{Path(self._output_dir, "vod.mp4")}"'
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
@@ -819,7 +819,7 @@ class Merger:
             return True
 
         _command = (
-            f'ffprobe -v quiet -i \'{Path(self._output_dir, "vod.mp4")}\' '
+            f'ffprobe -v quiet -i "{Path(self._output_dir, "vod.mp4")}" '
             f"-show_entries format=duration -of default=noprint_wrappers=1:nokey=1"
         )
 
