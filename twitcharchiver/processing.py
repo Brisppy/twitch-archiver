@@ -115,7 +115,10 @@ class Processing:
                 )
                 continue
 
-            self.log.debug("Available VODs: %s", [v.v_id for v in channel_videos])
+            self.log.debug(
+                "Available VODs: %s",
+                [v.v_id for v in channel_videos] if channel_videos else "None",
+            )
 
             # retrieve downloaded vods
             with Database(Path(self.config_dir, "vods.db")) as _db:
