@@ -22,6 +22,7 @@ from twitcharchiver.exceptions import (
     StreamFetchError,
     StreamOfflineError,
     VideoMergeError,
+    TwitchAPIError,
 )
 from twitcharchiver.utils import (
     time_since_date,
@@ -514,9 +515,26 @@ class Stream(Downloader):
 
             # 404 can be received if fetching stream playlist very soon after it goes live as the endpoint is not yet
             # available.
+            # A 404 can also be received when fetching segments at the end of a stream.
             except TwitchAPIErrorNotFound:
+                # 404 received because stream ended
+                if self._processed_parts:
+                    self._log.info(
+                        "404 returned when fetching stream segments, assuming stream is offline."
+                    )
+                    return
+
+                # 404 received but stream may not have started
+                else:
+                    self._log.debug(
+                        "404 returned when fetching stream playlist, retrying..."
+                    )
+                    sleep(5)
+                    continue
+
+            except TwitchAPIError:
                 self._log.debug(
-                    "404 returned when fetching stream playlist, retrying..."
+                    "Unhandled HTTP error received fetching stream playlist, retrying..."
                 )
                 sleep(5)
                 continue
