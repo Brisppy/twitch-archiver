@@ -655,9 +655,7 @@ class Stream(Downloader):
                     break
 
                 except Exception as exc:
-                    raise StreamSegmentDownloadError(
-                        segment, self.channel.name
-                    ) from exc
+                    raise StreamSegmentDownloadError(segment, self.channel) from exc
 
     def _get_final_segment(self):
         """
