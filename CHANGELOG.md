@@ -1,8 +1,16 @@
+**(2024-06-22) Version 4.0.11**
+
+**Changes and Fixes:**
+ * Fix regression on Windows when merging VODs (#34).
+ * Fix error if no channel videos available in live-only mode.
+ * Fix error if no VODs available in database when archiving a stream-only channel.
+ * Add handling for expected 404 errors at the end of a stream.
+ * Fix exception when raising StreamSegmentDownloadError.
+
 **(2024-05-26) Version 4.0.10**
 
 **Changes and Fixes:**
  * Fix regression introduced in v4.0.9 for VODs with titles containing `'` on Linux (https://github.com/Brisppy/twitch-archiver/issues/33).
-
 
 **(2024-05-26) Version 4.0.9**
 
