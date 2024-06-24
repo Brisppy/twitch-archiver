@@ -46,7 +46,8 @@ class StreamSegmentList:
         self, stream_created_at: float, align_segments: bool = True, start_id: int = 0
     ):
         self.segments: dict[int:StreamSegment] = {}
-        self.current_id = start_id + 1
+        # used to track progress when not aligning segments
+        self.current_id = start_id
         self._align_segments = align_segments
         self.stream_created_at = stream_created_at
 
@@ -65,19 +66,16 @@ class StreamSegmentList:
         else:
             _parent_segment_id = self.current_id
 
-        # create parent segment if one doesn't yet exist
+        # if segment doesn't exist, create it
         if _parent_segment_id not in self.segments.keys():
-            self.current_id = _parent_segment_id
-            self.segments[_parent_segment_id] = StreamSegment(_parent_segment_id)
-
-        # create new segment and increment ID if current segment complete
-        if len(self.get_segment_by_id(_parent_segment_id).parts) == 5:
-            _parent_segment_id += 1
-            self.current_id = _parent_segment_id
             self.segments[_parent_segment_id] = StreamSegment(_parent_segment_id)
 
         # append part to parent segment
         self.segments[_parent_segment_id].add_part(part)
+
+        # increment segment id if the current segment is finished
+        if len(self.segments[_parent_segment_id].parts) == 5:
+            self.current_id += 1
 
     def _get_id_for_part(self, part):
         """
@@ -469,16 +467,21 @@ class Stream(Downloader):
         # wait any remaining time
         sleep((TEMP_BUFFER_LEN - stream_length) % CHECK_INTERVAL)
 
+    # creates the download queue used for adding and downloading segments.
     def _init_download_queue(self):
-        # start at '-1', the first part will then be '0'
-        _latest_segment = MpegSegment(-1, 0)
+        # if parts exist in download directory, start from the next numbered part
         if self._completed_segments:
-            # set start segment for download queue
-            _latest_segment = max(self._completed_segments, key=attrgetter("id"))
+            _latest_segment_id = (
+                max(self._completed_segments, key=attrgetter("id")).id + 1
+            )
 
-        # pass stream created to segment list to be used for determining part and segment ids
+        # otherwise start from 0
+        else:
+            _latest_segment_id = 0
+
+        # using the latest segment id, initialize the download queue starting from the current segment id.
         self._download_queue = StreamSegmentList(
-            self.vod.created_at, self._align_segments, _latest_segment.id
+            self.vod.created_at, self._align_segments, _latest_segment_id
         )
 
     def _fetch_advertised_parts(self):
