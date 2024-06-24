@@ -51,6 +51,9 @@ class Processing:
         self.quality: str = conf["quality"]
         self.threads: int = conf["threads"]
 
+        # debug flags
+        self.force_no_archive: bool = conf["force_no_archive"]
+
         # perform database setup
         with Database(Path(self.config_dir, "vods.db")) as _db:
             _db.setup()
@@ -85,8 +88,18 @@ class Processing:
                 try:
                     # fetch current stream info
                     stream: Stream = Stream(
-                        channel, Vod(), self.output_dir, self.quality, self.quiet
+                        channel,
+                        Vod(),
+                        self.output_dir,
+                        self.quality,
+                        self.quiet,
+                        not self.force_no_archive,
                     )
+
+                    # check for debug force no archive flag
+                    if self.force_no_archive:
+                        self._start_download(stream)
+                        continue
 
                     # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
                     # otherwise we add it to the download queue

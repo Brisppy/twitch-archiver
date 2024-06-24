@@ -172,6 +172,13 @@ def main():
         help="Don't download streams / VODs which are currently live.",
         default=getenv("TWITCH_ARCHIVER_ARCHIVE_ONLY", False, True),
     )
+    # DEBUG FLAG - Skip checking for available VOD to sync archive with and only grab the raw stream.
+    stream.add_argument(
+        "--force-no-archive",
+        action="store_true",
+        help=argparse.SUPPRESS,
+        default=False,
+    )
     parser.add_argument(
         "-R",
         "--real-time-archiver",

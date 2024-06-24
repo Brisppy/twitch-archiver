@@ -230,7 +230,8 @@ class Stream(Downloader):
         vod: Vod = Vod(),
         parent_dir: Path = Path(os.getcwd()),
         quality: str = "best",
-        quiet: bool = "False",
+        quiet: bool = False,
+        align_segments: bool = True,
     ):
         """
         Class constructor.
@@ -253,7 +254,7 @@ class Stream(Downloader):
         # create segments for combining with archived VOD parts. If true we will try to recreate the segment numbering
         # scheme Twitch uses, otherwise we use our own numbering scheme. Only used when archiving a live stream without
         # a VOD.
-        self._align_segments: bool = True
+        self._align_segments: bool = align_segments
 
         # buffers and progress tracking
         self._index_uri: str = ""
@@ -396,7 +397,7 @@ class Stream(Downloader):
 
         # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
         # meantime in case there is no vod and thus no way to retrieve them after the fact
-        if not self.vod.v_id:
+        if not self.vod.v_id and self._align_segments:
             if self.vod.duration < TEMP_BUFFER_LEN:
                 self._buffer_stream(self.vod.duration)
 
