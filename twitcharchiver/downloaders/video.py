@@ -528,7 +528,15 @@ class Merger:
     _log = logging.getLogger()
     _api = Api()
 
-    def __init__(self, vod, output_dir, completed_segments, muted_segments, quiet):
+    def __init__(
+        self,
+        vod,
+        output_dir,
+        completed_segments,
+        muted_segments,
+        quiet,
+        ignore_corrupt_parts=False,
+    ):
         """
         Class constructor.
         """
@@ -537,6 +545,7 @@ class Merger:
         self._completed_segments = completed_segments
         self._completed_parts = self.get_completed_parts()
         self._muted_segment_ids = [s.id for s in muted_segments]
+        self._ignore_corrupt_parts = ignore_corrupt_parts
         self._quiet = quiet
 
     def set_muted_segments(self, segments):
@@ -719,7 +728,7 @@ class Merger:
                     if not self._quiet:
                         _progress.print_progress(int(_cur_time), self.vod.duration)
 
-                elif "Packet corrupt" in line:
+                elif "Packet corrupt" in line and not self._ignore_corrupt_parts:
                     try:
                         _dts_timestamp = int(
                             re.search(r"(?<=dts = ).*(?=\).)", line).group(0)

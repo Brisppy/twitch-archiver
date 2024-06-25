@@ -325,8 +325,9 @@ class Stream(Downloader):
             self.vod,
             self.output_dir,
             self._completed_segments,
-            [MpegSegment(i, 10) for i in range(10000)],
+            [],
             self._quiet,
+            ignore_corrupt_parts=not self._align_segments,
         )
 
         # attempt to merge - no verification done as unsynced streams have no accurate duration to verify against
