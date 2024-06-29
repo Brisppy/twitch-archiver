@@ -1,6 +1,7 @@
 """
 Module for downloading currently live Twitch broadcasts.
 """
+import logging
 import os
 import shutil
 from datetime import datetime, timezone
@@ -51,6 +52,8 @@ class StreamSegmentList:
         self._align_segments = align_segments
         self.stream_created_at = stream_created_at
 
+        self._log = logging.getLogger()
+
     def add_part(self, part):
         """
         Adds a given part to the appropriate StreamSegment.
@@ -58,6 +61,8 @@ class StreamSegmentList:
         :param part: part to add
         :type part: StreamSegment.Part
         """
+        self._log.debug("Current part: %s", part)
+
         # generate part id from timestamp if we are aligning segments
         if self._align_segments:
             _parent_segment_id = self._get_id_for_part(part)
@@ -66,15 +71,22 @@ class StreamSegmentList:
         else:
             _parent_segment_id = self.current_id
 
+        self._log.debug("Parent segment ID: %s", self.current_id)
+
         # if segment doesn't exist, create it
         if _parent_segment_id not in self.segments.keys():
+            self._log.debug(
+                "Parent segment ID not found in current segment list. Creating segment."
+            )
             self.segments[_parent_segment_id] = StreamSegment(_parent_segment_id)
 
         # append part to parent segment
+        self._log.debug("Adding part to parent segment.")
         self.segments[_parent_segment_id].add_part(part)
 
         # increment segment id if the current segment is finished
         if len(self.segments[_parent_segment_id].parts) == 5:
+            self._log.debug("Segment has 5 parts, incrementing ID.")
             self.current_id += 1
 
     def _get_id_for_part(self, part):
