@@ -258,7 +258,7 @@ class Stream(Downloader):
         self._index_uri: str = ""
         self._incoming_part_buffer: list[StreamSegment.Part] = []
         self._download_queue: StreamSegmentList = None
-        self._completed_segments: set[StreamSegment] = set()
+        self._completed_segments: list[StreamSegment] = []
         self._processed_parts: set[StreamSegment.Part] = set()
         self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
 
@@ -396,7 +396,7 @@ class Stream(Downloader):
 
         # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
         # meantime in case there is no vod and thus no way to retrieve them after the fact
-        if not self.vod.v_id and self._align_segments:
+        if not self.vod.v_id:
             if self.vod.duration < TEMP_BUFFER_LEN:
                 self._buffer_stream(self.vod.duration)
 
@@ -428,10 +428,10 @@ class Stream(Downloader):
 
         if self.output_dir.exists():
             # get existing parts to resume counting if archiving halted
-            self._completed_segments = {
+            self._completed_segments = [
                 MpegSegment(int(Path(p).name.removesuffix(".ts")), 10)
                 for p in list(Path(self.output_dir, "parts").glob("*.ts"))
-            }
+            ]
 
         self._init_download_queue()
 
@@ -655,7 +655,7 @@ class Stream(Downloader):
                             self.output_dir, "parts", str(f"{segment.id:05d}" + ".ts")
                         ),
                     )
-                    self._completed_segments.add(segment)
+                    self._completed_segments.append(segment)
                     self._log.debug("Stream segment: %s completed.", segment.id)
                     break
 
