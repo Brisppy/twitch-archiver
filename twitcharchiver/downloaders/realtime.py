@@ -72,7 +72,7 @@ class RealTime(Downloader):
         # create downloaders
         self.chat = Chat(self.vod, self.parent_dir, True)
         self.stream = Stream(
-            self.vod.channel, self.vod, self.parent_dir, self.quality, True
+            self.vod.channel, self.vod, self.parent_dir, self.quality, True, True
         )
         self.video = Video(self.vod, self.parent_dir, self.quality, self.threads, True)
 

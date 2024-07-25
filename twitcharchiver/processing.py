@@ -93,7 +93,7 @@ class Processing:
                         self.output_dir,
                         self.quality,
                         self.quiet,
-                        not self.force_no_archive,
+                        False
                     )
 
                     # check for debug force no archive flag
