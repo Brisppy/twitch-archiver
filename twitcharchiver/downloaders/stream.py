@@ -574,7 +574,7 @@ class Stream(Downloader):
                 )
                 self._unsupported_parts.add(_part)
 
-            if len(self._unsupported_parts) > 2:
+            if len(self._unsupported_parts) > 2 and self._align_segments:
                 raise UnsupportedStreamPartDuration
 
             # add part to segment download queue
