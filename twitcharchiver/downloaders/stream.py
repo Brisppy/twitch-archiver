@@ -447,13 +447,20 @@ class Stream(Downloader):
             TEMP_BUFFER_LEN,
         )
 
-        self._init_download_queue()
-
         # create temporary download directory
         self.output_dir = Path(
             self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at)
         )
         Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
+
+        if self.output_dir.exists():
+            # get existing parts to resume counting if archiving halted
+            self._completed_segments = [
+                MpegSegment(int(Path(p).name.removesuffix(".ts")), 10)
+                for p in list(Path(self.output_dir, "parts").glob("*.ts"))
+            ]
+
+        self._init_download_queue()
 
         # download new parts every CHECK_INTERVAL time
         for _ in range(int((TEMP_BUFFER_LEN - stream_length) / CHECK_INTERVAL)):
