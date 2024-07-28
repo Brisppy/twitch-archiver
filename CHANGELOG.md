@@ -1,3 +1,18 @@
+**(2024-07-28) Version 4.1.0**
+
+**IMPORTANT NOTICE**
+Any stream archived without a paired VOD grabbed with the `watch` flag enabled is likely corrupt due to an overlooked error with the previous archiving method, this archiving method was and still is not guaranteed to be flawless, but is a "best effort" attempt at archiving these kinds of streams. Apologies that this wasn't caught sooner. 
+
+**Changes and Fixes:**
+ * Rewrote object for storing stream segments to prevent parts being potentially overwritten.
+ * Add flag for ignoring part corruptions used for streams without paired VODs.
+ * Fix stream merged with ffmpeg being out of order if stream was buffered before archiver ran (#36).
+ * Fix streams without a VOD starting from a non-zero part number if buffered.
+ * Fix streams without a VOD not being downloaded if they have unusual part durations.
+ * Fix buffer being overwritten if archiving restarted during buffer interval.
+ * Add debug flag to grab stream and ignore any paired VOD.
+
+
 **(2024-06-22) Version 4.0.11**
 
 **Changes and Fixes:**
