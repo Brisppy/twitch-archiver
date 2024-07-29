@@ -36,6 +36,7 @@ class Vod:
         self.v_id: int = int(vod_id)
         self._s_id: int = int(stream_id)
         self.category: Category = Category()
+        self._chapters = []
         self.created_at: float = 0
         self.description: str = ""
         self.duration: int = 0
@@ -245,7 +246,18 @@ class Vod:
         self._log.debug("%s is offline and so VOD must be offline.", self.channel.name)
         return False
 
-    def get_chapters(self):
+    @property
+    def chapters(self):
+        if not self._chapters:
+            self._chapters = self._get_chapters()
+
+        return self._chapters
+
+    @chapters.setter
+    def chapters(self, value):
+        self.chapters = value
+
+    def _get_chapters(self):
         """
         Retrieves the chapters for a given Twitch VOD.
 
@@ -651,7 +663,7 @@ class ArchivedVod(Vod):
             "stream_id": self._s_id,
             "user_id": self.channel.id,
             "user_name": self.channel.name,
-            "chapters": str(self.get_chapters()),
+            "chapters": str(self.chapters),
             "title": self.title,
             "description": self.description,
             "created_at": datetime.utcfromtimestamp(self.created_at),
