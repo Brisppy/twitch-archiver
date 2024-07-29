@@ -579,18 +579,17 @@ class Merger:
     def _write_chapters(self):
         # retrieve vod chapters
         try:
-            vod_chapters = self.vod.get_chapters()
             # write chapters to file
             with open(
                 Path(self._output_dir, "chapters.json"), "w", encoding="utf8"
             ) as chapters_file:
-                chapters_file.write(str(vod_chapters))
+                chapters_file.write(str(self.vod.chapters))
 
             # format and write vod chapters to parts dir
             with open(
                 Path(self._output_dir, "parts", "chapters.txt"), "w", encoding="utf8"
             ) as chapters_file:
-                chapters_file.write(str(format_vod_chapters(vod_chapters)))
+                chapters_file.write(str(format_vod_chapters(self.vod.chapters)))
 
         except Exception as exc:
             self._log.error(

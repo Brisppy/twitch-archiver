@@ -34,7 +34,7 @@ class TestVod(unittest.TestCase):
 
     def test_get_chapters(self):
         expected = "[{'description': 'Chess', 'type': 'GAME_CHANGE', 'segment': {'position': 0.0, 'duration': 28534.0}}, {'description': 'Just Chatting', 'type': 'GAME_CHANGE', 'segment': {'position': 28534.0, 'duration': 1546.0}}, {'description': 'Chess', 'type': 'GAME_CHANGE', 'segment': {'position': 30080.0, 'duration': 2005.0}}]"
-        self.assertEqual(expected, str(self.vod_a.get_chapters()))
+        self.assertEqual(expected, str(self.vod_a.chapters))
 
     def test_get_muted_segments(self):
         expected = "[{'id': 0, 'duration': 360, 'muted': True}, {'id': 15840, 'duration': 360, 'muted': True}, {'id': 16560, 'duration': 360, 'muted': True}, {'id': 26280, 'duration': 360, 'muted': True}]"
