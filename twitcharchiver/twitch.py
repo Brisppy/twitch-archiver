@@ -133,6 +133,33 @@ class Chapters:
         """
         self._moments.append(moment)
 
+    def stream_update_chapters(self, game_info, duration):
+        if len(self._moments) == 0:
+            # create moment
+            _moment = Chapters.Moment()
+            # set moment details
+            _moment.segment = Segment(0.0, duration)
+            _moment.type = "GAME_CHANGE"
+            _moment.description = game_info["name"]
+            _moment.category = Category(game_info)
+            self._moments.append(_moment)
+
+        else:
+            # update most recent moment duration
+            self._moments[-1].segment.duration = (
+                duration - self._moments[-1].segment.position
+            )
+
+            # check if category changed
+            if self._moments[-1].category.name != game_info["name"]:
+                # create new moment and append
+                _moment = Chapters.Moment()
+                _moment.segment = Segment(duration, 0)
+                _moment.type = "GAME_CHANGE"
+                _moment.description = game_info["name"]
+                _moment.category = Category(game_info)
+                self._moments.append(_moment)
+
     @staticmethod
     def create_chapter_from_category(category: Category, duration: int):
         """
