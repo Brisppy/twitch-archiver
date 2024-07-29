@@ -759,7 +759,7 @@ class Merger:
                         )
 
         if _p.returncode:
-            self._log.debug(
+            self._log.error(
                 "FFmpeg exited with error code, output dumped to VOD directory."
             )
             with open(

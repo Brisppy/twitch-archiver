@@ -292,17 +292,27 @@ class Stream(Downloader):
             _start_timestamp: float = datetime.now(timezone.utc).timestamp()
             self.single_download_pass()
 
+            try:
+                self.vod.chapters.stream_update_chapters(
+                    self.channel.get_stream_info()["stream"]["game"], self.vod.duration
+                )
+
+            except Exception as e:
+                self._log.error("Failed to update chapters for stream. Error: %s", e)
+
             # assume stream has ended once >20s has passed since the last segment was advertised
             #   if parts remain in the buffer, we need to download them whether there are 5 parts or not
             if time_since_date(self._last_part_announce) > 20:
                 # perform secondary check to see if stream is actually offline
                 _stream_info = self.channel.get_stream_info()
                 # check channel stream id matches ours
-                if (
-                    _stream_info["stream"]
-                    and int(_stream_info["stream"]["id"]) == self.vod.s_id
-                ):
-                    pass
+                if _stream_info["stream"]:
+                    self.vod.chapters.stream_update_chapters(
+                        self.channel.get_stream_info()["stream"]["game"]
+                    )
+                    if int(_stream_info["stream"]["id"]) == self.vod.s_id:
+                        # stream info still being broadcast by channel, attempt to grab more segments
+                        pass
 
                 else:
                     self._log.debug(
