@@ -646,6 +646,8 @@ class Merger:
                 f'-c copy "{str(Path(self._output_dir, "merged.ts"))}"'
             )
 
+            self._log.debug("FFmpeg Command: %s", _command)
+
             with subprocess.Popen(
                 sanitize_command(_command),
                 shell=True,
@@ -699,6 +701,8 @@ class Merger:
             _ffmpeg_cmd += f'-i "{Path(self._output_dir, "parts", "chapters.txt")}" -map_metadata 1 '
 
         _ffmpeg_cmd += f'-c:a copy -c:v copy "{Path(self._output_dir, "vod.mp4")}"'
+
+        self._log.debug("FFmpeg Command: %s", _ffmpeg_cmd)
 
         # convert merged .ts file to .mp4
         with subprocess.Popen(
