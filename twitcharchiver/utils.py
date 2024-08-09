@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tempfile
 from datetime import datetime, timezone
 from itertools import groupby
@@ -63,12 +64,12 @@ def sanitize_command(command: str):
     :param command: Command to sanitize
     :return: Sanitized command
     """
-    if os.name == "nt":
+    if os.name == "nt" or sys.platform == "win32":
         # Windows command formatting
         return command
 
     # Linux / MacOS command formatting
-    elif os.name == "posix":
+    else:
         return command.replace('"', "'")
 
 
