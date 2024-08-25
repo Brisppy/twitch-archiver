@@ -36,6 +36,9 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
     :return: name of output folder for given VOD or stream parameters
     :rtype: str
     """
+    if title is None:
+        title = ""
+
     # trim titles to 128 characters (leaves ~90 characters for the base directory)
     if len(title) > 128:
         title = title[:128] + "..."
