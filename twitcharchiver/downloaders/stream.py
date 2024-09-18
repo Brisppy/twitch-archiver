@@ -260,6 +260,7 @@ class Stream(Downloader):
         self._completed_segments: list[StreamSegment] = []
         self._processed_parts: set[StreamSegment.Part] = set()
         self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
+        self.has_ended = False
 
         self._unsupported_parts = set()
 
@@ -467,6 +468,7 @@ class Stream(Downloader):
                     "Assuming stream has ended as 20 seconds passed since last segment announced."
                 )
                 self._get_final_segment()
+                self.has_ended = True
                 return True
 
         return False
