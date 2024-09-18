@@ -7,7 +7,6 @@ import shutil
 import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 from pathlib import Path
 
 from twitcharchiver.channel import Channel
@@ -20,7 +19,6 @@ from twitcharchiver.downloaders.video import Video
 from twitcharchiver.exceptions import (
     VodLockedError,
     VodAlreadyCompleted,
-    UnsupportedStreamPartDuration,
 )
 from twitcharchiver.utils import send_push
 from twitcharchiver.vod import Vod, ArchivedVod
@@ -105,34 +103,42 @@ class Processing:
                     self.log.info(
                         "Stream began very recently, buffering initial segments until API updates."
                     )
-                    stream.archive_set_duration(TEMP_BUFFER_LEN)
+                    with DownloadHandler(
+                        ArchivedVod.convert_from_vod(stream.vod)
+                    ) as _dh:
+                        stream.archive_set_duration(TEMP_BUFFER_LEN)
 
+                        # stream ended before buffer time reached
+                        if stream.has_ended:
+                            # set downloaded flag
+                            _dh.vod.video_archived = True
+                            stream.export_metadata()
+                            stream.merge()
+                            stream.cleanup_temp_files()
+
+                # don't bother with further checks if stream archive completed
+                if not stream.has_ended:
                     # TEMP_BUFFER_LEN has passed, check if stream has paired VOD now...
-                    broadcast_vod_id = stream.channel.broadcast_v_id
-                    broadcast_vod = Vod(broadcast_vod_id)
+                    stream.match_to_channel_vod()
 
-                    # check broadcast VOD and stream have same stream IDs
-                    if broadcast_vod.s_id == stream.vod.s_id:
+                    # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
+                    # otherwise we add it to the download queue
+                    if stream.vod.v_id:
+                        self.log.debug("Current stream has a paired VOD.")
+
                         # remove downloaded files (if any)
                         stream.cleanup_temp_files()
                         shutil.rmtree(Path(stream.output_dir), ignore_errors=True)
-                        # replace stream VOD for later checks
-                        stream.vod = Vod(broadcast_vod_id)
 
-                # if VOD was missed by the channel video fetcher as the stream was too new we add it to the videos.
-                # otherwise we add it to the download queue
-                if stream.vod.v_id:
-                    self.log.debug("Current stream has a paired VOD.")
+                        if stream.vod.v_id not in [v.v_id for v in channel_videos]:
+                            channel_videos.insert(0, Vod(stream.vod.v_id))
 
-                    if stream.vod.v_id not in [v.v_id for v in channel_videos]:
-                        channel_videos.insert(0, Vod(stream.vod.v_id))
-
-                # no paired VOD exists, so we archive the stream before moving onto VODs
-                elif self.archive_video and not self.archive_only:
-                    self.log.debug(
-                        "Current stream has no paired VOD - beginning stream downloader."
-                    )
-                    self._start_download(stream)
+                    # no paired VOD exists, so we archive the stream before moving onto VODs
+                    elif self.archive_video and not self.archive_only:
+                        self.log.debug(
+                            "Current stream has no paired VOD - beginning stream downloader."
+                        )
+                        self._start_download(stream)
 
             # move on if channel offline and `live-only` set
             elif self.live_only:
