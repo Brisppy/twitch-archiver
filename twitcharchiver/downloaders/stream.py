@@ -319,14 +319,6 @@ class Stream(Downloader):
             _start_timestamp: float = datetime.now(timezone.utc).timestamp()
             self.single_download_pass()
 
-            try:
-                self.vod.chapters.stream_update_chapters(
-                    self.channel.get_stream_info()["stream"]["game"], self.vod.duration
-                )
-
-            except Exception as e:
-                self._log.error("Failed to update chapters for stream. Error: %s", e)
-
             if self._check_stream_ended():
                 break
 
@@ -334,6 +326,18 @@ class Stream(Downloader):
             _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
             if _loop_time < CHECK_INTERVAL:
                 sleep(CHECK_INTERVAL - _loop_time)
+
+    def _update_chapters(self):
+        try:
+            _stream_info = self.channel.get_stream_info()
+
+            if _stream_info["stream"]["game"]:
+                self.vod.chapters.stream_update_chapters(
+                    _stream_info["stream"]["game"], self.vod.duration
+                )
+
+        except Exception as e:
+            self._log.error("Failed to update chapters for stream. Error: %s", e)
 
     def merge(self):
         """
@@ -365,6 +369,7 @@ class Stream(Downloader):
         """
         try:
             self._fetch_advertised_parts()
+            self._update_chapters()
 
             if self._incoming_part_buffer:
                 self._build_download_queue()
@@ -451,7 +456,7 @@ class Stream(Downloader):
             # check channel stream id matches ours
             if _stream_info["stream"]:
                 self.vod.chapters.stream_update_chapters(
-                    self.channel.get_stream_info()["stream"]["game"]
+                    self.channel.get_stream_info()["stream"]["game"], self.vod.duration
                 )
                 if int(_stream_info["stream"]["id"]) == self.vod.s_id:
                     # stream info still being broadcast by channel, attempt to grab more segments
