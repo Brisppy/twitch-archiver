@@ -33,7 +33,6 @@ from twitcharchiver.utils import (
 )
 from twitcharchiver.vod import Vod, ArchivedVod
 
-TEMP_BUFFER_LEN = 300
 CHECK_INTERVAL = 4
 
 
@@ -308,6 +307,34 @@ class Stream(Downloader):
             if _loop_time < CHECK_INTERVAL:
                 sleep(CHECK_INTERVAL - _loop_time)
 
+    def archive_set_duration(self, duration: int):
+        """
+        Downloads stream with the given settings until stream is equal to or longer than the given duration.
+        """
+        # create output  dir if not already created
+        Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
+
+        # loop until stream reaches duration in length
+        while self.vod.duration < duration:
+            _start_timestamp: float = datetime.now(timezone.utc).timestamp()
+            self.single_download_pass()
+
+            try:
+                self.vod.chapters.stream_update_chapters(
+                    self.channel.get_stream_info()["stream"]["game"], self.vod.duration
+                )
+
+            except Exception as e:
+                self._log.error("Failed to update chapters for stream. Error: %s", e)
+
+            if self._check_stream_ended():
+                break
+
+            # sleep if processing time < CHECK_INTERVAL time before checking for new segments
+            _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
+            if _loop_time < CHECK_INTERVAL:
+                sleep(CHECK_INTERVAL - _loop_time)
+
     def merge(self):
         """
         Attempt to merge downloaded segments.
@@ -382,35 +409,7 @@ class Stream(Downloader):
         except TwitchAPIErrorNotFound as exc:
             raise StreamOfflineError(self.channel) from exc
 
-        # ensure enough time has passed for VOD api to update before archiving. this is important as it changes
-        # the way we archive if the stream is not being archived to a VOD.
         self._log.debug("Current stream length: %s", self.vod.duration)
-
-        # while we wait for the api to update we must build a temporary buffer of any parts advertised in the
-        # meantime in case there is no vod and thus no way to retrieve them after the fact
-        if not self.vod.v_id:
-            if self.vod.duration < TEMP_BUFFER_LEN:
-                self._buffer_stream(self.vod.duration)
-
-            # fetch most recent channel broadcast ID
-            broadcast_vod_id = self.channel.broadcast_v_id
-
-            # if broadcast ID stream_id matches ours, they are paired.
-            broadcast_vod = Vod(broadcast_vod_id)
-            if broadcast_vod.s_id == self.vod.s_id:
-                self.vod = Vod(broadcast_vod_id)
-
-                # if a paired VOD exists for the stream we can discard our temporary buffer and any downloaded files
-                self._incoming_part_buffer: list[StreamSegment.Part] = []
-                self._processed_parts: set[StreamSegment.Part] = set()
-                self._last_part_announce: float = datetime.now(timezone.utc).timestamp()
-
-                if self.output_dir and Path(self.output_dir).exists():
-                    shutil.rmtree(Path(self.output_dir))
-
-            # stream is not paired with broadcast VOD - must be stream-only
-            else:
-                self._align_segments = False
 
         # build and create actual output directory
         self.output_dir = Path(
@@ -426,49 +425,6 @@ class Stream(Downloader):
             ]
 
         self._init_download_queue()
-
-    def _buffer_stream(self, stream_length: int):
-        """
-        Builds a temporary buffer when a stream has just started to ensure the Twitch API has updated when we
-        attempt to fetch VOD information.
-
-        :param stream_length: time in seconds stream has been live
-        """
-        self._log.debug(
-            "Stream began less than %s ago, delaying archival start until VOD API updated.",
-            TEMP_BUFFER_LEN,
-        )
-
-        # create temporary download directory
-        self.output_dir = Path(
-            self._parent_dir, build_output_dir_name(self.vod.title, self.vod.created_at)
-        )
-        Path(self.output_dir, "parts").mkdir(parents=True, exist_ok=True)
-
-        if self.output_dir.exists():
-            # get existing parts to resume counting if archiving halted
-            self._completed_segments = [
-                MpegSegment(int(Path(p).name.removesuffix(".ts")), 10)
-                for p in list(Path(self.output_dir, "parts").glob("*.ts"))
-            ]
-
-        self._init_download_queue()
-
-        # download new parts every CHECK_INTERVAL time
-        for _ in range(int((TEMP_BUFFER_LEN - stream_length) / CHECK_INTERVAL)):
-            _start_timestamp: float = datetime.now(timezone.utc).timestamp()
-            self.single_download_pass()
-
-            if self._check_stream_ended():
-                break
-
-            # wait if less than CHECK_INTERVAL time passed since grabbing more parts
-            _loop_time = int(datetime.now(timezone.utc).timestamp() - _start_timestamp)
-            if _loop_time < CHECK_INTERVAL:
-                sleep(CHECK_INTERVAL - _loop_time)
-
-        # wait any remaining time
-        sleep((TEMP_BUFFER_LEN - stream_length) % CHECK_INTERVAL)
 
     def _check_stream_ended(self):
         """
