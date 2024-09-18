@@ -384,24 +384,34 @@ class Stream(Downloader):
         # channel stream information can differ from video / VOD information making parallel archiving with the video
         # downloader impossible, so we need the option to provide our own VOD to sync with.
         if not self.vod:
-            self._log.debug("Fetching required stream information.")
-            # retry loop to avoid StreamOfflineError if stream just went live
-            for _ in range(4):
-                if _ == 3:
-                    self._log.info("%s is offline.", self.channel.name)
-                    raise StreamOfflineError(self.channel)
+            # attempt to import from paired VOD
+            broadcast_vod_id = self.channel.broadcast_v_id
 
-                stream_vod = ArchivedVod.convert_from_vod(
-                    Vod.from_stream_json(self.channel.get_stream_info()),
-                    video_archived=True,
-                )
-                stream_vod.channel = self.channel
-                if not stream_vod:
-                    sleep(5)
-                    continue
+            # if broadcast ID stream_id matches ours, they are paired.
+            broadcast_vod = Vod(broadcast_vod_id)
+            if broadcast_vod.s_id == self.vod.s_id:
+                self.vod = Vod(broadcast_vod_id)
 
-                self.vod = stream_vod
-                break
+            # otherwise create from stream info
+            else:
+                self._log.debug("Fetching required stream information.")
+                # retry loop to avoid StreamOfflineError if stream just went live
+                for _ in range(4):
+                    if _ == 3:
+                        self._log.info("%s is offline.", self.channel.name)
+                        raise StreamOfflineError(self.channel)
+
+                    stream_vod = ArchivedVod.convert_from_vod(
+                        Vod.from_stream_json(self.channel.get_stream_info()),
+                        video_archived=True,
+                    )
+                    stream_vod.channel = self.channel
+                    if not stream_vod:
+                        sleep(5)
+                        continue
+
+                    self.vod = stream_vod
+                    break
 
         # fetch index
         try:
