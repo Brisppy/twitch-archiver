@@ -390,16 +390,8 @@ class Stream(Downloader):
         # channel stream information can differ from video / VOD information making parallel archiving with the video
         # downloader impossible, so we need the option to provide our own VOD to sync with.
         if not self.vod:
-            # attempt to import from paired VOD
-            broadcast_vod_id = self.channel.broadcast_v_id
-
-            # if broadcast ID stream_id matches ours, they are paired.
-            broadcast_vod = Vod(broadcast_vod_id)
-            if broadcast_vod.s_id == self.vod.s_id:
-                self.vod = Vod(broadcast_vod_id)
-
-            # otherwise create from stream info
-            else:
+            if not self.match_to_channel_vod():
+                # VOD couldn't be found, generate from stream info
                 self._log.debug("Fetching required stream information.")
                 # retry loop to avoid StreamOfflineError if stream just went live
                 for _ in range(4):
@@ -595,6 +587,21 @@ class Stream(Downloader):
 
         # wipe part buffer
         self._incoming_part_buffer = []
+
+    def match_to_channel_vod(self):
+        """
+        Attempts to match the stream to a channel VOD and overwrites channel information with it.
+
+        :return: True if VOD found and paired
+        """
+        broadcast_vod_id = self.channel.broadcast_v_id
+        broadcast_vod = Vod(broadcast_vod_id)
+
+        # check broadcast VOD and stream have same stream IDs
+        if broadcast_vod.s_id == self.vod.s_id:
+            # replace stream VOD for later checks
+            self.vod = Vod(broadcast_vod_id)
+            return True
 
     def _download_queued_segments(self):
         """
