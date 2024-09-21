@@ -399,10 +399,7 @@ class Stream(Downloader):
                         self._log.info("%s is offline.", self.channel.name)
                         raise StreamOfflineError(self.channel)
 
-                    stream_vod = ArchivedVod.convert_from_vod(
-                        Vod.from_stream_json(self.channel.get_stream_info()),
-                        video_archived=True,
-                    )
+                    stream_vod = Vod.from_stream_json(self.channel.get_stream_info())
                     stream_vod.channel = self.channel
                     if not stream_vod:
                         sleep(5)
@@ -460,6 +457,11 @@ class Stream(Downloader):
                     "Assuming stream has ended as 20 seconds passed since last segment announced."
                 )
                 self._get_final_segment()
+
+                # set archival flag if ArchivedVod provided
+                if isinstance(self.vod, ArchivedVod):
+                    self.vod.video_archived = True
+
                 self.has_ended = True
                 return True
 
