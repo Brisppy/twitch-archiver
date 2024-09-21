@@ -106,12 +106,13 @@ class Processing:
                     with DownloadHandler(
                         ArchivedVod.convert_from_vod(stream.vod)
                     ) as _dh:
-                        stream.archive_set_duration(TEMP_BUFFER_LEN)
+                        # we're not setting either the video_archived or chat_archived flags here because we may want
+                        # to archive them from the VOD (if it becomes available). The stream info will be placed into
+                        # the database once the buffer is saved
+                        stream.archive_for_duration(TEMP_BUFFER_LEN)
 
                         # stream ended before buffer time reached
                         if stream.has_ended:
-                            # set downloaded flag
-                            _dh.vod.video_archived = True
                             stream.export_metadata()
                             stream.merge()
                             stream.cleanup_temp_files()

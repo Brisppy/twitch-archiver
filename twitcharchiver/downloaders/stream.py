@@ -308,7 +308,7 @@ class Stream(Downloader):
             if _loop_time < CHECK_INTERVAL:
                 sleep(CHECK_INTERVAL - _loop_time)
 
-    def archive_set_duration(self, duration: int):
+    def archive_for_duration(self, duration: int):
         """
         Downloads stream with the given settings until stream is equal to or longer than the given duration.
         """
@@ -336,6 +336,10 @@ class Stream(Downloader):
                 self.vod.chapters.stream_update_chapters(
                     _stream_info["stream"]["game"], self.vod.duration
                 )
+
+        except TypeError:
+            # streams with no current category will raise this as ["stream"]["game"] is empty
+            pass
 
         except Exception as e:
             self._log.error("Failed to update chapters for stream. Error: %s", e)
@@ -445,9 +449,7 @@ class Stream(Downloader):
             _stream_info = self.channel.get_stream_info()
             # check channel stream id matches ours
             if _stream_info["stream"]:
-                self.vod.chapters.stream_update_chapters(
-                    self.channel.get_stream_info()["stream"]["game"], self.vod.duration
-                )
+                self._update_chapters()
                 if int(_stream_info["stream"]["id"]) == self.vod.s_id:
                     # stream info still being broadcast by channel, attempt to grab more segments
                     pass
