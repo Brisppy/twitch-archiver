@@ -598,7 +598,7 @@ class Stream(Downloader):
 
         :return: True if VOD found and paired
         """
-        broadcast_vod_id = self.channel.broadcast_v_id
+        broadcast_vod_id = self.channel.get_broadcast_v_id()
         broadcast_vod = Vod(broadcast_vod_id)
 
         # check broadcast VOD and stream have same stream IDs
