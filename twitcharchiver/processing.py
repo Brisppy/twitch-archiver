@@ -94,6 +94,7 @@ class Processing:
 
                 # check for debug force no archive flag
                 if self.force_no_archive:
+                    stream.vod = ArchivedVod.convert_from_vod(stream.vod)
                     self._start_download(stream)
                     continue
 
@@ -139,6 +140,7 @@ class Processing:
                         self.log.debug(
                             "Current stream has no paired VOD - beginning stream downloader."
                         )
+                        stream.vod = ArchivedVod.convert_from_vod(stream.vod)
                         self._start_download(stream)
 
             # move on if channel offline and `live-only` set
