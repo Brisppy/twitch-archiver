@@ -682,8 +682,11 @@ class Stream(Downloader):
         """
         Downloads the final stream segment.
         """
-        # ensure final segment present
-        if self._download_queue.is_segment_present(self._download_queue.current_id):
+        # check if the download queue contains a segment with a higher ID than the last
+        # completed segment
+        if self._download_queue.is_segment_present(
+            max(self._completed_segments, key=attrgetter("id")).id + 1
+        ):
             self._log.debug("Fetching final stream segment.")
             self._download_segment(
                 self._download_queue.get_segment_by_id(self._download_queue.current_id)
