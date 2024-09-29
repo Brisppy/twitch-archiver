@@ -134,6 +134,10 @@ class Chapters:
         self._moments.append(moment)
 
     def stream_update_chapters(self, game_info, duration):
+        if not game_info:
+            # don't bother updating if no game info provided
+            return
+
         if len(self._moments) == 0:
             # create moment
             _moment = Chapters.Moment()
