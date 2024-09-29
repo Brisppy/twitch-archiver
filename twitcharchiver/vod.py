@@ -154,7 +154,11 @@ class Vod:
         """
         Refreshes metadata for VOD.
         """
-        self._fetch_metadata()
+        try:
+            self._fetch_metadata()
+
+        except TypeError:
+            self._log.error("Failed to refresh VOD metadata, VOD was likely deleted.")
 
     def to_dict(self):
         """
