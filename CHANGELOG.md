@@ -1,3 +1,18 @@
+**(2024-10-05) Version 4.2.0**
+
+**Additions:**
+* Added chapter archiving for streams without VODs (https://github.com/Brisppy/twitch-archiver/issues/35).
+
+**Changes and Fixes:**
+* Fix stream archiver waiting the full buffer length even when the stream ends early.
+* Fix issue with empty VOD attributes.
+* Fix streams without VODs being merged out of order if they are under 5 minutes (https://github.com/Brisppy/twitch-archiver/issues/38).
+* Fix issue with database updates failing for streams without VODs.
+* Fix issue with final stream segment not being downloaded for streams with paired VODs (only affects streams where the VOD was deleted before the VOD downloader finished)
+* Fix issue fetching VOD metadata when VOD has been deleted.
+* Fix issue with updating stream chapters when no game info found.
+
+
 **(2024-07-28) Version 4.1.0**
 
 **IMPORTANT NOTICE**
