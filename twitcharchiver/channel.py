@@ -274,24 +274,26 @@ class Channel:
         """
         # only accepts the default client ID for non-authenticated clients
         _h = {"Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"}
-        _q = """
-        {{
-            streamPlaybackAccessToken(
-                channelName: "{channel}",
-                params: {{
-                    platform: "web",
-                    playerBackend: "mediaplayer",
-                    playerType: "embed"
-                }}
-            ) {{
-                signature
-                value
-            }}
-        }}
-        """.format(
-            channel=self.name.lower()
-        )
-        _r = self._api.post_request("https://gql.twitch.tv/gql", j={"query": _q}, h=_h)
+
+        _q = {
+            "operationName": "PlaybackAccessToken",
+            "extensions": {
+                "persistedQuery": {
+                    "version": 1,
+                    "sha256Hash": "0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712",
+                }
+            },
+            "variables": {
+                "isLive": True,
+                "isVod": False,
+                "login": self.name,
+                "platform": "web",
+                "playerType": "frontpage",
+                "vodID": "",
+            },
+        }
+
+        _r = self._api.post_request("https://gql.twitch.tv/gql", j=_q, h=_h)
 
         _access_token = _r.json()["data"]["streamPlaybackAccessToken"]
         self._log.debug("Access token retrieved for %s. %s", self.name, _access_token)
