@@ -158,18 +158,30 @@ class Api:
                 sleep(_ * 10)
                 continue
 
-    def gql_request(self, operation: str, query_hash: str, variables: dict):
+    def gql_request(
+        self,
+        operation: str,
+        query_hash: str,
+        variables: dict,
+        include_oauth: bool = False,
+    ):
         """
         Post a gql query and returns the response.
 
         :param operation: name of operation
         :param query_hash: hash of operation
         :param variables: dict of variable to post with request
+        :param include_oauth: bool whether to include oauth token in header
         :return: entire request response
         :rtype: requests.Response
         """
         # Uses default client header
         _h = {"Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"}
+
+        # set authorization token if requested and configured
+        if include_oauth and self.oauth_token:
+            _h["Authorization"] = f"OAuth {self.oauth_token}"
+
         _q = [
             {
                 "extensions": {
