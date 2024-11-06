@@ -15,9 +15,7 @@ class Configuration:
 
     # reference:
     #   https://stackoverflow.com/questions/6198372/most-pythonic-way-to-provide-global-configuration-variables-in-config-py/
-    __conf = {
-        "pushbullet_key": "",
-    }
+    __conf = {"pushbullet_key": "", "oauth_token": ""}
 
     _log = logging.getLogger()
 
@@ -124,7 +122,7 @@ class Configuration:
         :return: requested value(s)
         """
         configuration = cls.__conf.copy()
-        for key in ["pushbullet_key"]:
+        for key in ["pushbullet_key", "oauth_token"]:
             if configuration[key]:
                 configuration.update({key: 24 * "*" + configuration[key][24:]})
 

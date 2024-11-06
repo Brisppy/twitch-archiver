@@ -36,6 +36,7 @@ import textwrap
 from pathlib import Path
 from time import sleep
 
+from twitcharchiver.api import Api
 from twitcharchiver.arguments import Arguments
 from twitcharchiver.channel import Channel
 from twitcharchiver.configuration import Configuration
@@ -188,6 +189,14 @@ def main():
         default=getenv("TWITCH_ARCHIVER_REAL_TIME_ARCHIVER", False, True),
     )
     parser.add_argument(
+        "-o",
+        "--oauth-token",
+        action="store",
+        help="Run archiver with provided Twitch OAuth token.",
+        type=str,
+        default=getenv("TWITCH_ARCHIVER_OAUTH_TOKEN", ""),
+    )
+    parser.add_argument(
         "-L",
         "--log-dir",
         action="store",
@@ -274,6 +283,11 @@ def main():
     # overwrite different or missing configuration variables
     config.generate_config(args.get())
     log.debug("Settings after loading config: %s", config.get_sanitized())
+
+    # set OAuth token if provided
+    if config.get("oauth_token"):
+        _api = Api()
+        _api.oauth_token = config.get("oauth_token")
 
     # create temp dir for downloads and lock files
     Path(get_temp_dir()).mkdir(exist_ok=True)

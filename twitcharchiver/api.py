@@ -35,6 +35,7 @@ class Api:
         """
         self._session = requests.session()
         self._headers = {}
+        self.oauth_token = ""
         self.logging = logging.getLogger()
 
     def __enter__(self):
