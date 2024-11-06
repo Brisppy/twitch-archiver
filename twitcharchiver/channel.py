@@ -272,18 +272,10 @@ class Channel:
         :return: dictionary of playback access token values
         :rtype: dict
         """
-        # only accepts the default client ID for non-authenticated clients
-        _h = {"Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"}
-
-        _q = {
-            "operationName": "PlaybackAccessToken",
-            "extensions": {
-                "persistedQuery": {
-                    "version": 1,
-                    "sha256Hash": "0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712",
-                }
-            },
-            "variables": {
+        _r = self._api.gql_request(
+            "PlaybackAccessToken",
+            "0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712",
+            {
                 "isLive": True,
                 "isVod": False,
                 "login": self.name,
@@ -291,11 +283,10 @@ class Channel:
                 "playerType": "frontpage",
                 "vodID": "",
             },
-        }
+            include_oauth=True,
+        )
 
-        _r = self._api.post_request("https://gql.twitch.tv/gql", j=_q, h=_h)
-
-        _access_token = _r.json()["data"]["streamPlaybackAccessToken"]
+        _access_token = _r.json()[0]["data"]["streamPlaybackAccessToken"]
         self._log.debug("Access token retrieved for %s. %s", self.name, _access_token)
 
         return _access_token
