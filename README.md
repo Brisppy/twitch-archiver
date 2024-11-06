@@ -29,7 +29,7 @@ Primarily focused on data preservation, this script can be used to archive an en
 * Downloads as fast as your Internet connection (and storage) can handle.[^1]
 * Real-time archiving of Twitch streams.[^2]
 * Saves both a raw and readable chat log with timestamps and user badges.
-* Supports downloading streams which aren't being saved by Twitch.
+* Supports downloading streams which aren't being archived to Twitch.
 * Error notifications via pushbullet.
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
@@ -86,8 +86,8 @@ Below is the output of the `--help` or `-h` command. This displays all the avail
 ```
 usage: __init__.py [-h] (-c CHANNEL | -v VOD) [-f] [-C] [-V] [-t THREADS]
                    [-q QUALITY] [-d DIRECTORY] [-w] [-l | -a] [-R]
-                   [-L LOG_DIR] [-I CONFIG_DIR] [-p PUSHBULLET_KEY] [-Q | -D]
-                   [--version] [--show-config]
+                   [-o OAUTH_TOKEN] [-L LOG_DIR] [-I CONFIG_DIR]
+                   [-p PUSHBULLET_KEY] [-Q | -D] [--version] [--show-config]
 
 requires one of:
     -c CHANNEL, --channel CHANNEL / URL
@@ -122,6 +122,8 @@ options:
   -R, --real-time-archiver
                         Enable real-time stream archiver.
                         Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.
+  -o OAUTH_TOKEN, --oauth-token OAUTH_TOKEN
+                        Run archiver with provided Twitch OAuth token.
   -L LOG_DIR, --log-dir LOG_DIR
                         Output logs to specified directory.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
