@@ -31,9 +31,10 @@ Primarily focused on data preservation, this script can be used to archive an en
 * Saves both a raw and readable chat log with timestamps and user badges.
 * Supports downloading streams which aren't being archived to Twitch.
 * Error notifications via pushbullet.
+* Supports Twitch Turbo and channel Subscriptions (see [Wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#oauth-token)).
 
 [^1]: If you wish to speed up (or slow down) the downloading of VOD pieces, supply the '--threads NUMBER' argument to the script. This changes how many download threads are used to grab the individual video files. With the default of 20, I can max out my gigabit Internet while downloading to an M.2 drive.
-[^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. 
+[^2]: There is one caveat with live archiving due to how Twitch presents ads. Ads are not downloaded, BUT while an ad is displayed, the actual stream output is not sent. This can result in missing segments under very rare circumstances, but any missing segments should be filled via a parallel VOD archival function. See the OAuth Token secion of the [wiki](https://github.com/Brisppy/twitch-archiver/wiki/Wiki#oauth-token) for how to avoid this.
 
 ## Requirements
 * **[Python](https://www.python.org/) >= 3.9**
@@ -122,8 +123,6 @@ options:
   -R, --real-time-archiver
                         Enable real-time stream archiver.
                         Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.
-  -o OAUTH_TOKEN, --oauth-token OAUTH_TOKEN
-                        Run archiver with provided Twitch OAuth token.
   -L LOG_DIR, --log-dir LOG_DIR
                         Output logs to specified directory.
   -I CONFIG_DIR, --config-dir CONFIG_DIR
@@ -131,6 +130,8 @@ options:
                         (default: C:\Users\HC\.config\twitch-archiver)
   -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
                         Pushbullet key for sending pushes on error. Enabled by supplying key.
+  -o OAUTH_TOKEN, --oauth-token OAUTH_TOKEN
+                        Run archiver with provided Twitch OAuth token.
   -Q, --quiet           Disable all log output.
   -D, --debug           Enable debug logs.
   --version             Show version number and exit.

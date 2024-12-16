@@ -189,14 +189,6 @@ def main():
         default=getenv("TWITCH_ARCHIVER_REAL_TIME_ARCHIVER", False, True),
     )
     parser.add_argument(
-        "-o",
-        "--oauth-token",
-        action="store",
-        help="Run archiver with provided Twitch OAuth token.",
-        type=str,
-        default=getenv("TWITCH_ARCHIVER_OAUTH_TOKEN", ""),
-    )
-    parser.add_argument(
         "-L",
         "--log-dir",
         action="store",
@@ -221,6 +213,14 @@ def main():
         action="store",
         help="Pushbullet key for sending pushes on error. Enabled by supplying key.",
         default=getenv("TWITCH_ARCHIVER_PUSHBULLET_KEY", default_val=""),
+    )
+    parser.add_argument(
+        "-o",
+        "--oauth-token",
+        action="store",
+        help="Run archiver with provided Twitch OAuth token.",
+        type=str,
+        default=getenv("TWITCH_ARCHIVER_OAUTH_TOKEN", ""),
     )
     loglevel.add_argument(
         "-Q", "--quiet", action="store_true", help="Disable all log output."
