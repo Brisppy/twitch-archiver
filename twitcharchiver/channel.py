@@ -2,12 +2,14 @@
 Class for retrieving and storing information related to channels and users.
 """
 import logging
+import sys
 from datetime import datetime, timezone
 from random import randrange
 
 import m3u8
 
 from twitcharchiver.api import Api
+from twitcharchiver.exceptions import TwitchAPIError
 from twitcharchiver.utils import time_since_date
 
 
@@ -272,19 +274,26 @@ class Channel:
         :return: dictionary of playback access token values
         :rtype: dict
         """
-        _r = self._api.gql_request(
-            "PlaybackAccessToken",
-            "0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712",
-            {
-                "isLive": True,
-                "isVod": False,
-                "login": self.name,
-                "platform": "web",
-                "playerType": "frontpage",
-                "vodID": "",
-            },
-            include_oauth=True,
-        )
+        try:
+            _r = self._api.gql_request(
+                "PlaybackAccessToken",
+                "0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712",
+                {
+                    "isLive": True,
+                    "isVod": False,
+                    "login": self.name,
+                    "platform": "web",
+                    "playerType": "frontpage",
+                    "vodID": "",
+                },
+                include_oauth=True,
+            )
+
+        except TwitchAPIError as exc:
+            self._log.error(
+                "Error retrieving stream playback token, check that the provided OAuth token is valid."
+            )
+            raise exc
 
         _access_token = _r.json()[0]["data"]["streamPlaybackAccessToken"]
         self._log.debug("Access token retrieved for %s. %s", self.name, _access_token)
