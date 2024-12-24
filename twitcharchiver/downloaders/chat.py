@@ -156,11 +156,13 @@ class Chat(Downloader):
             self.export_chat_logs()
 
         # logging
-        self._log.info("Found %s chat messages.", len(self._chat_log))
+        self._log.debug("Found %s chat messages.", len(self._chat_log))
 
         # set archival flag if ArchivedVod provided
         if isinstance(self.vod, ArchivedVod):
             self.vod.chat_archived = True
+
+        self._log.info("Finished archiving VOD chat.")
 
     def _download(self, offset: int = 0):
         """

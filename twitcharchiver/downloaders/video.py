@@ -508,6 +508,8 @@ class Video(Downloader):
         if isinstance(self.vod, ArchivedVod):
             self.vod.video_archived = True
 
+        self._log.info("Finished archiving VOD video.")
+
     def cleanup_temp_files(self):
         """
         Deletes temporary and transitional files used for archiving VOD video.

@@ -306,10 +306,14 @@ def main():
             else:
                 break
 
+        log.info("Finished archiving channel(s).")
+
     elif args.get("vod") is not None:
         vods = [ArchivedVod.convert_from_vod(Vod(v)) for v in args.get("vod")]
 
         process.vod_downloader(vods)
+
+        log.info("Finished archiving VOD(s).")
 
 
 if __name__ == "__main__":
