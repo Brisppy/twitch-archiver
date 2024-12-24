@@ -182,10 +182,6 @@ class Video(Downloader):
                 self.vod.refresh_vod_metadata()
                 self._download()
 
-            # set archival flag if ArchivedVod provided
-            if isinstance(self.vod, ArchivedVod):
-                self.vod.video_archived = True
-
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.warning(
                 "HTTP code 403 or 404 encountered, VOD %s was likely deleted.",
@@ -507,6 +503,10 @@ class Video(Downloader):
             raise VideoMergeError(
                 "VOD verification failed as VOD length is outside the acceptable range."
             )
+
+        # set archival flag if ArchivedVod provided
+        if isinstance(self.vod, ArchivedVod):
+            self.vod.video_archived = True
 
     def cleanup_temp_files(self):
         """
