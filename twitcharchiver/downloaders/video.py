@@ -891,15 +891,8 @@ class Merger:
             self.vod.duration,
         )
 
-        # allow VOD duration to differ from between 2 seconds, and a maximum of ~10 seconds over a 48 hour period
-        allowable_difference = max(self.vod.duration * 0.000058, 2)
-
         # pass verification if downloaded file is within 2s of expected length
-        if (
-            allowable_difference
-            >= downloaded_length - self.vod.duration
-            >= -allowable_difference
-        ):
+        if 2 >= downloaded_length - self.vod.duration >= -2:
             return True
 
         return False
