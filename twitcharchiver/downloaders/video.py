@@ -151,8 +151,9 @@ class Video(Downloader):
             # download once
             self._download()
 
-            # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error
-            # returned when trying to check VOD status, stream is assumed to be offline and we break loop.
+            # while VOD live, check for new parts every CHECK_INTERVAL seconds. if no new parts discovered after
+            # CHECK_INTERVAL * VOD_OFFLINE_TIME seconds, or error returned when trying to check VOD status,
+            # stream is assumed to be offline and we break loop.
             while self.vod.is_live():
                 self._log.debug(
                     "VOD is still live, attempting to download new video segments."
@@ -746,9 +747,35 @@ class Merger:
                             "Delete 'parts' folder and re-download VOD."
                         ) from exc
 
-                    _corrupt_part = MpegSegment(
-                        floor((_dts_timestamp - _dts_offset) / 90000 / 10), 10
-                    )
+                    # The maximum value for the DTS timestamp is 2^33 - 1 (8589934591). This will get reached ~26 hours
+                    # into a stream and cause corrupt part repair attempts to fail, so we need to use a different
+                    # calculation for streams longer than this if corrupt parts are encountered.
+
+                    # for Twitch, the final timestamp is part 09532, with the last packet timestamp being 8585279910
+                    # this is then proceeded by the first timestamp in part 09533 of -4651712
+
+                    # we must also add '2970' to the final packet timestamp to account for the time constant difference
+                    # between each packet.
+
+                    # check if we are past the expected seconds for the max value being reached, and our timestamp is
+                    # under the final expected timestamp
+                    if _cur_time > 95320 and _dts_timestamp < 8585279910:
+                        _corrupt_part = MpegSegment(
+                            floor(
+                                (
+                                    _dts_timestamp
+                                    + (8585279910 + 2970 + 4651712 - _dts_offset)
+                                )
+                                / 90000
+                                / 10
+                            ),
+                            10,
+                        )
+
+                    else:
+                        _corrupt_part = MpegSegment(
+                            floor((_dts_timestamp - _dts_offset) / 90000 / 10), 10
+                        )
 
                     # ignore if corrupt packet within ignore_corruptions range
                     if _corrupt_part.id in self._muted_segment_ids:
