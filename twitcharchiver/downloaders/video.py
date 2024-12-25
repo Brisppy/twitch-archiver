@@ -885,15 +885,14 @@ class Merger:
                 "Failed to fetch downloaded VOD length. See log for details."
             ) from exc
 
-        # allow VOD duration to differ from between 2 seconds, and a maximum of 9 seconds over a 48 hour period
-        allowable_difference = max(int(self.vod.duration * 0.000057), 2)
-
         self._log.debug(
-            "Downloaded VOD length is %s. Expected length is %s. Allowable difference is %s.",
+            "Downloaded VOD length is %s. Expected length is %s.",
             downloaded_length,
             self.vod.duration,
-            allowable_difference,
         )
+
+        # allow VOD duration to differ from between 2 seconds, and a maximum of ~10 seconds over a 48 hour period
+        allowable_difference = max(self.vod.duration * 0.000058, 2)
 
         # pass verification if downloaded file is within 2s of expected length
         if (
