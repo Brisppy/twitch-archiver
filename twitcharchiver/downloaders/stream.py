@@ -297,8 +297,11 @@ class Stream(Downloader):
                     self.channel.get_stream_info()["stream"]["game"], self.vod.duration
                 )
 
+            except TypeError:
+                pass
+
             except Exception as e:
-                self._log.error("Failed to update chapters for stream. Error: %s", e)
+                self._log.warning("Failed to update chapters for stream. Error: %s", e)
 
             if self._check_stream_ended():
                 break
