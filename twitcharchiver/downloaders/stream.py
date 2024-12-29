@@ -386,8 +386,7 @@ class Stream(Downloader):
         # stream offline
         except TwitchAPIErrorNotFound:
             self._log.info("%s is offline or stream ended.", self.channel.name)
-            if self._download_queue:
-                self._get_final_segment()
+            self._get_final_segment()
 
     def _do_setup(self):
         """
@@ -685,15 +684,18 @@ class Stream(Downloader):
         """
         Downloads the final stream segment.
         """
-        # check if the download queue contains a segment with a higher ID than the last
-        # completed segment
-        if self._download_queue.is_segment_present(
-            max(self._completed_segments, key=attrgetter("id")).id + 1
-        ):
-            self._log.debug("Fetching final stream segment.")
-            self._download_segment(
-                self._download_queue.get_segment_by_id(self._download_queue.current_id)
-            )
+        if self._download_queue:
+            # check if the download queue contains a segment with a higher ID than the last
+            # completed segment
+            if self._download_queue.is_segment_present(
+                max(self._completed_segments, key=attrgetter("id")).id + 1
+            ):
+                self._log.debug("Fetching final stream segment.")
+                self._download_segment(
+                    self._download_queue.get_segment_by_id(
+                        self._download_queue.current_id
+                    )
+                )
 
     def cleanup_temp_files(self):
         """
