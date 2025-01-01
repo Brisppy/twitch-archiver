@@ -1,3 +1,15 @@
+**(2025-01-01) Version 4.3.0**
+
+**Additions:**
+* Add support for Twitch Turbo and Subscriptions for disabling advertisements during stream and VOD archival (https://github.com/Brisppy/twitch-archiver/issues/39).
+
+**Changes and Fixes:**
+* Improvements to logging.
+* Fix issue with VODs being marked as archived when merging failed.
+* Fix issue with incorrect VOD parts being marked as corrupt in streams over ~26 hours (https://github.com/Brisppy/twitch-archiver/issues/40).
+* Fix exception being raised when stream finishes without any parts having been downloaded (https://github.com/Brisppy/twitch-archiver/issues/41).
+
+
 **(2024-10-05) Version 4.2.0**
 
 **Additions:**
