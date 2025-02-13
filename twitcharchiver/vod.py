@@ -130,7 +130,7 @@ class Vod:
         """
         _r = self._api.gql_request(
             "VideoMetadata",
-            "c25707c1e5176320ceac6b447d052480887e23bc794ca1d02becd0bcc91844fe",
+            "45111672eea2e507f8ba44d101a61862f9c56b11dee09a15634cb75cb9b9084d",
             {"channelLogin": self.channel.name, "videoID": str(self.v_id)},
         )
 
