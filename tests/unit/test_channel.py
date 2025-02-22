@@ -39,7 +39,7 @@ class TestChannel(unittest.TestCase):
         self.assertEqual(640057509, self.channel_b.get_latest_video().v_id)
 
     def test_get_channel_videos(self):
-        self.assertEqual(745, len(self.channel_b.get_channel_videos()))
+        self.assertEqual(745, len(self.channel_b.get_channel_archives()))
 
 
 if __name__ == "__main__":

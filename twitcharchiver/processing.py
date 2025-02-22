@@ -84,7 +84,9 @@ class Processing:
                 if _latest_video:
                     channel_videos.append(_latest_video)
             else:
-                channel_videos: list[Vod] = channel.get_channel_videos()
+                channel_videos: list[Vod] = channel.get_channel_archives()
+                if self.highlights:
+                    channel_videos.extend(channel.get_channel_highlights())
 
             channel_live = channel.is_live(force_refresh=True)
             if channel_live:

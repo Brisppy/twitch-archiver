@@ -338,16 +338,13 @@ class Channel:
         if _videos:
             return _videos[0]
 
-    def get_channel_videos(self):
+    def get_channel_archives(self):
         """
         Retrieves all available VODs for the channel.
 
         :return: list of all available VODs for the channel
         :rtype: list[Vod]
         """
-        from twitcharchiver.vod import Vod
-
-        _channel_videos = []
         _query_vars = {
             "broadcastType": "ARCHIVE",
             "channelOwnerLogin": f"{self.name.lower()}",
@@ -355,6 +352,48 @@ class Channel:
             "videoSort": "TIME",
         }
 
+        videos = self._get_channel_videos(_query_vars)
+        # set VOD type as none is provided by this query
+        for v in videos:
+            v.type = "ARCHIVE"
+
+        self._log.debug("VODs retrieved for %s: %s", self.name, len(videos))
+
+        return videos
+
+    def get_channel_highlights(self):
+        """
+        Retrieves all available highlights for the channel.
+
+        :return: list of all available highlights for the channel
+        :rtype: list[Vod]
+        """
+        _query_vars = {
+            "broadcastType": "HIGHLIGHT",
+            "channelOwnerLogin": f"{self.name.lower()}",
+            "limit": 30,
+            "videoSort": "TIME",
+        }
+
+        videos = self._get_channel_videos(_query_vars)
+        # set VOD type as none is provided by this query
+        for v in videos:
+            v.type = "HIGHLIGHT"
+
+        self._log.debug("Highlights retrieved for %s: %s", self.name, len(videos))
+
+        return videos
+
+    def _get_channel_videos(self, _query_vars):
+        """
+        Retrieves all available videos for the channel.
+
+        :return: list of all available videos for the channel
+        :rtype: list[Vod]
+        """
+        from twitcharchiver import Vod
+
+        _channel_videos = []
         while True:
             _r = self._api.gql_request(
                 "FilterableVideoTower_Videos",
@@ -381,11 +420,4 @@ class Channel:
             else:
                 break
 
-        if _channel_videos:
-            self._log.debug(
-                "VODs retrieved for %s: %s", self.name, len(_channel_videos)
-            )
-            return _channel_videos
-
-        self._log.debug("No VODs found for %s.", self.name)
-        return []
+        return _channel_videos
