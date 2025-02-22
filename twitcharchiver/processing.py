@@ -41,6 +41,7 @@ class Processing:
         self.archive_chat: bool = conf["chat"]
         self.archive_video: bool = conf["video"]
         self.archive_only: bool = conf["archive_only"]
+        self.highlights: bool = conf["highlights"]
         self.live_only: bool = conf["live_only"]
         self.real_time: bool = conf["real_time_archiver"]
 

@@ -120,6 +120,7 @@ options:
   -w, --watch           Continually check every 10 seconds for new streams/VODs from a specified channel.
   -l, --live-only       Only download streams / VODs which are currently live.
   -a, --archive-only    Don't download streams / VODs which are currently live.
+  -H, --highlights      Archive highlights with channel.
   -R, --real-time-archiver
                         Enable real-time stream archiver.
                         Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.

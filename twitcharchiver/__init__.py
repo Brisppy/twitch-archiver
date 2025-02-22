@@ -181,6 +181,13 @@ def main():
         default=False,
     )
     parser.add_argument(
+        "-H",
+        "--highlights",
+        action="store_true",
+        help="Archive highlights with channel.",
+        default=getenv("TWITCH_ARCHIVER_HIGHLIGHTS", False, True),
+    )
+    parser.add_argument(
         "-R",
         "--real-time-archiver",
         action="store_true",
