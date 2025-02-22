@@ -218,6 +218,12 @@ def parse_twitch_timestamp(timestamp):
     """
     # older twitch timestamps may include microseconds
     if "." in timestamp:
+        # handle highlights where chat messages have nanoseconds as they are unsupported by datetime
+        decimal = timestamp.split(".")[1]
+        if len(decimal) > 7:
+            # strip last 3 digits of nanosecond
+            timestamp = timestamp.replace(decimal, decimal[:6] + "Z")
+
         return (
             datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
             .replace(tzinfo=timezone.utc)

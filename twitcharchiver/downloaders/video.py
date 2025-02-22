@@ -1,6 +1,7 @@
 """
 Module used for downloading the video for a given Twitch VOD.
 """
+
 import json
 import logging
 import os
@@ -539,6 +540,7 @@ class Merger:
         muted_segments,
         quiet,
         ignore_corrupt_parts=False,
+        ignore_discontinuity=False,
     ):
         """
         Class constructor.
@@ -549,6 +551,7 @@ class Merger:
         self._completed_parts = self.get_completed_parts()
         self._muted_segment_ids = [s.id for s in muted_segments]
         self._ignore_corrupt_parts = ignore_corrupt_parts
+        self._ignore_discontinuity = ignore_discontinuity
         self._quiet = quiet
 
     def set_muted_segments(self, segments):
@@ -611,7 +614,7 @@ class Merger:
         _dicontinuity = set([i for i in range(_final_part_id + 1)]).difference(
             [_s.id for _s in self._completed_segments]
         )
-        if not _dicontinuity:
+        if not _dicontinuity or self._ignore_discontinuity:
             # merge all .ts files by concatenating them
             with open(str(Path(self._output_dir, "merged.ts")), "wb") as _merged_file:
                 _pt = 0

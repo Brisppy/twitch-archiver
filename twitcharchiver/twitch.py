@@ -1,6 +1,7 @@
 """
 Class for storing various basic objects used for information handling.
 """
+
 import re
 from pathlib import Path
 
@@ -321,8 +322,24 @@ class MpegSegment(Segment):
         :return: segment generated from the provided m3u8 segment
         :rtype: MpegSegment
         """
+        # handle highlights - the first segment contains the VOD ID '2378222354v0-2011.ts', the rest are normal
+        #                     segment can also be muted and will show as '2376548282v0-1584-muted.ts'
+        segment_split = segment.uri.split("-")
+
+        # muted initial highlight segment (2376548282v0-1584-muted.ts)
+        if len(segment_split) == 3:
+            seg_id = int(segment_split[1])
+
+        # initial highlight segment (2376548282v0-1584.ts)
+        elif len(segment_split) == 2 and "muted" not in segment.uri:
+            seg_id = int(re.sub(r".ts|-[a-zA-Z]*.ts", "", segment_split[1]))
+
+        # video non-muted or muted segment (1584.ts or 1584-muted.ts)
+        else:
+            seg_id = int(re.sub(r".ts|-[a-zA-Z]*.ts", "", segment.uri))
+
         return MpegSegment(
-            int(re.sub(r".ts|-[a-zA-Z]*.ts", "", segment.uri)),
+            seg_id,
             segment.duration,
             f"{base_url}{segment.uri}",
             "muted" in segment.uri,
