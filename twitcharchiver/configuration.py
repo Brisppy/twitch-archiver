@@ -8,14 +8,13 @@ import os
 
 
 class Configuration:
-
     """
     Generation, saving and loading of twitch-archive configuration.
     """
 
     # reference:
     #   https://stackoverflow.com/questions/6198372/most-pythonic-way-to-provide-global-configuration-variables-in-config-py/
-    __conf = {"pushbullet_key": "", "oauth_token": ""}
+    __conf = {"pushbullet_key": "", "oauth_token": "", "discord_webhook": ""}
 
     _log = logging.getLogger()
 

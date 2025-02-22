@@ -86,9 +86,10 @@ Would download VODs **1276315849** and **1275305106** to the directory **/mnt/tw
 Below is the output of the `--help` or `-h` command. This displays all the available arguments and a brief description of how to use them.
 ```
 usage: __init__.py [-h] (-c CHANNEL | -v VOD) [-f] [-C] [-V] [-t THREADS]
-                   [-q QUALITY] [-d DIRECTORY] [-w] [-l | -a] [-R]
-                   [-o OAUTH_TOKEN] [-L LOG_DIR] [-I CONFIG_DIR]
-                   [-p PUSHBULLET_KEY] [-Q | -D] [--version] [--show-config]
+                   [-q QUALITY] [-d DIRECTORY] [-w] [-l | -a] [-H] [-R]
+                   [-L LOG_DIR] [-I CONFIG_DIR] [-W DISCORD_WEBHOOK]
+                   [-p PUSHBULLET_KEY] [-o OAUTH_TOKEN] [-Q | -D] [--version]
+                   [--show-config]
 
 requires one of:
     -c CHANNEL, --channel CHANNEL / URL
@@ -100,21 +101,21 @@ Both the video and chat logs are grabbed if neither are specified.
 
 options:
   -h, --help            show this help message and exit
-  -c CHANNEL, --channel CHANNEL
+  -c, --channel CHANNEL
                         A single twitch channel to download, or multiple comma-separated channels.
-  -v VOD, --vod VOD, --vod-id VOD
+  -v, --vod, --vod-id VOD
                         A single VOD (e.g 12763849) or many comma-separated IDs (e.g 12763159,12753056).
   -f, --file            Denotes that the value provided to `-c | --channel` or `-v | --vod` is a
                         path to a file. Each line should contain a VOD ID or channel name.
   -C, --chat            Only save chat logs.
   -V, --video           Only save video.
-  -t THREADS, --threads THREADS
+  -t, --threads THREADS
                         Number of video download threads. (default: 20)
-  -q QUALITY, --quality QUALITY
+  -q, --quality QUALITY
                         Quality to download. Options are 'best', 'worst' or a custom value.
                         Format for custom values is [resolution]p[framerate], (e.g 1080p60, 720p30).
                         (default: best)
-  -d DIRECTORY, --directory DIRECTORY
+  -d, --directory DIRECTORY
                         Directory to store archived VOD(s), use TWO slashes for Windows paths.
                         (default: current directory)
   -w, --watch           Continually check every 10 seconds for new streams/VODs from a specified channel.
@@ -124,14 +125,16 @@ options:
   -R, --real-time-archiver
                         Enable real-time stream archiver.
                         Read https://github.com/Brisppy/twitch-archiver/wiki/Wiki#real-time-archiver.
-  -L LOG_DIR, --log-dir LOG_DIR
+  -L, --log-dir LOG_DIR
                         Output logs to specified directory.
-  -I CONFIG_DIR, --config-dir CONFIG_DIR
+  -I, --config-dir CONFIG_DIR
                         Directory to store configuration and VOD database.
                         (default: C:\Users\HC\.config\twitch-archiver)
-  -p PUSHBULLET_KEY, --pushbullet-key PUSHBULLET_KEY
+  -W, --discord-webhook DISCORD_WEBHOOK
+                        Webhook URL for sending messages on error.
+  -p, --pushbullet-key PUSHBULLET_KEY
                         Pushbullet key for sending pushes on error. Enabled by supplying key.
-  -o OAUTH_TOKEN, --oauth-token OAUTH_TOKEN
+  -o, --oauth-token OAUTH_TOKEN
                         Run archiver with provided Twitch OAuth token.
   -Q, --quiet           Disable all log output.
   -D, --debug           Enable debug logs.

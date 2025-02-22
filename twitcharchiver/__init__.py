@@ -215,6 +215,13 @@ def main():
         ),
     )
     parser.add_argument(
+        "-W",
+        "--discord-webhook",
+        action="store",
+        help="Webhook URL for sending messages on error.",
+        default=getenv("TWITCH_ARCHIVER_DISCORD_WEBHOOK", default_val=""),
+    )
+    parser.add_argument(
         "-p",
         "--pushbullet-key",
         action="store",
