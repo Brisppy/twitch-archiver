@@ -718,6 +718,8 @@ class Merger:
             _ffmpeg_log = ""
             for line in _p.stderr:
                 _ffmpeg_log += line.rstrip()
+                _cur_time = 0
+
                 if "time=" in line:
                     # extract current timestamp from output
                     _cur_time = (
