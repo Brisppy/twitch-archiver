@@ -21,7 +21,7 @@ from twitcharchiver.exceptions import (
     VodLockedError,
     VodAlreadyCompleted,
 )
-from twitcharchiver.utils import send_push
+from twitcharchiver.utils import send_push, send_discord_notification
 from twitcharchiver.vod import Vod, ArchivedVod
 
 TEMP_BUFFER_LEN = 300
@@ -51,6 +51,7 @@ class Processing:
         self._parent_dir: str = conf["directory"]
         self.output_dir: Path = Path(self._parent_dir)
 
+        self.discord_webhook: str = conf["discord_webhook"]
         self.pushbullet_key: str = conf["pushbullet_key"]
         self.quality: str = conf["quality"]
         self.threads: int = conf["threads"]
@@ -357,6 +358,13 @@ class Processing:
         # catch unhandled exceptions
         except BaseException as exc:
             self.log.error("Error archiving VOD %s.", _downloader.vod, exc_info=True)
+            if self.discord_webhook:
+                send_discord_notification(
+                    self.discord_webhook,
+                    f'Error downloading VOD "{_downloader.vod.v_id or _downloader.vod.s_id}"'
+                    f" by {_downloader.vod.channel.name}. {str(exc)}",
+                )
+
             if self.pushbullet_key:
                 send_push(
                     self.pushbullet_key,

@@ -301,6 +301,24 @@ def check_update_available(local_version, remote_version):
     return False
 
 
+def send_discord_notification(webhook_url, body):
+    """
+    Sends a discord notification via the provided webhook url.
+
+    :param webhook_url: url retrieved from discord channel
+    :body: text to send in message
+    """
+    try:
+        _r = requests.post(
+            webhook_url,
+            json={"content": body, "username": "Twitch Archiver"},
+            timeout=10,
+        )
+
+    except Exception as exc:
+        log.error("Error sending discord notification. Error: %s", exc)
+
+
 def send_push(pushbullet_key, title, body=""):
     """
     Sends a push to an account based on a given pushbullet key.
