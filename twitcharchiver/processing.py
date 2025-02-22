@@ -13,6 +13,7 @@ from twitcharchiver.channel import Channel
 from twitcharchiver.database import Database
 from twitcharchiver.downloader import DownloadHandler
 from twitcharchiver.downloaders.chat import Chat
+from twitcharchiver.downloaders.highlight import Highlight
 from twitcharchiver.downloaders.realtime import RealTime
 from twitcharchiver.downloaders.stream import Stream
 from twitcharchiver.downloaders.video import Video
@@ -237,13 +238,6 @@ class Processing:
         for _vod in download_queue:
             self.log.debug("Processing VOD %s from download queue.", _vod.v_id)
 
-            if _vod.type == "HIGHLIGHT":
-                self.log.error(
-                    "VOD %s is a highlight which is not currently supported by Twitch Archiver.",
-                    _vod.v_id or _vod.s_id,
-                )
-                continue
-
             if _vod.channel not in _channel_cache:
                 self.log.debug(
                     "Channel '%s' missing from cache - adding now.", _vod.channel
@@ -281,9 +275,27 @@ class Processing:
 
             if not _vod.video_archived and self.archive_video:
                 self.log.debug("Adding VOD to video archive queue.")
-                _video_download_queue.append(
-                    Video(_vod, self.output_dir, self.quality, self.threads, self.quiet)
-                )
+                if _vod.type == "HIGHLIGHT":
+                    _video_download_queue.append(
+                        Highlight(
+                            _vod,
+                            self.output_dir,
+                            self.quality,
+                            self.threads,
+                            self.quiet,
+                        )
+                    )
+
+                else:
+                    _video_download_queue.append(
+                        Video(
+                            _vod,
+                            self.output_dir,
+                            self.quality,
+                            self.threads,
+                            self.quiet,
+                        )
+                    )
 
             if not _vod.chat_archived and self.archive_chat:
                 self.log.debug("Adding VOD to chat archive queue.")
