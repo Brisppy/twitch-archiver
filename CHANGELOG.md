@@ -1,3 +1,16 @@
+**(2025-02-24) Version 4.4.0**
+**Additions:**
+* Support for downloading Highlights. This must be enabled when archiving channels with the `-H` or `--highlights` argument.
+* Add support for Discord notifications via webhooks. This can be enable by passing the URL for a webhook with the `-W` or `--discord-webhook` argument.
+
+**Changes and Fixes:**
+* Fix occasional `QueryNotFound` errors when fetching VOD information.
+* Fix issues with repairing VOD corruptions if the first part is corrupt.
+* Updated Python requirements.
+* Fix problems with Docker install failing.
+* Docker install overhauled to use locally downloaded repository.
+
+
 **(2025-01-01) Version 4.3.0**
 
 **Additions:**
