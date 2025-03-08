@@ -371,6 +371,7 @@ class Video(Downloader):
                         _ + 1,
                         str(exc),
                     )
+                    sleep(0.1 * (_ + 1))
                     continue
 
         try:
