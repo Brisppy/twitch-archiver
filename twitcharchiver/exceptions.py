@@ -125,6 +125,10 @@ class VideoPartDownloadError(VideoDownloadError):
     """Error occurred while downloading VOD part."""
 
 
+class VideoFormatUnsupported(VideoDownloadError):
+    """VOD format is not currently supported."""
+
+
 class VideoMergeError(VideoArchiveError):
     """Error occurred while merging VOD."""
 
