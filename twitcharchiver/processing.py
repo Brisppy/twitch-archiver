@@ -45,6 +45,7 @@ class Processing:
         self.highlights: bool = conf["highlights"]
         self.live_only: bool = conf["live_only"]
         self.real_time: bool = conf["real_time_archiver"]
+        self.unsorted: bool = conf["unsorted"]
 
         self.config_dir: str = conf["config_dir"]
         # store parent dir for creation of channel subdirectories stored in output_dir
@@ -238,6 +239,10 @@ class Processing:
 
         # cache channels with associated broadcast VOD IDs
         _channel_cache: list[Channel] = []
+
+        # sort the download queue in ascending order (oldest > newest) unless the '--unsorted' argument is provided.
+        if not self.unsorted:
+            download_queue.sort(key=lambda v: v.v_id)
 
         # begin processing each available vod
         for _vod in download_queue:

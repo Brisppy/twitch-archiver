@@ -243,6 +243,14 @@ def main():
         "-D", "--debug", action="store_true", help="Enable debug logs."
     )
     parser.add_argument(
+        "--unsorted",
+        action="store_true",
+        help="Download VODs in the order they are provided or retrieved (Usually newest > oldest).\n"
+        "By default, VODS are downloaded oldest to newest as there is a non-zero chance that\n"
+        "old VODs are purged before they can be archived.",
+        default=False,
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"Twitch Archiver v{__version__}",
