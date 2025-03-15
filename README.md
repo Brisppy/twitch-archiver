@@ -138,6 +138,9 @@ options:
                         Run archiver with provided Twitch OAuth token.
   -Q, --quiet           Disable all log output.
   -D, --debug           Enable debug logs.
+  --unsorted            Download VODs in the order they are provided or retrieved (Usually newest > oldest).
+                        By default, VODS are downloaded oldest to newest as there is a non-zero chance that
+                        old VODs are purged before they can be archived.
   --version             Show version number and exit.
   --show-config         Show saved config and exit.
 ```
