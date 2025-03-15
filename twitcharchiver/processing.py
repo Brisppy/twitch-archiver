@@ -72,8 +72,9 @@ class Processing:
 
         :param channels: list of channels to download based on processing configuration
         """
+        download_queue: list[ArchivedVod] = []
         for channel in channels:
-            self.log.info("Now archiving channel '%s'.", channel.name)
+            self.log.info("Fetching VODs for channel '%s'.", channel.name)
             self.log.debug("Channel info: %s", channel)
             # set output directory to subdir of channel name
             self.output_dir = Path(self._parent_dir, channel.name)
@@ -174,7 +175,7 @@ class Processing:
             self.log.debug("Downloaded VODs: %s", len(downloaded_vods))
 
             # generate vod queue using downloaded and available vods
-            download_queue: list[ArchivedVod] = []
+            _channel_download_queue: list[ArchivedVod] = []
             for _vod in channel_videos:
                 self.log.debug("Processing VOD %s.", _vod.v_id)
                 # insert channel data
@@ -183,7 +184,7 @@ class Processing:
                 # add any vods not already archived
                 if _vod.v_id not in [v.v_id for v in downloaded_vods]:
                     self.log.debug("VOD added to download queue.")
-                    download_queue.append(ArchivedVod.convert_from_vod(_vod))
+                    _channel_download_queue.append(ArchivedVod.convert_from_vod(_vod))
 
                 # if VOD already downloaded, add it to the queue if formats are missing
                 else:
@@ -202,7 +203,7 @@ class Processing:
                         self.log.debug(
                             "VOD already archived but requested format(s) missing - adding them to download queue."
                         )
-                        download_queue.append(
+                        _channel_download_queue.append(
                             ArchivedVod.convert_from_vod(
                                 _vod,
                                 _downloaded_vod.chat_archived,
@@ -211,14 +212,17 @@ class Processing:
                         )
 
             # exit if vod queue empty
-            if not download_queue:
+            if not _channel_download_queue:
                 self.log.info(
                     "No new VODs are available in the requested formats for %s.",
                     channel.name,
                 )
 
             else:
-                self.vod_downloader(download_queue)
+                download_queue.extend(_channel_download_queue)
+
+        # download all collected VODs
+        self.vod_downloader(download_queue)
 
     def vod_downloader(self, download_queue: list[ArchivedVod]):
         """
