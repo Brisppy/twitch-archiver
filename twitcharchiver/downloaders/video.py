@@ -29,6 +29,7 @@ from twitcharchiver.exceptions import (
     CorruptPartError,
     VideoMergeError,
     VideoVerificationError,
+    VideoFormatUnsupported,
 )
 from twitcharchiver.twitch import MpegSegment
 from twitcharchiver.utils import (
@@ -184,6 +185,9 @@ class Video(Downloader):
                 self.vod.refresh_vod_metadata()
                 self._download()
 
+        except VideoFormatUnsupported as exc:
+            raise VideoFormatUnsupported from exc
+
         except (TwitchAPIErrorNotFound, TwitchAPIErrorForbidden):
             self._log.warning(
                 "HTTP code 403 or 404 encountered, VOD %s was likely deleted.",
@@ -259,6 +263,9 @@ class Video(Downloader):
         :raises vodPartDownloadError: error returned when downloading vod parts
         """
         _buffer: set[MpegSegment] = set()
+
+        if len(self._index_playlist.segments[0].uri.split("-")) == 4:
+            raise VideoFormatUnsupported
 
         # process all segments in playlist
         for segment in [

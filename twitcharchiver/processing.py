@@ -20,6 +20,7 @@ from twitcharchiver.downloaders.video import Video
 from twitcharchiver.exceptions import (
     VodLockedError,
     VodAlreadyCompleted,
+    VideoFormatUnsupported,
 )
 from twitcharchiver.utils import send_push, send_discord_notification
 from twitcharchiver.vod import Vod, ArchivedVod
@@ -357,6 +358,13 @@ class Processing:
             return
 
         except VodLockedError:
+            return
+
+        except VideoFormatUnsupported:
+            self.log.error(
+                "Skipping VOD %s as video format is not currently supported.",
+                _downloader.vod.v_id,
+            )
             return
 
         # catch user exiting and remove lock file
