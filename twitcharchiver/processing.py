@@ -3,6 +3,7 @@ Primary processing loops for calling the various download functions using the su
 """
 
 import logging
+import os
 import shutil
 import signal
 import sys
@@ -11,7 +12,7 @@ from pathlib import Path
 
 from twitcharchiver.channel import Channel
 from twitcharchiver.database import Database
-from twitcharchiver.downloader import DownloadHandler
+from twitcharchiver.downloader import DownloadHandler, Downloader
 from twitcharchiver.downloaders.chat import Chat
 from twitcharchiver.downloaders.highlight import Highlight
 from twitcharchiver.downloaders.realtime import RealTime
@@ -345,7 +346,7 @@ class Processing:
             finally:
                 _worker_pool.shutdown(wait=False, cancel_futures=True)
 
-    def _start_download(self, _downloader):
+    def _start_download(self, _downloader: Downloader):
         try:
             with DownloadHandler(_downloader.vod) as _dh:
                 self.log.debug("Beginning download of VOD %s.", _downloader.vod.v_id)
@@ -365,8 +366,9 @@ class Processing:
                 "Skipping VOD %s as video format is not currently supported.",
                 _downloader.vod.v_id,
             )
-            shutil.rmtree(_downloader.output_dir)
-            return
+            # remove the empty directory if it was created
+            if _downloader.output_dir.exists():
+                os.rmdir(_downloader.output_dir)
 
         # catch user exiting and remove lock file
         except KeyboardInterrupt:
