@@ -365,6 +365,7 @@ class Processing:
                 "Skipping VOD %s as video format is not currently supported.",
                 _downloader.vod.v_id,
             )
+            shutil.rmtree(_downloader.output_dir)
             return
 
         # catch user exiting and remove lock file
