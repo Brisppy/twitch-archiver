@@ -366,9 +366,13 @@ class Processing:
                 "Skipping VOD %s as video format is not currently supported.",
                 _downloader.vod.v_id,
             )
-            # remove the empty directory if it was created
-            if _downloader.output_dir.exists():
-                os.rmdir(_downloader.output_dir)
+            # remove temp files
+            _downloader.cleanup_temp_files()
+            # remove VOD directory (if its empty)
+            try:
+                Path(_downloader.output_dir).rmdir()
+            except OSError:
+                pass
 
         # catch user exiting and remove lock file
         except KeyboardInterrupt:
