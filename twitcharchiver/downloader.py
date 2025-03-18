@@ -8,7 +8,7 @@ from pathlib import Path
 
 from twitcharchiver.configuration import Configuration
 from twitcharchiver.database import Database, INSERT_VOD
-from twitcharchiver.exceptions import VodLockedError
+from twitcharchiver.exceptions import VodLockedError, VideoFormatUnsupported
 from twitcharchiver.utils import get_temp_dir
 from twitcharchiver.vod import ArchivedVod, Vod
 
@@ -29,6 +29,7 @@ class Downloader:
         self._quiet: bool = quiet
 
         self.vod = Vod()
+        self.output_dir = Path()
 
         self._log = logging.getLogger()
 
@@ -110,8 +111,12 @@ class DownloadHandler:
         if self.remove_lock():
             self._log.debug("Failed to remove lock file.")
 
+        # dont print error log for unsupported VODs
+        if isinstance(exc_val, VideoFormatUnsupported):
+            pass
+
         # don't bother adding to database if exception occurs
-        if isinstance(exc_val, BaseException):
+        elif isinstance(exc_val, BaseException):
             self._log.error(
                 "Exception occurred inside DownloadHandler. %s",
                 traceback.format_tb(exc_tb),
