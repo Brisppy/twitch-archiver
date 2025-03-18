@@ -402,12 +402,17 @@ class Vod:
         if not self.thumbnail_url:
             return 0
 
-        # check for processing thumbnail used by broadcasts
-        if "404_processing" not in self.thumbnail_url:
-            # use index for end of list as users with '_' in their name will break this
-            return int(self.thumbnail_url.split("/")[5].split("_")[-2])
+        try:
+            # check for processing thumbnail used by broadcasts
+            if "404_processing" not in self.thumbnail_url:
+                # use index for end of list as users with '_' in their name will break this
+                return int(self.thumbnail_url.split("/")[5].split("_")[-2])
 
-        return int(self._get_seek_url().split("/")[3].split("_")[-2])
+            return int(self._get_seek_url().split("/")[3].split("_")[-2])
+
+        # catch VODs with no thumbnail or seekbar (due to age)
+        except IndexError:
+            return 0
 
     def _get_seek_url(self):
         """
