@@ -264,7 +264,12 @@ class Video(Downloader):
         """
         _buffer: set[MpegSegment] = set()
 
+        # some old vods use a different URI format
         if len(self._index_playlist.segments[0].uri.split("-")) == 4:
+            raise VideoFormatUnsupported
+
+        # another old vod format
+        elif "start_offset" in self._index_playlist.segments[0].uri:
             raise VideoFormatUnsupported
 
         # process all segments in playlist
