@@ -403,18 +403,26 @@ class Vod:
         :return: stream id
         :rtype: int
         """
-        if not self.thumbnail_url:
-            return 0
-
         try:
             # check for processing thumbnail used by broadcasts
             if "404_processing" not in self.thumbnail_url:
+                split_thumbnail_url = self.thumbnail_url.split("/")
+                # handles older vod thumbnails
+                if len(split_thumbnail_url) == 9:
+                    return int(split_thumbnail_url[6].split("_")[-1])
+
                 # use index for end of list as users with '_' in their name will break this
-                return int(self.thumbnail_url.split("/")[5].split("_")[-2])
+                return int(split_thumbnail_url[5].split("_")[-2])
 
-            return int(self._get_seek_url().split("/")[3].split("_")[-2])
+            # use seek url if no thumbnail url available
+            split_seek_url = self._get_seek_url().split("/")
+            # handles old vod seek urls
+            if len(split_seek_url) == 7:
+                return int(split_seek_url[4].split("_")[-1])
 
-        # catch VODs with no thumbnail or seekbar (due to age)
+            return int(split_seek_url[3].split("_")[-2])
+
+        # catch VODs with no thumbnail or seekbar
         except IndexError:
             return 0
 
