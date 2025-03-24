@@ -102,17 +102,21 @@ class Vod:
             self.v_id = int(vod_info["id"])
         self.category = Category(vod_info["game"])
         self.duration = vod_info["lengthSeconds"]
-        self.published_at = parse_twitch_timestamp(vod_info["publishedAt"])
+        self.published_at = parse_twitch_timestamp(
+            vod_info["publishedAt"], strip_nanoseconds=True
+        )
         self.thumbnail_url = vod_info["previewThumbnailURL"]
         self.title = vod_info["title"]
         self.view_count = vod_info["viewCount"]
 
         # use published_at as created_at if not provided
         if "createdAt" in vod_info.keys():
-            self.created_at = parse_twitch_timestamp(vod_info["createdAt"])
+            self.created_at = parse_twitch_timestamp(
+                vod_info["createdAt"], strip_nanoseconds=True
+            )
         elif "publishedAt" in vod_info.keys():
             self.created_at = self.created_at = parse_twitch_timestamp(
-                vod_info["publishedAt"]
+                vod_info["publishedAt"], strip_nanoseconds=True
             )
 
         # set description if provided
@@ -226,7 +230,7 @@ class Vod:
             try:
                 # if stream live and vod start time matches
                 _stream_created_time = parse_twitch_timestamp(
-                    _stream_info["stream"]["createdAt"]
+                    _stream_info["stream"]["createdAt"], strip_nanoseconds=True
                 )
 
                 # if vod created within 10s of stream created time
@@ -596,7 +600,9 @@ class Vod:
         _stream.s_id = int(stream_json["stream"]["id"])
 
         _stream.category = Category(stream_json["stream"]["game"])
-        _stream.created_at = parse_twitch_timestamp(stream_json["stream"]["createdAt"])
+        _stream.created_at = parse_twitch_timestamp(
+            stream_json["stream"]["createdAt"], strip_nanoseconds=True
+        )
         _stream.duration = time_since_date(_stream.created_at)
         _stream.published_at = _stream.created_at
         _stream.title = stream_json["broadcastSettings"]["title"]

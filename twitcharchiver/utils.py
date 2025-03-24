@@ -207,12 +207,14 @@ def get_time_difference(start_time, end_time):
     return end_time - start_time
 
 
-def parse_twitch_timestamp(timestamp):
+def parse_twitch_timestamp(timestamp, strip_nanoseconds=False):
     """
     Parses the provided timestamp depending on its format.
 
     :param timestamp: timestamp to interpret
     :type timestamp: str
+    :param strip_nanoseconds: strip nanoseconds from returned timestamp
+    :type strip_nanoseconds: bool
     :return: interpreted timestamp
     :rtype: float
     """
@@ -224,11 +226,22 @@ def parse_twitch_timestamp(timestamp):
             # strip last 3 digits of nanosecond
             timestamp = timestamp.replace(decimal, decimal[:6] + "Z")
 
-        return (
-            datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-            .replace(tzinfo=timezone.utc)
-            .timestamp()
-        )
+        if strip_nanoseconds:
+            return (
+                datetime.strptime(
+                    timestamp.replace("." + decimal, ""), "%Y-%m-%dT%H:%M:%S"
+                )
+                .replace(tzinfo=timezone.utc)
+                .timestamp()
+            )
+
+        else:
+            return (
+                datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+                .replace(tzinfo=timezone.utc)
+                .timestamp()
+            )
+
     else:
         return (
             datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
