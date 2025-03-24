@@ -89,7 +89,7 @@ class Vod:
 
         :param vod_id: VOD ID of VOD
         """
-        self.v_id = vod_id
+        self.v_id = int(vod_id)
         self._fetch_metadata()
 
     def _parse_dict(self, vod_info: dict):
