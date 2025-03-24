@@ -588,6 +588,10 @@ class Merger:
             ):
                 self._write_thumbnail()
 
+        # break merger if no segments completed, some VODs (70376596) have no index for some reason
+        if len(self._completed_segments) == 0:
+            return
+
         # merge and remux mpegts segments to single mp4
         self._log.info("Merging VOD parts. This may take a while.")
         self._combine_vod_parts()
@@ -942,4 +946,9 @@ class Merger:
         """
         Deletes temporary and transitional files used for archiving VOD video.
         """
-        Path(self._output_dir, "merged.ts").unlink()
+        # catch some rare VODs with no video
+        try:
+            Path(self._output_dir, "merged.ts").unlink()
+
+        except FileNotFoundError:
+            return
