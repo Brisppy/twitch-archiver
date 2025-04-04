@@ -635,7 +635,7 @@ class Merger:
             # merge all .ts files by concatenating them
             with open(str(Path(self._output_dir, "merged.ts")), "wb") as _merged_file:
                 _pt = 0
-                for _part in self._completed_parts:
+                for _part in sorted(self._completed_parts):
                     _pt += 1
                     # append part to merged file
                     with open(Path(self._output_dir, "parts", _part), "rb") as _ts_part:
@@ -657,7 +657,7 @@ class Merger:
             with open(
                 Path(self._output_dir, "parts", "segments.txt"), "w", encoding="utf8"
             ) as _segment_file:
-                for _part in self._completed_parts:
+                for _part in sorted(self._completed_parts):
                     _segment_file.write(
                         f"file '{Path(self._output_dir, 'parts', _part)}'\n"
                     )
