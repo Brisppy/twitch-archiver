@@ -407,8 +407,12 @@ class Vod:
             # check for processing thumbnail used by broadcasts
             if "404_processing" not in self.thumbnail_url:
                 split_thumbnail_url = self.thumbnail_url.split("/")
-                # handles older vod thumbnails
+                # handles older vod thumbnails and highlights with an extra slash
                 if len(split_thumbnail_url) == 9:
+                    # handle VODs with an extra slash
+                    if split_thumbnail_url[6] == "":
+                        return int(split_thumbnail_url[5].split("_")[-1])
+
                     return int(split_thumbnail_url[6].split("_")[-1])
 
                 # use index for end of list as users with '_' in their name will break this
