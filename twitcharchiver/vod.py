@@ -352,8 +352,11 @@ class Vod:
             },
         )
 
-        _channel = Channel(channel_id=_r.json()[0]["data"]["video"]["owner"]["id"])
-        return _channel
+        # some VODs may not have an owner (1009197665), possibly due to channel name changes
+        if _r.json()[0]["data"]["video"]["owner"]:
+            return Channel(channel_id=_r.json()[0]["data"]["video"]["owner"]["id"])
+
+        return Channel()
 
     @property
     def channel(self):

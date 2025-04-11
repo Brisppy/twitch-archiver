@@ -261,8 +261,11 @@ class Processing:
                 continue
 
             _channel_index = _channel_cache.index(_vod.channel)
-            # if channel is live
-            if _channel_cache[_channel_index].is_live():
+            # if channel exists and is live
+            if (
+                _channel_cache[_channel_index]
+                and _channel_cache[_channel_index].is_live()
+            ):
                 # check if current VOD ID matches associated broadcast VOD ID
                 if _channel_cache[_channel_index].get_broadcast_v_id() == _vod.v_id:
                     # skip if we aren't after currently live streams
