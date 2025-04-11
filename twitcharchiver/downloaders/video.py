@@ -264,6 +264,10 @@ class Video(Downloader):
         """
         _buffer: set[MpegSegment] = set()
 
+        # rare issue with VODs with no parts (e.g 40800466)
+        if len(self._index_playlist.segments) == 0:
+            return
+
         # some old vods use a different URI format
         if len(self._index_playlist.segments[0].uri.split("-")) == 4:
             raise VideoFormatUnsupported
@@ -879,6 +883,10 @@ class Merger:
         # skip verification if .ignorelength present
         if Path(self._output_dir, ".ignorelength").is_file():
             self._log.debug(".ignorelength file present - skipping verification.")
+            return True
+
+        # skip verification if expected length is 0
+        if self.vod.duration == 0:
             return True
 
         _command = (
