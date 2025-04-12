@@ -291,6 +291,14 @@ class Video(Downloader):
         elif "start_offset" in self._index_playlist.segments[0].uri:
             raise VideoFormatUnsupported
 
+        # some highlights have issues with the final segment not containing all the vod information which can be
+        # recovered by grabbing the segment by its id rather than the URL twitch provides (e.g 2269206784).
+        # See https://github.com/Brisppy/twitch-archiver/issues/44
+        if str(self.vod.v_id) in self._index_playlist.segments[-1].uri:
+            self._index_playlist.segments[-1].uri = self._index_playlist.segments[
+                -1
+            ].uri.split("-")[1]
+
         _buffer = self._build_buffer()
 
         if _buffer:
