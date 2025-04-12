@@ -257,13 +257,28 @@ class Video(Downloader):
         _m = re.findall(r"(?<=\/)(index.*)", index_url)[0]
         return index_url.replace(_m, "")
 
+    def _build_buffer(self):
+        buffer: set[MpegSegment] = set()
+
+        # process all segments in playlist
+        for segment in [
+            MpegSegment.convert_m3u8_segment(_s, self._base_url)
+            for _s in self._index_playlist.segments
+        ]:
+            # add segment to download buffer if it isn't completed
+            if segment not in self._completed_segments:
+                buffer.add(segment)
+
+            if segment.muted:
+                self._muted_segments.add(segment)
+
+        return buffer
+
     def download_m3u8_playlist(self):
         """Downloads the video for a specified m3u8 playlist.
 
         :raises vodPartDownloadError: error returned when downloading vod parts
         """
-        _buffer: set[MpegSegment] = set()
-
         # rare issue with VODs with no parts (e.g 40800466)
         if len(self._index_playlist.segments) == 0:
             return
@@ -276,17 +291,7 @@ class Video(Downloader):
         elif "start_offset" in self._index_playlist.segments[0].uri:
             raise VideoFormatUnsupported
 
-        # process all segments in playlist
-        for segment in [
-            MpegSegment.convert_m3u8_segment(_s, self._base_url)
-            for _s in self._index_playlist.segments
-        ]:
-            # add segment to download buffer if it isn't completed
-            if segment not in self._completed_segments:
-                _buffer.add(segment)
-
-            if segment.muted:
-                self._muted_segments.add(segment)
+        _buffer = self._build_buffer()
 
         if _buffer:
             _worker_pool = ThreadPoolExecutor(max_workers=self.threads)
