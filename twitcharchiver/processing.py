@@ -242,9 +242,9 @@ class Processing:
         # cache channels with associated broadcast VOD IDs
         _channel_cache: list[Channel] = []
 
-        # sort the download queue in ascending order (oldest > newest) unless the '--unsorted' argument is provided.
+        # reverse the download queue so that the oldest vods are downloaded first unless the '--unsorted' argument is provided.
         if not self.unsorted:
-            download_queue.sort(key=lambda v: v.v_id)
+            download_queue.reverse()
 
         # begin processing each available vod
         for _vod in download_queue:
