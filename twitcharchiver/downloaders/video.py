@@ -16,6 +16,7 @@ from time import sleep
 
 import m3u8
 import requests
+from m3u8 import Segment
 from requests import adapters
 
 from twitcharchiver.api import Api
@@ -122,7 +123,7 @@ class Video(Downloader):
         :rtype: set[MpegSegment]
         """
         return {
-            MpegSegment(int(Path(p).name.removesuffix(".ts")), 10)
+            MpegSegment(str(Path(p).name), 10, "muted" in Path(p).name)
             for p in list(Path(directory, "parts").glob("*.ts"))
         }
 
@@ -258,19 +259,18 @@ class Video(Downloader):
         return index_url.replace(_m, "")
 
     def _build_buffer(self):
-        buffer: set[MpegSegment] = set()
+        buffer: list[MpegSegment] = []
 
         # process all segments in playlist
-        for segment in [
-            MpegSegment.convert_m3u8_segment(_s, self._base_url)
-            for _s in self._index_playlist.segments
-        ]:
+        for m3u8_segment in self._index_playlist.segments:
+            segment = MpegSegment.convert_m3u8_segment(m3u8_segment)
+
             # add segment to download buffer if it isn't completed
             if segment not in self._completed_segments:
-                buffer.add(segment)
+                buffer.append(segment)
 
-            if segment.muted:
-                self._muted_segments.add(segment)
+                if segment.muted:
+                    self._muted_segments.add(segment)
 
         return buffer
 
@@ -282,14 +282,6 @@ class Video(Downloader):
         # rare issue with VODs with no parts (e.g 40800466)
         if len(self._index_playlist.segments) == 0:
             return
-
-        # some old vods use a different URI format
-        if len(self._index_playlist.segments[0].uri.split("-")) == 4:
-            raise VideoFormatUnsupported
-
-        # another old vod format
-        elif "start_offset" in self._index_playlist.segments[0].uri:
-            raise VideoFormatUnsupported
 
         # some highlights have issues with the final segment not containing all the vod information which can be
         # recovered by grabbing the segment by its id rather than the URL twitch provides (e.g 2269206784).
@@ -308,7 +300,11 @@ class Video(Downloader):
             try:
                 # add orders to worker pool
                 for segment in _buffer:
-                    futures.append(_worker_pool.submit(self._get_ts_segment, segment))
+                    futures.append(
+                        _worker_pool.submit(
+                            self._get_ts_segment, self._base_url, segment
+                        )
+                    )
 
                 progress = Progress()
 
@@ -337,7 +333,7 @@ class Video(Downloader):
             finally:
                 _worker_pool.shutdown(wait=False, cancel_futures=True)
 
-    def _get_ts_segment(self, segment: MpegSegment):
+    def _get_ts_segment(self, base_url, segment: MpegSegment):
         """Retrieves a specific ts file.
 
         :param segment: MPEGTS segment to download
@@ -345,8 +341,14 @@ class Video(Downloader):
         :return: error on failure
         :rtype: str
         """
-        _segment_path = segment.generate_path(Path(self.output_dir, "parts"))
-        self._log.debug("Downloading segment %s to %s", segment.url, _segment_path)
+        _segment_url: str = base_url + segment.uri
+        _segment_path: Path = Path(
+            self.output_dir,
+            "parts",
+            segment.id,
+        )
+
+        self._log.debug("Downloading segment %s to %s", _segment_url, _segment_path)
 
         # don't bother if piece already downloaded
         if os.path.exists(_segment_path):
@@ -358,22 +360,17 @@ class Video(Downloader):
         #   files from storage avoiding any downtime downloading
 
         # create temporary file for downloading to
-        with open(
-            Path(
-                get_temp_dir(),
-                str(self.vod.v_id),
-                f"{segment.id}.ts",
-            ),
-            "wb",
-        ) as _tmp_ts_file:
-            for _ in range(6):
-                if _ > 4:
-                    raise VideoPartDownloadError(
-                        f"Maximum retries for segment {segment.id} reached."
-                    )
+        for _ in range(6):
+            if _ > 4:
+                raise VideoPartDownloadError(
+                    f"Maximum retries for segment {segment.id} reached."
+                )
 
+            with open(
+                Path(get_temp_dir(), str(self.vod.v_id), segment.id), "wb"
+            ) as _tmp_ts_file:
                 try:
-                    _r = self._s.get(segment.url, stream=True, timeout=10)
+                    _r = self._s.get(_segment_url, stream=True, timeout=10)
 
                     # break on non 200 status code
                     if _r.status_code != 200:
@@ -408,13 +405,13 @@ class Video(Downloader):
             safe_move(_tmp_ts_file.name, _segment_path)
             self._log.debug(
                 "Segment %s completed and moved to %s.",
-                Path(_segment_path).stem,
+                segment.id,
                 _segment_path,
             )
 
         except FileNotFoundError as exc:
             raise VideoPartDownloadError(
-                f"MPEG-TS segment did not download correctly. Piece: {segment.url}"
+                f"MPEG-TS segment did not download correctly. Piece: {segment.id}"
             ) from exc
 
         except Exception as exc:
@@ -422,33 +419,27 @@ class Video(Downloader):
                 f"Exception encountered while moving downloaded MPEG-TS segment {segment.id}."
             ) from exc
 
-    def repair_vod_corruptions(self, corruption: set[MpegSegment]):
+    def repair_vod_corruptions(self):
         """
         Repairs segments which have been declared as corrupt by VOD merger.
-
-        :param corruption: set of corrupt MpegSegments retrieved from CorruptVodError exception.
         """
         # check vod still available
         if not self._index_url:
             raise VideoDownloadError(
                 "Corrupt segments were found while converting VOD and TA was unable to re-download the missing "
                 "segments. Either re-download the VOD if it is still available, or manually convert 'merged.ts' using "
-                f"FFmpeg. Corrupt parts:\n{str(sorted(corruption))}"
+                "FFmpeg."
             )
 
         # rename corrupt segments
-        for segment in corruption:
-            # convert segment number to segment file
-            segment_fp = str(f"{segment.id:05d}" + ".ts")
-
+        for segment in self._completed_segments:
             # rename part
             shutil.move(
-                Path(self.output_dir, "parts", segment_fp),
-                Path(self.output_dir, "parts", segment_fp + ".corrupt"),
+                Path(self.output_dir, "parts", segment.id),
+                Path(self.output_dir, "parts", segment.id + ".corrupt"),
             )
 
-            # remove from completed segments
-            self._completed_segments.remove(segment)
+        self._completed_segments = set()
 
         # download and combine vod again
         try:
@@ -457,13 +448,11 @@ class Video(Downloader):
 
             # compare downloaded .ts to corrupt parts - corrupt parts SHOULD have different hashes,
             # so we can work out if a segment is corrupt on twitch's end or ours
-            for segment in corruption:
-                segment_fp = str(f"{segment.id:05d}" + ".ts")
-
+            for segment in self._completed_segments:
                 # compare hash of redownloaded segment and corrupt one
                 try:
-                    if get_hash(Path(self.output_dir, "parts", segment_fp)) == get_hash(
-                        Path(self.output_dir, "parts", segment_fp + ".corrupt")
+                    if get_hash(Path(self.output_dir, "parts", segment.id)) == get_hash(
+                        Path(self.output_dir, "parts", segment.id + ".corrupt")
                     ):
                         self._log.debug(
                             "Re-downloaded .ts segment %s matches corrupt one, "
@@ -489,8 +478,8 @@ class Video(Downloader):
                     )
                     self._completed_segments.add(segment)
                     shutil.move(
-                        Path(self.output_dir, "parts", segment_fp + ".corrupt"),
-                        Path(self.output_dir, "parts", segment_fp),
+                        Path(self.output_dir, "parts", segment.id + ".corrupt"),
+                        Path(self.output_dir, "parts", segment.id),
                     )
                     segment.muted = True
                     self._muted_segments.add(segment)
@@ -499,7 +488,7 @@ class Video(Downloader):
             raise VideoDownloadError(
                 "Corrupt part(s) still present after retrying VOD download. Ensure VOD is still "
                 "available and either delete the listed #####.ts part(s) from 'parts' folder or entire "
-                f"'parts' folder if issue persists.\n{str(sorted(corruption))}"
+                "'parts' folder if issue persists."
             ) from exc
 
     def merge(self):
@@ -509,9 +498,8 @@ class Video(Downloader):
         merger = Merger(
             self.vod,
             self.output_dir,
-            self._completed_segments,
-            self._muted_segments,
             self._quiet,
+            index_playlist=self._index_playlist,
         )
 
         # attempt to merge
@@ -520,9 +508,10 @@ class Video(Downloader):
 
         # corrupt part(s) encountered - redownload them and reattempt merge
         except CorruptPartError as _c:
-            self.repair_vod_corruptions(_c.parts)
-            merger.set_muted_segments(self._muted_segments)
-            merger.merge()
+            self.repair_vod_corruptions()
+            if len(self._muted_segments) == len(self._completed_segments):
+                merger.ignore_corrupt_parts = True
+                merger.merge()
 
         except Exception as exc:
             raise VideoMergeError("Exception raised while merging VOD.") from exc
@@ -566,9 +555,8 @@ class Merger:
         self,
         vod,
         output_dir,
-        completed_segments,
-        muted_segments,
         quiet,
+        index_playlist=None,
         ignore_corrupt_parts=False,
         ignore_discontinuity=False,
     ):
@@ -577,15 +565,16 @@ class Merger:
         """
         self.vod = vod
         self._output_dir = output_dir
-        self._completed_segments = completed_segments
-        self._completed_parts = self.get_completed_parts()
-        self._muted_segment_ids = [s.id for s in muted_segments]
-        self._ignore_corrupt_parts = ignore_corrupt_parts
+        self._completed_segments = Video.get_completed_segments(output_dir)
+        self._twitch_segments = [
+            MpegSegment(seg.uri) for seg in index_playlist.segments
+        ]
+        self.muted_segment_ids = [
+            seg.uri for seg in index_playlist.segments if "muted" in seg.uri
+        ]
+        self.ignore_corrupt_parts = ignore_corrupt_parts
         self._ignore_discontinuity = ignore_discontinuity
         self._quiet = quiet
-
-    def set_muted_segments(self, segments):
-        self._muted_segment_ids = [s.id for s in segments]
 
     def merge(self):
         """
@@ -642,24 +631,22 @@ class Merger:
         """
         _progress = Progress()
 
-        # concat files if all pieces present, otherwise fall back to using ffmpeg
-        _final_part_id = max([_s.id for _s in self._completed_segments])
+        _dicontinuity = len(self._twitch_segments) != len(self._completed_segments)
 
-        _dicontinuity = set([i for i in range(_final_part_id + 1)]).difference(
-            [_s.id for _s in self._completed_segments]
-        )
         if not _dicontinuity or self._ignore_discontinuity:
             # merge all .ts files by concatenating them
             with open(str(Path(self._output_dir, "merged.ts")), "wb") as _merged_file:
                 _pt = 0
-                for _part in sorted(self._completed_parts):
+                for _part in self._twitch_segments:
                     _pt += 1
                     # append part to merged file
-                    with open(Path(self._output_dir, "parts", _part), "rb") as _ts_part:
+                    with open(
+                        Path(self._output_dir, "parts", _part.id), "rb"
+                    ) as _ts_part:
                         shutil.copyfileobj(_ts_part, _merged_file)
 
                     if not self._quiet:
-                        _progress.print_progress(_pt, len(self._completed_segments))
+                        _progress.print_progress(_pt, len(self._twitch_segments))
 
         else:
             # merge all .ts files with ffmpeg concat demuxer as missing segments can cause corruption with
@@ -674,10 +661,11 @@ class Merger:
             with open(
                 Path(self._output_dir, "parts", "segments.txt"), "w", encoding="utf8"
             ) as _segment_file:
-                for _part in sorted(self._completed_parts):
-                    _segment_file.write(
-                        f"file '{Path(self._output_dir, 'parts', _part)}'\n"
-                    )
+                for _part in self._twitch_segments:
+                    if _part.id in [_p.id for _p in self._completed_segments]:
+                        _segment_file.write(
+                            f"file '{Path(self._output_dir, 'parts', _part.id)}'\n"
+                        )
 
             _command = (
                 f"ffmpeg -hide_banner -fflags +genpts -f concat -safe 0 -y -i "
@@ -726,7 +714,7 @@ class Merger:
         :raises vodConvertError: error encountered during conversion process
         """
         _progress = Progress()
-        _corrupt_parts: set[MpegSegment] = set()
+        _corruptions_encountered: bool = False
 
         # get dts offset of first available part
         _dts_offset = self._get_dts_offset()
@@ -773,62 +761,8 @@ class Merger:
                     if not self._quiet:
                         _progress.print_progress(int(_cur_time), self.vod.duration)
 
-                elif "Packet corrupt" in line and not self._ignore_corrupt_parts:
-                    try:
-                        _dts_timestamp = int(
-                            re.search(r"(?<=dts = ).*(?=\).)", line).group(0)
-                        )
-
-                    # Catch corrupt parts without timestamp, shows up as 'NOPTS'
-                    except ValueError as exc:
-                        raise VideoConvertError(
-                            "Corrupt packet encountered at unknown timestamp while converting VOD. "
-                            "Delete 'parts' folder and re-download VOD."
-                        ) from exc
-
-                    # The maximum value for the DTS timestamp is 2^33 - 1 (8589934591). This will get reached ~26 hours
-                    # into a stream and cause corrupt part repair attempts to fail, so we need to use a different
-                    # calculation for streams longer than this if corrupt parts are encountered.
-
-                    # for Twitch, the final timestamp is part 09532, with the last packet timestamp being 8585279910
-                    # this is then proceeded by the first timestamp in part 09533 of -4651712
-
-                    # we must also add '2970' to the final packet timestamp to account for the time constant difference
-                    # between each packet.
-
-                    # check if we are past the expected seconds for the max value being reached, and our timestamp is
-                    # under the final expected timestamp
-                    if _cur_time > 95320 and _dts_timestamp < 8585279910:
-                        _corrupt_part = MpegSegment(
-                            floor(
-                                (
-                                    _dts_timestamp
-                                    + (8585279910 + 2970 + 4651712 - _dts_offset)
-                                )
-                                / 90000
-                                / 10
-                            ),
-                            10,
-                        )
-
-                    else:
-                        _corrupt_part = MpegSegment(
-                            floor((_dts_timestamp - _dts_offset) / 90000 / 10), 10
-                        )
-
-                    # ignore if corrupt packet within ignore_corruptions range
-                    if _corrupt_part.id in self._muted_segment_ids:
-                        _corrupt_part.muted = True
-                        self._log.debug(
-                            "Ignoring corrupt packet as part in whitelist. Part: %s",
-                            _corrupt_part,
-                        )
-
-                    else:
-                        _corrupt_parts.add(_corrupt_part)
-                        self._log.error(
-                            "Corrupt packet encountered. Part: %s", _corrupt_part
-                        )
+                elif "Packet corrupt" in line and not self.ignore_corrupt_parts:
+                    _corruptions_encountered = True
 
         if _p.returncode:
             self._log.error(
@@ -843,44 +777,40 @@ class Merger:
                 "VOD converter exited with error. Delete 'parts' directory and re-download VOD."
             )
 
-        if _corrupt_parts:
+        if _corruptions_encountered:
             # raise error so we can try to recover
-            raise CorruptPartError(_corrupt_parts)
+            raise CorruptPartError
 
     def _get_dts_offset(self):
         """
         Finds the DTS offset for a given stream based on the lowest available part.
         """
+        # iterate through segments based on the order provided by twitch
+        for segment_number in range(len(self._twitch_segments)):
+            segment = self._twitch_segments[segment_number]
+            if segment.id in [_s.id for _s in self._completed_segments]:
+                _command = (
+                    f"ffprobe -v quiet -print_format json -show_format -show_streams "
+                    f'"{Path(self._output_dir, "parts", segment.id)}"'
+                )
 
-        # fetch parts from dir
-        _parts = self.get_completed_parts()
+                with subprocess.Popen(
+                    sanitize_command(_command),
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True,
+                    encoding="cp437",
+                ) as _p:
+                    _ts_file_data = ""
+                    for _line in _p.stdout:
+                        _ts_file_data += _line.rstrip()
 
-        if _parts:
-            # fetch id of first part
-            _part_id = int(_parts[0].replace(".ts", ""))
-
-            _command = (
-                f"ffprobe -v quiet -print_format json -show_format -show_streams "
-                f'"{Path(self._output_dir, "parts", _parts[0])}"'
-            )
-
-            with subprocess.Popen(
-                sanitize_command(_command),
-                shell=True,
-                stdout=subprocess.PIPE,
-                universal_newlines=True,
-                encoding="cp437",
-            ) as _p:
-                _ts_file_data = ""
-                for _line in _p.stdout:
-                    _ts_file_data += _line.rstrip()
-
-                # retrieve dts start_time of part, subtracting the offset of the part itself and multiplying the value
-                # by 90000 (default timescale)
-                return (
-                    float(json.loads(_ts_file_data)["format"]["start_time"])
-                    - (_part_id * 10)
-                ) * 90000
+                    # retrieve dts start_time of part, subtracting the offset of the part itself and multiplying the value
+                    # by 90000 (default timescale)
+                    return (
+                        float(json.loads(_ts_file_data)["format"]["start_time"])
+                        - (segment_number * 10)
+                    ) * 90000
 
         raise FileNotFoundError("No parts available to fetch DTS offset of stream.")
 
@@ -954,14 +884,6 @@ class Merger:
 
         except Exception as exc:
             self._log.error("Failed to grab thumbnail for VOD. Error: %s", str(exc))
-
-    def get_completed_parts(self):
-        """
-        Generates a list of segments based on the completed IDs.
-
-        :return: list of segments padded to 5 digits with .ts extension
-        """
-        return [f"{seg.id:05d}.ts" for seg in self._completed_segments]
 
     def cleanup_temp_files(self):
         """

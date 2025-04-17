@@ -2,7 +2,6 @@
 Class for storing various basic objects used for information handling.
 """
 
-import re
 from pathlib import Path
 
 import m3u8
@@ -271,9 +270,8 @@ class MpegSegment(Segment):
 
     def __init__(
         self,
-        segment_id: int() = 0,
+        segment_id: str = "",
         duration: int = 0,
-        url: str = "",
         muted: bool = False,
     ):
         """
@@ -281,13 +279,20 @@ class MpegSegment(Segment):
 
         :param segment_id:
         :param duration:
-        :param url:
         :param muted:
         """
+        from twitcharchiver.utils import sanitize_text
+
         self.muted: bool = muted
-        self.id: int = segment_id
-        self.url: str = url
-        super().__init__(self.id * 10, duration)
+        # very old vods include a start and end offset in their url which needs to be stripped.
+        #   e.g VOD 43504112 - transmux-0000000007-1Fuq.ts?start_offset=0&end_offset=2450579
+        self.id: str = segment_id.split("?")[0]
+        self.uri: str = segment_id
+
+        try:
+            super().__init__(int(self.id) * 10, duration)
+        except ValueError:
+            super().__init__()
 
     def __repr__(self):
         return str({"id": self.id, "duration": self.duration, "muted": self.muted})
@@ -311,37 +316,18 @@ class MpegSegment(Segment):
         raise TypeError
 
     @staticmethod
-    def convert_m3u8_segment(segment: m3u8.Segment, base_url: str):
+    def convert_m3u8_segment(segment: m3u8.Segment):
         """
         Derives an MpegSegment from a provided m3u8.Segment instance
 
         :param segment: m3u8.Segment
         :type segment:
-        :param base_url: url directory where segments (00000.ts, 000001.ts, ...) are located online
-        :type base_url: str
         :return: segment generated from the provided m3u8 segment
         :rtype: MpegSegment
         """
-        # handle highlights - the first segment contains the VOD ID '2378222354v0-2011.ts', the rest are normal
-        #                     segment can also be muted and will show as '2376548282v0-1584-muted.ts'
-        segment_split = segment.uri.split("-")
-
-        # muted initial highlight segment (2376548282v0-1584-muted.ts)
-        if len(segment_split) == 3:
-            seg_id = int(segment_split[1])
-
-        # initial highlight segment (2376548282v0-1584.ts)
-        elif len(segment_split) == 2 and "muted" not in segment.uri:
-            seg_id = int(re.sub(r".ts|-[a-zA-Z]*.ts", "", segment_split[1]))
-
-        # video non-muted or muted segment (1584.ts or 1584-muted.ts)
-        else:
-            seg_id = int(re.sub(r".ts|-[a-zA-Z]*.ts", "", segment.uri))
-
         return MpegSegment(
-            seg_id,
+            segment.uri,
             segment.duration,
-            f"{base_url}{segment.uri}",
             "muted" in segment.uri,
         )
 

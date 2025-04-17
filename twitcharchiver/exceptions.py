@@ -144,18 +144,12 @@ class VideoConvertError(VideoMergeError):
 class CorruptPartError(VideoConvertError):
     """Corrupt part(s) found while converting VOD. Delete VOD and re-download if issue persists."""
 
-    def __init__(self, parts=None):
+    def __init__(self):
         """
         :param parts: set of corrupt parts
         :type parts: set[Part]
         """
-        message = None
-        self.parts = parts
-        if parts:
-            message = (
-                f"Corrupt parts found when converting VOD file. Delete VOD and re-download if issue persists. "
-                f"Parts: {[p.id for p in parts]}"
-            )
+        message = f"Corrupt parts found when converting VOD file. Delete VOD and re-download if issue persists."
 
         super().__init__(message)
 
