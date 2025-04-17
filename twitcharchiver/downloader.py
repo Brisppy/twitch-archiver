@@ -165,8 +165,8 @@ class DownloadHandler:
         with Database(Path(self._config_dir, "vods.db")) as _db:
             downloaded_vod = ArchivedVod.import_from_db(
                 _db.execute_query(
-                    "SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE stream_id IS ?",
-                    {"stream_id": self.vod.s_id},
+                    "SELECT vod_id,stream_id,created_at,chat_archived,video_archived FROM vods WHERE vod_id IS ? AND stream_id is ?",
+                    {"vod_id": self.vod.v_id, "stream_id": self.vod.s_id},
                 )
             )
 
