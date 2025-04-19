@@ -513,6 +513,9 @@ class Video(Downloader):
                 merger.ignore_corrupt_parts = True
                 merger.merge()
 
+        except VideoFormatUnsupported as e:
+            raise VideoFormatUnsupported from e
+
         except Exception as exc:
             raise VideoMergeError("Exception raised while merging VOD.") from exc
 
@@ -763,6 +766,11 @@ class Merger:
 
                 elif "Packet corrupt" in line and not self.ignore_corrupt_parts:
                     _corruptions_encountered = True
+
+                # very rare error with VOD 40790690 which is missing video parts resulting in errors and
+                # no output video.
+                elif "non-existing PPS 0 referenced" in line:
+                    raise VideoFormatUnsupported
 
         if _p.returncode:
             self._log.error(
