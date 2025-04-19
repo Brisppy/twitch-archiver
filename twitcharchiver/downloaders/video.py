@@ -216,6 +216,7 @@ class Video(Downloader):
         self._prev_index_playlist = self._index_playlist
         _raw_playlist = self.vod.get_index_playlist(self._index_url)
         self._index_playlist = m3u8.loads(_raw_playlist)
+
         # update VOD duration
         try:
             self.vod.duration = floor(
@@ -282,14 +283,6 @@ class Video(Downloader):
         # rare issue with VODs with no parts (e.g 40800466)
         if len(self._index_playlist.segments) == 0:
             return
-
-        # some highlights have issues with the final segment not containing all the vod information which can be
-        # recovered by grabbing the segment by its id rather than the URL twitch provides (e.g 2269206784).
-        # See https://github.com/Brisppy/twitch-archiver/issues/44
-        if str(self.vod.v_id) in self._index_playlist.segments[-1].uri:
-            self._index_playlist.segments[-1].uri = self._index_playlist.segments[
-                -1
-            ].uri.split("-")[1]
 
         _buffer = self._build_buffer()
 

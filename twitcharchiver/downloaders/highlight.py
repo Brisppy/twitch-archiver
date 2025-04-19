@@ -40,5 +40,18 @@ class Highlight(Video):
         self._prev_index_playlist = self._index_playlist
         _raw_playlist = self.vod.get_index_playlist(self._index_url)
         self._index_playlist = m3u8.loads(_raw_playlist)
+
+        # some highlights have issues with the final segment not containing all the vod information which can be
+        # recovered by grabbing the segment by its id rather than the URL twitch provides (e.g 2269206784).
+        # See https://github.com/Brisppy/twitch-archiver/issues/44
+        if str(self.vod.v_id) in self._index_playlist.segments[-1].uri:
+            # we need to check the part is available as some highlights end with a segment named like this but do not
+            # have one without the VOD ID available (367046564).
+            new_segment_id = self._index_playlist.segments[-1].uri.split("-")[1]
+            _r = self._s.get(self._base_url + new_segment_id)
+
+            if _r.status_code == 200:
+                self._index_playlist.segments[-1].uri = new_segment_id
+
         # we can't rely on the duration contained within the index playlist for all Highlights as VOD 4807348
         # is only 27 seconds long, but has a playlist duration of 35233.3
