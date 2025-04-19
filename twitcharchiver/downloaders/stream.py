@@ -1,6 +1,7 @@
 """
 Module for downloading currently live Twitch broadcasts.
 """
+
 import os
 import shutil
 from datetime import datetime, timezone
@@ -355,8 +356,6 @@ class Stream(Downloader):
         merger = Merger(
             self.vod,
             self.output_dir,
-            self._completed_segments,
-            [],
             self._quiet,
             ignore_corrupt_parts=not self._align_segments,
         )
