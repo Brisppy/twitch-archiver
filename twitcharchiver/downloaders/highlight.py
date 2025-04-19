@@ -2,9 +2,13 @@ import os
 import re
 from pathlib import Path
 
-from twitcharchiver.exceptions import CorruptPartError, VideoMergeError
-from twitcharchiver.vod import Vod, ArchivedVod
-from twitcharchiver.downloaders.video import Video, Merger
+from twitcharchiver.exceptions import VideoMergeError
+from twitcharchiver.vod import ArchivedVod
+from twitcharchiver.downloaders.video import Merger
+import m3u8
+
+from twitcharchiver.vod import Vod
+from twitcharchiver.downloaders.video import Video
 
 
 class Highlight(Video):
@@ -67,3 +71,13 @@ class Highlight(Video):
             self.vod.video_archived = True
 
         self._log.info("Finished archiving Highlight video.")
+
+    def refresh_playlist(self):
+        """
+        Fetch new segments for video (if any).
+        """
+        self._prev_index_playlist = self._index_playlist
+        _raw_playlist = self.vod.get_index_playlist(self._index_url)
+        self._index_playlist = m3u8.loads(_raw_playlist)
+        # we can't rely on the duration contained within the index playlist for all Highlights as VOD 4807348
+        # is only 27 seconds long, but has a playlist duration of 35233.3
