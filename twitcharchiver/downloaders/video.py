@@ -215,6 +215,7 @@ class Video(Downloader):
         self._prev_index_playlist = self._index_playlist
         _raw_playlist = self.vod.get_index_playlist(self._index_url)
         self._index_playlist = m3u8.loads(_raw_playlist)
+
         # update VOD duration
         try:
             self.vod.duration = floor(
