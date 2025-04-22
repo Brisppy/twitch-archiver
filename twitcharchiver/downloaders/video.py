@@ -865,8 +865,8 @@ class Merger:
             self.vod.duration,
         )
 
-        # pass verification if downloaded file is within 2s of expected length
-        if 2 >= downloaded_length - self.vod.duration >= -2:
+        # pass verification if downloaded file is within 9s (one segment is usually 10s) of expected length
+        if 9 >= downloaded_length - self.vod.duration >= -9:
             return True
 
         return False
