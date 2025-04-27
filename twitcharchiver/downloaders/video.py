@@ -636,10 +636,12 @@ class Merger:
                 for _part in self._twitch_segments:
                     _pt += 1
                     # append part to merged file
-                    with open(
-                        Path(self._output_dir, "parts", _part.id), "rb"
-                    ) as _ts_part:
-                        shutil.copyfileobj(_ts_part, _merged_file)
+
+                    if _part in self._completed_segments:
+                        with open(
+                            Path(self._output_dir, "parts", _part.id), "rb"
+                        ) as _ts_part:
+                            shutil.copyfileobj(_ts_part, _merged_file)
 
                     if not self._quiet:
                         _progress.print_progress(_pt, len(self._twitch_segments))
