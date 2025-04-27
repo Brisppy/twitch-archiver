@@ -488,11 +488,37 @@ class Video(Downloader):
         """
         Attempt to merge downloaded VOD parts and verify them.
         """
+        # some old VODs have extra segments in place of discontinuities (stream disconnections) such as VOD
+        # 48097794. These segments will have a file size of <50kb, which isn't something which *should* ever
+        # be present in a normal VOD aside from the final segment if it is very short
+
+        _ignore_discontinuity = False
+        _bad_segments: set = set()
+        for _segment in self._completed_segments:
+            # we don't check the final segment as it might be less than 50kb but still have relevant data
+            _final_segment = MpegSegment.convert_m3u8_segment(
+                self._index_playlist.segments[-1]
+            )
+            if _segment != _final_segment:
+                _segment_file = Path(self.output_dir, "parts", _segment.id)
+                if os.path.getsize(_segment_file) < 50000:
+                    _bad_segments.add(_segment)
+                    shutil.move(
+                        _segment_file,
+                        Path(self.output_dir, "parts", _segment.id + ".corrupt"),
+                    )
+
+        if _bad_segments:
+            _ignore_discontinuity = True
+            for _segment in _bad_segments:
+                self._completed_segments.remove(_segment)
+
         merger = Merger(
             self.vod,
             self.output_dir,
             self._quiet,
             index_playlist=self._index_playlist,
+            ignore_discontinuity=_ignore_discontinuity,
         )
 
         # attempt to merge
