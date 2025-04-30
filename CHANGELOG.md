@@ -1,3 +1,13 @@
+**(2025-04-30) Version 4.4.2**
+**Changes and Fixes:**
+* Fix issue with old VODs being sorted incorrectly when downloading.
+* Fix issue fetching highlights from database if multiple highlights exist for a single VOD.
+* Add handling for rare issue with VODs with no available video content.
+* Fix issue with Twitch playlist durations being incorrect for some highlights.
+* Fix issue failing to fetch the final segment for some highlights.
+* Fix regression from 4.4.1 when fetching stream IDs.
+
+
 **(2025-04-30) Version 4.4.1**
 **Changes and Fixes:**
 * Fix issue with HTTP 500 errors halting VOD archival (#44).
