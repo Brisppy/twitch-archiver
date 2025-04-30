@@ -1,3 +1,21 @@
+**(2025-04-30) Version 4.4.1**
+**Changes and Fixes:**
+* Fix issue with HTTP 500 errors halting VOD archival (#44).
+* Fix issue with highlights being ordered incorrectly (#44).
+* Fix issue failing to fetch some Highlight stream IDs (#44).
+* Fix issue with highlights where the final segment may be missing some data (#44).
+* When archiving multiple channels, all the VODs from every channel will be collected and archived at once rather than consecutively.
+* When downloading multiple VODs (including when archiving a channel), VODs will be downloaded oldest > newest. This behaviour can be disabled with the `--unsorted` argument (#45).
+* Fix unsupported VODs causing halting.
+* Improved safety of directory removal.
+* Fix problems removing directories on Linux.
+* Fix failing to fetch stream IDs for older VODs (#48).
+* Fix timestamps of old VODs not being interpreted correctly.
+* Fix issue with some VODs with un-retrievable video.
+* Fix rare issue with VODs which aren't linked to a channel (#49).
+* Fix inconsistency with folder timestamps.
+
+
 **(2025-02-24) Version 4.4.0**
 **Additions:**
 * Support for downloading Highlights. This must be enabled when archiving channels with the `-H` or `--highlights` argument.
