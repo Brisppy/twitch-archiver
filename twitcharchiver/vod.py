@@ -414,9 +414,9 @@ class Vod:
                 if len(split_thumbnail_url) == 9:
                     # handle VODs with an extra slash
                     if split_thumbnail_url[6] == "":
-                        return int(split_thumbnail_url[5].split("_")[-1])
+                        return int(split_thumbnail_url[5].split("_")[-2])
 
-                    return int(split_thumbnail_url[6].split("_")[-1])
+                    return int(split_thumbnail_url[6].split("_")[-2])
 
                 # use index for end of list as users with '_' in their name will break this
                 return int(split_thumbnail_url[5].split("_")[-2])
@@ -425,7 +425,7 @@ class Vod:
             split_seek_url = self._get_seek_url().split("/")
             # handles old vod seek urls
             if len(split_seek_url) == 7:
-                return int(split_seek_url[4].split("_")[-1])
+                return int(split_seek_url[4].split("_")[0])
 
             return int(split_seek_url[3].split("_")[-2])
 
