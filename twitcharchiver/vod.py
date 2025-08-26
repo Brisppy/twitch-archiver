@@ -474,18 +474,7 @@ class Vod:
             )
             _index = m3u8.loads(_r.text)
 
-            # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
-            _available_resolutions = [
-                m[0].group_id.split("p")
-                for m in [m.media for m in _index.playlists]
-                if m[0].group_id != "chunked"
-            ]
-            # insert 'chunked' stream separately as its named differently
-            _available_resolutions.insert(0, _index.media[0].name.split("p"))
-
-            _index_url = _index.playlists[
-                self.get_quality_index(quality, _available_resolutions)
-            ].uri
+            _index_url = self.get_playlist_for_quality(_index.playlists, quality).uri
             self._log.debug("Index for VOD %s: %s", self.v_id, _index_url)
 
             return _index_url
@@ -561,6 +550,39 @@ class Vod:
         return _vod_playlist
 
     @staticmethod
+    def get_playlist_for_quality(playlists, desired_quality):
+        """Finds the index of a user defined quality from a list of available stream qualities.
+
+        :param playlists: list of available m3u8 playlists
+        :type playlists: list[m3u8.Playlist]
+        :param desired_quality: desired quality to search for - best, worst or [resolution, framerate]
+        :type desired_quality: list[int, int] or str
+        :return: index of desired quality in list if found
+        :rtype: m3u8.Playlist
+        """
+        _log = logging.getLogger()
+
+        # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
+        _available_resolutions = []
+        for m in [m.media for m in playlists]:
+            # source stream is named 'chunked' instead of resolution
+            if m[0].group_id == "chunked":
+                resolution = m[0].name.strip(" (source)").split("p")
+
+            else:
+                resolution = m[0].group_id.split("p")
+
+            resolution = list(map(int, resolution))
+            _available_resolutions.append(resolution)
+
+        _log.debug(
+            "Available resolutions are: %s",
+            sorted(_available_resolutions, reverse=True),
+        )
+
+        return playlists[Vod.get_quality_index(desired_quality, _available_resolutions)]
+
+    @staticmethod
     def get_quality_index(desired_quality, available_qualities):
         """Finds the index of a user defined quality from a list of available stream qualities.
 
@@ -573,6 +595,8 @@ class Vod:
         """
         _log = logging.getLogger()
 
+        index_of_best, _ = max(enumerate(available_qualities), key=lambda x: sum(x[1]))
+
         if desired_quality not in ["best", "worst"]:
             # look for user defined quality in available streams
             try:
@@ -581,7 +605,9 @@ class Vod:
                 return available_qualities.index(desired_quality)
 
             except ValueError:
-                _log.info("User requested quality not found in available streams.")
+                _log.error(
+                    "Exact user requested quality not found in available streams, grabbing closest match."
+                )
                 # grab first resolution match
                 try:
                     return [quality[0] for quality in available_qualities].index(
@@ -589,16 +615,19 @@ class Vod:
                     )
 
                 except ValueError:
-                    _log.info(
+                    _log.error(
                         "No match found for user requested resolution. Defaulting to best."
                     )
-                    return 0
+                    return index_of_best
 
-        elif desired_quality == "worst":
-            return -1
+        if desired_quality == "worst":
+            # retrieve index of worst quality
+            index_of_worst, _ = min(
+                enumerate(available_qualities), key=lambda x: sum(x[1])
+            )
+            return index_of_worst
 
-        else:
-            return 0
+        return index_of_best
 
     @staticmethod
     def from_stream_json(stream_json: dict):

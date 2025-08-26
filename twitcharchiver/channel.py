@@ -236,28 +236,7 @@ class Channel:
 
         _index = m3u8.loads(_r.text)
 
-        # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
-        _available_resolutions = []
-        for m in [m.media for m in _index.playlists]:
-            # source stream is named 'chunked' instead of resolution
-            if m[0].group_id == "chunked":
-                resolution = m[0].name.strip(" (source)").split("p")
-
-            else:
-                resolution = m[0].group_id.split("p")
-
-            resolution = list(map(int, resolution))
-            _available_resolutions.append(resolution)
-
-        _available_resolutions = sorted(_available_resolutions, reverse=True)
-
-        self._log.debug(
-            "Available resolutions for %s are: %s", self.name, _available_resolutions
-        )
-
-        _index_url = _index.playlists[
-            Vod.get_quality_index(quality, _available_resolutions)
-        ].uri
+        _index_url = Vod.get_playlist_for_quality(_index.playlists, quality).uri
         self._log.debug("Index for broadcast by %s: %s", self.name, _index_url)
 
         return _index_url
