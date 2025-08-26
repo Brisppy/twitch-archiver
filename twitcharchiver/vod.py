@@ -576,6 +576,8 @@ class Vod:
         if desired_quality not in ["best", "worst"]:
             # look for user defined quality in available streams
             try:
+                # cast available qualities to int
+                desired_quality = list(map(int, desired_quality))
                 return available_qualities.index(desired_quality)
 
             except ValueError:

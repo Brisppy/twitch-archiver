@@ -1,6 +1,7 @@
 """
 Class for retrieving and storing information related to channels and users.
 """
+
 import logging
 import sys
 from datetime import datetime, timezone
@@ -236,15 +237,20 @@ class Channel:
         _index = m3u8.loads(_r.text)
 
         # grab 'name' of m3u8 streams - contains [resolution]p[framerate]
-        _available_resolutions = [
-            m[0].group_id.split("p")
-            for m in [m.media for m in _index.playlists]
-            if m[0].group_id != "chunked"
-        ]
-        # insert 'chunked' stream separately as its named differently and strip ' (source)' from name
-        _available_resolutions.insert(
-            0, _index.media[0].name.strip(" (source)").split("p")
-        )
+        _available_resolutions = []
+        for m in [m.media for m in _index.playlists]:
+            # source stream is named 'chunked' instead of resolution
+            if m[0].group_id == "chunked":
+                resolution = m[0].name.strip(" (source)").split("p")
+
+            else:
+                resolution = m[0].group_id.split("p")
+
+            resolution = list(map(int, resolution))
+            _available_resolutions.append(resolution)
+
+        _available_resolutions = sorted(_available_resolutions, reverse=True)
+
         self._log.debug(
             "Available resolutions for %s are: %s", self.name, _available_resolutions
         )
