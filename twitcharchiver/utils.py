@@ -10,7 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
-from datetime import datetime, timezone, UTC
+from datetime import datetime, timezone
 from itertools import groupby
 from math import ceil, floor
 from pathlib import Path
@@ -83,7 +83,7 @@ def format_timestamp(timestamp: float):
     :param timestamp: UTC timestamp to convert
     :return: timestamp in YYYY-MM-DD_HH-MM-SS format
     """
-    return datetime.fromtimestamp(timestamp, UTC).strftime("%Y-%m-%d_%H-%M-%S")
+    return datetime.fromtimestamp(timestamp, timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
 
 
 def export_json(vod_json: dict):
