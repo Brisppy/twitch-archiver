@@ -1,3 +1,9 @@
+**(2025-09-27) Version 4.4.3**
+**Changes and Fixes:**
+* Fix invalid UTC import.
+* Fix issues with stream qualities being unordered, causing incorrect quality to be downloaded (https://github.com/Brisppy/twitch-archiver/issues/54).
+
+
 **(2025-04-30) Version 4.4.2**
 **Changes and Fixes:**
 * Fix issue with old VODs being sorted incorrectly when downloading.
