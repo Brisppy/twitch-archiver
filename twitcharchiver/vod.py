@@ -572,6 +572,9 @@ class Vod:
             else:
                 resolution = m[0].group_id.split("p")
 
+            if resolution[1] == "":
+                resolution[1] = "30"  # assume 30fps if not provided
+
             resolution = list(map(int, resolution))
             _available_resolutions.append(resolution)
 
