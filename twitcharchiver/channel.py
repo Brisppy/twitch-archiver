@@ -296,7 +296,7 @@ class Channel:
 
         _r = self._api.gql_request(
             "FilterableVideoTower_Videos",
-            "a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb",
+            "67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f",
             {
                 "broadcastType": "ARCHIVE",
                 "channelOwnerLogin": f"{self.name.lower()}",
@@ -382,7 +382,7 @@ class Channel:
         while True:
             _r = self._api.gql_request(
                 "FilterableVideoTower_Videos",
-                "a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb",
+                "67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f",
                 _query_vars,
             )
 
