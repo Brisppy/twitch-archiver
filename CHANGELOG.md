@@ -1,3 +1,9 @@
+**(2025-11-13) Version 4.4.4**
+**Changes and Fixes:**
+* Fix exception when video playlist doesn't include framerate.
+* Fix issues fetching VODs due to API changes.
+
+
 **(2025-09-27) Version 4.4.3**
 **Changes and Fixes:**
 * Fix invalid UTC import.
