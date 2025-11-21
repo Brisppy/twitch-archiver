@@ -191,17 +191,28 @@ class Channel:
         :return: VOD ID
         :rtype: int
         """
-        _r = self._api.gql_request(
-            "ChannelVideoLength",
-            "ac644fafd686f2cb0e3864075af7cf3bb33f4e0525bf84921b10eabaa4e048b5",
-            {"channelLogin": f"{self.name.lower()}"},
-        )
-        _channel_video_length = _r.json()[0]["data"]["user"]["videos"]["edges"]
+        # fetch channel about info to retrieve broadcast VOD ID
+        try:
+            _r = self._api.gql_request(
+                "ChannelRoot_AboutPanel",
+                "0df42c4d26990ec1216d0b815c92cc4a4a806e25b352b66ac1dd91d5a1d59b80",
+                {
+                    "channelLogin": self.name,
+                    "includeIsDJ": False,
+                    "skipSchedule": False,
+                },
+            )
 
-        if _channel_video_length:
-            broadcast_info = _channel_video_length[0]["node"]["id"]
-            self._log.debug("Live broadcast info: %s", broadcast_info)
-            return int(broadcast_info)
+            latest_vod = _r.json()[0]["data"]["user"]["videos"]["edges"][0]["node"]
+            if latest_vod["status"] == "RECORDING":
+                self._broadcast_v_id = int(latest_vod["id"])
+                self._log.debug(
+                    "Broadcast VOD ID for %s: %s", self.name, self._broadcast_v_id
+                )
+                return self._broadcast_v_id
+
+        except KeyError:
+            pass
 
         self._log.debug("No data returned by ChannelVideoLength API for %s.", self.name)
         return int()
