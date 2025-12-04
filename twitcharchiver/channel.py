@@ -211,7 +211,7 @@ class Channel:
                 )
                 return self._broadcast_v_id
 
-        except KeyError:
+        except (KeyError, IndexError):
             pass
 
         self._log.debug("No data returned by ChannelVideoLength API for %s.", self.name)
