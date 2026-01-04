@@ -223,6 +223,17 @@ class Vod:
             )
             sleep(60 - _time_since_created)
 
+        # check if vod is currently being broadcast
+        _broadcast_vod_id = self.channel.get_broadcast_v_id()
+        if _broadcast_vod_id and (_broadcast_vod_id == self.v_id):
+            self._log.debug(
+                "VOD %s is currently being broadcast by %s.",
+                self.v_id,
+                self.channel.name,
+            )
+            return True
+
+        # fallback to stream created time matching vod created time
         # check if channel is offline
         _stream_info = self.channel.get_stream_info()
 
