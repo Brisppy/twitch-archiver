@@ -1,3 +1,9 @@
+**(2026-01-05) Version 4.4.5**
+**Changes and Fixes:**
+* Fix issue fetching broadcast ID if no VODs exist for a channel.
+* Fix issue matching broadcasts to VODs.
+
+
 **(2025-11-13) Version 4.4.4**
 **Changes and Fixes:**
 * Fix exception when video playlist doesn't include framerate.
