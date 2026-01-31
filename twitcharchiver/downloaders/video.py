@@ -636,9 +636,7 @@ class Merger:
                 chapters_file.write(str(format_vod_chapters(self.vod.chapters)))
 
         except Exception as exc:
-            self._log.error(
-                "Failed to retrieve or insert chapters into VOD file. %s", exc
-            )
+            self._log.error("Failed to create chapters for VOD. %s", exc)
 
     def _combine_vod_parts(self):
         """

@@ -11,7 +11,7 @@ import m3u8
 
 from twitcharchiver.api import Api
 from twitcharchiver.channel import Channel
-from twitcharchiver.exceptions import TwitchAPIErrorForbidden
+from twitcharchiver.exceptions import TwitchAPIErrorForbidden, TwitchAPIError
 from twitcharchiver.twitch import Category, Chapters, MpegSegment
 from twitcharchiver.utils import parse_twitch_timestamp, time_since_date
 
@@ -283,32 +283,42 @@ class Vod:
         :return: Retrieves any chapters for the VOD, or a single chapter with the VOD category otherwise.
         :rtype: Chapters
         """
+        _chapters = Chapters()
+
         if not self.v_id:
-            return Chapters()
-
-        _r = self._api.gql_request(
-            "VideoPlayer_ChapterSelectButtonVideo",
-            "8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41",
-            {"includePrivate": False, "videoID": str(self.v_id)},
-        )
-
-        # extract and return list of moments from returned json
-        _chapters = Chapters(
-            [node["node"] for node in _r.json()[0]["data"]["video"]["moments"]["edges"]]
-        )
-
-        if _chapters:
-            self._log.debug("Chapters for VOD %s: %s", self.v_id, _chapters)
             return _chapters
 
-        self._log.debug("No chapters found for VOD %s.", self.v_id)
-        # create single chapter out of VOD category
-        _category = self.get_category()
-        _chapters = Chapters.create_chapter_from_category(_category, self.duration)
+        try:
+            _r = self._api.gql_request(
+                "VideoPlayer_ChapterSelectButtonVideo",
+                "8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41",
+                {"includePrivate": False, "videoID": str(self.v_id)},
+            )
 
-        self._log.debug(
-            "Chapters generated for VOD based on %s: %s", _category, self.v_id
-        )
+            # extract and return list of moments from returned json
+            _chapters = Chapters(
+                [
+                    node["node"]
+                    for node in _r.json()[0]["data"]["video"]["moments"]["edges"]
+                ]
+            )
+
+            if _chapters:
+                self._log.debug("Chapters for VOD %s: %s", self.v_id, _chapters)
+                return _chapters
+
+            self._log.debug("No chapters found for VOD %s.", self.v_id)
+            # create single chapter out of VOD category
+            _category = self.get_category()
+            _chapters = Chapters.create_chapter_from_category(_category, self.duration)
+
+            self._log.debug(
+                "Chapters generated for VOD based on %s: %s", _category, self.v_id
+            )
+
+        except TwitchAPIError as e:
+            self._log.debug("Failed to retrieve chapters for VOD %s: %s", self.v_id, e)
+
         return _chapters
 
     def get_muted_segments(self):
