@@ -276,7 +276,7 @@ def main():
 
     # debug only: output sanitized version of arguments
     args_sanitized = args.get().copy()
-    for key in ["pushbullet_key"]:
+    for key in ["pushbullet_key", "oauth_token", "discord_webhook"]:
         if args_sanitized[key]:
             args_sanitized.update({key: 24 * "*" + args_sanitized[key][24:]})
 
