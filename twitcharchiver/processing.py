@@ -352,7 +352,14 @@ class Processing:
     def _start_download(self, _downloader: Downloader):
         try:
             with DownloadHandler(_downloader.vod) as _dh:
-                self.log.debug("Beginning download of VOD %s.", _downloader.vod.v_id)
+                if _downloader.vod.v_id:
+                    self.log.debug(
+                        "Beginning download of VOD %s.", _downloader.vod.v_id
+                    )
+                else:
+                    self.log.debug(
+                        "Beginning download of Stream %s.", _downloader.vod.s_id
+                    )
                 _downloader.start()
                 _downloader.export_metadata()
                 _downloader.merge()

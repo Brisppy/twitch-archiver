@@ -618,6 +618,9 @@ class Stream(Downloader):
         broadcast_vod_id = self.channel.get_broadcast_v_id()
         broadcast_vod = Vod(broadcast_vod_id)
 
+        if broadcast_vod_id == 0:
+            return False
+
         # check broadcast VOD and stream have same stream IDs
         if broadcast_vod.s_id == self.vod.s_id:
             # replace stream VOD for later checks
