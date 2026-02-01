@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
+import uuid
 from datetime import datetime, timezone
 from itertools import groupby
 from math import ceil, floor
@@ -36,6 +37,10 @@ def build_output_dir_name(title: str, created_at: float, vod_id: int = 0):
     :return: name of output folder for given VOD or stream parameters
     :rtype: str
     """
+    # VODs without a created_at timestamp are a sign the metadata is malformed.
+    if not created_at:
+        raise ValueError("No timestamp available for creating unique VOD directory.")
+
     if title is None:
         title = ""
 
