@@ -1,6 +1,7 @@
 """
 Module for downloading currently live Twitch broadcasts.
 """
+
 import os
 import shutil
 from datetime import datetime, timezone
@@ -503,9 +504,15 @@ class Stream(Downloader):
 
             try:
                 # fetch advertised stream parts
-                announced_parts = m3u8.loads(
-                    self.channel.get_stream_playlist(self._index_uri)
-                ).segments
+                _raw_playlist = self.channel.get_stream_playlist(self._index_uri)
+
+                # check playlist version
+                # currently twitch is trialling H265 streams, these are not currently supported, so we just error out
+                if "#EXT-X-VERSION:6" in _raw_playlist:
+                    self._log.debug("Stream uses HEVC.")
+                    raise NotImplementedError
+
+                announced_parts = m3u8.loads(_raw_playlist).segments
                 self._last_part_announce = (
                     announced_parts[-1]
                     .program_date_time.replace(tzinfo=timezone.utc)
@@ -546,6 +553,10 @@ class Stream(Downloader):
                 )
                 sleep(5)
                 continue
+
+            except NotImplementedError:
+                self._log.error("Stream uses HEVC which is not currently supported.")
+                raise
 
             # retry if request times out
             except Exception as exc:

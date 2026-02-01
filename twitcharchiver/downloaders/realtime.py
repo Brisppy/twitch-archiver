@@ -26,7 +26,7 @@ class RealTime(Downloader):
 
     def __init__(
         self,
-        vod: Vod,
+        vod: ArchivedVod,
         parent_dir: Path = os.getcwd(),
         archive_chat: bool = True,
         quality: str = "best",
@@ -167,9 +167,12 @@ class RealTime(Downloader):
         self.video.export_metadata()
 
     def merge(self):
-        self.video.merge()
+        if self.vod.video_archived:
+            self.video.merge()
 
     def cleanup_temp_files(self):
-        self.chat.cleanup_temp_files()
-        self.stream.cleanup_temp_files()
-        self.video.cleanup_temp_files()
+        if self.vod.chat_archived:
+            self.chat.cleanup_temp_files()
+        if self.vod.video_archived:
+            self.stream.cleanup_temp_files()
+            self.video.cleanup_temp_files()

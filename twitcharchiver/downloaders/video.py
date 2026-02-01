@@ -200,6 +200,9 @@ class Video(Downloader):
 
             self.vod.status = "offline"
 
+        except NotImplementedError as exc:
+            raise VideoFormatUnsupported from exc
+
         except Exception as exc:
             raise VideoDownloadError(exc) from exc
 
@@ -214,6 +217,13 @@ class Video(Downloader):
         """
         self._prev_index_playlist = self._index_playlist
         _raw_playlist = self.vod.get_index_playlist(self._index_url)
+
+        # check playlist version
+        # currently twitch is trialling H265 streams, these are not currently supported so we just error out
+        if "#EXT-X-VERSION:6" in _raw_playlist:
+            self._log.debug("VOD uses HEVC.")
+            raise NotImplementedError
+
         self._index_playlist = m3u8.loads(_raw_playlist)
 
         # update VOD duration
