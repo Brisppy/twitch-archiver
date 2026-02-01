@@ -403,15 +403,19 @@ class Stream(Downloader):
                 # retry loop to avoid StreamOfflineError if stream just went live
                 for _ in range(4):
                     if _ == 3:
-                        self._log.info("%s is offline.", self.channel.name)
+                        self._log.info(
+                            "%s is offline, or stream info could not be fetched.",
+                            self.channel.name,
+                        )
                         raise StreamOfflineError(self.channel)
 
-                    stream_vod = Vod.from_stream_json(self.channel.get_stream_info())
-                    stream_vod.channel = self.channel
-                    if not stream_vod:
+                    _stream_info = self.channel.get_stream_info()
+                    if not _stream_info["stream"]:
                         sleep(5)
                         continue
 
+                    stream_vod = Vod.from_stream_json(_stream_info)
+                    stream_vod.channel = self.channel
                     self.vod = stream_vod
                     break
 
