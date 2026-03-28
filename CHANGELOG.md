@@ -1,3 +1,12 @@
+**(2026-03-29) Version 4.4.5**
+**Changes and Fixes:**
+* Improve logic for matching streams and VODs.
+* Fix issues with failing chapter download preventing VODs being added to the database.
+* Add error when encountering unsupported HEVC streams.
+* Fix issue with stream metadata being empty.
+* Fix issues downloading streams without a VOD archive.
+
+
 **(2026-01-05) Version 4.4.5**
 **Changes and Fixes:**
 * Fix issue fetching broadcast ID if no VODs exist for a channel.
