@@ -1,6 +1,7 @@
 """
 Handles parsing and storage of arguments passed to twitch-archiver.
 """
+
 import logging
 import re
 import sys
@@ -127,7 +128,7 @@ class Arguments:
             if "/videos/" in arg:
                 match = re.findall(r"(?<=twitch\.tv/videos/)[0-9]*", arg)
             else:
-                match = re.findall(r"(?<=twitch\.tv/)[a-zA-Z]*", arg)
+                match = re.findall(r"(?<=twitch\.tv/).*", arg)
 
             # store the extracted value or simply pass to passed args if no match found
             if match:
