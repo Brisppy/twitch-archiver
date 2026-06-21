@@ -250,6 +250,9 @@ class Processing:
         for _vod in download_queue:
             self.log.debug("Processing VOD %s from download queue.", _vod.v_id)
 
+            # derive per-VOD output directory from channel rather than stale shared state
+            _vod_output_dir = Path(self._parent_dir, _vod.channel.name) if _vod.channel.name else self.output_dir
+
             if _vod.channel not in _channel_cache:
                 self.log.debug(
                     "Channel '%s' missing from cache - adding now.", _vod.channel
@@ -280,7 +283,7 @@ class Processing:
                         self.log.debug("Archiving VOD with `real-time` archiver.")
                         _real_time_archiver = RealTime(
                             _vod,
-                            self.output_dir,
+                            _vod_output_dir,
                             self.archive_chat,
                             self.quality,
                             self.threads,
@@ -294,7 +297,7 @@ class Processing:
                     _video_download_queue.append(
                         Highlight(
                             _vod,
-                            self.output_dir,
+                            _vod_output_dir,
                             self.quality,
                             self.threads,
                             self.quiet,
@@ -305,7 +308,7 @@ class Processing:
                     _video_download_queue.append(
                         Video(
                             _vod,
-                            self.output_dir,
+                            _vod_output_dir,
                             self.quality,
                             self.threads,
                             self.quiet,
@@ -314,7 +317,7 @@ class Processing:
 
             if not _vod.chat_archived and self.archive_chat:
                 self.log.debug("Adding VOD to chat archive queue.")
-                _chat_download_queue.append(Chat(_vod, self.output_dir, self.quiet))
+                _chat_download_queue.append(Chat(_vod, _vod_output_dir, self.quiet))
 
         for _downloader in _video_download_queue:
             self._start_download(_downloader)
