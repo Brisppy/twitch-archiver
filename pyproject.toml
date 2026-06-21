@@ -16,7 +16,6 @@ description = "A simple, fast, platform-independent tool for downloading Twitch 
 readme = "README.md"
 requires-python = ">=3.9"
 license = "GPL-3.0-or-later"
-license-files = ["LICEN[CS]E*"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -26,5 +25,8 @@ classifiers = [
 "Homepage" = "https://github.com/Brisppy/twitch-archiver"
 "Bug Tracker" = "https://github.com/Brisppy/twitch-archiver/issues"
 
+[tool.setuptools]
+packages = ["twitcharchiver"]
+
 [project.scripts]
-twitch-archiver = "twitcharchiver.__init__:main"
+twitch-archiver = "twitcharchiver:main"
