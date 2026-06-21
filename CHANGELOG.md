@@ -1,9 +1,16 @@
-**(2026-03-29) Version 4.4.5**
+**(2026-06-21) Version 4.4.7**
+**Changes and Fixes:**
+* Add setup for running package as a Python module (https://github.com/Brisppy/twitch-archiver/pull/76 - Thanks @koroban).
+* Fix issues with VODs being written to the wrong directory (https://github.com/Brisppy/twitch-archiver/pull/75 - Thanks @koroban).
+* Fix an issue parsing channel names with symbols (https://github.com/Brisppy/twitch-archiver/issues/74).
+
+
+**(2026-03-29) Version 4.4.6**
 **Changes and Fixes:**
 * Improve logic for matching streams and VODs.
 * Fix issues with failing chapter download preventing VODs being added to the database.
 * Add error when encountering unsupported HEVC streams.
-* Fix issue with stream metadata being empty.
+* Fix issue with stream metadata being empty (https://github.com/Brisppy/twitch-archiver/issues/56).
 * Fix issues downloading streams without a VOD archive.
 
 
