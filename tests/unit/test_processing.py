@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from twitcharchiver.channel import Channel
@@ -67,11 +68,13 @@ class TestProcessing(unittest.TestCase):
             self._fake_vod(3, "channelA"),
         ]
 
-        with patch("twitcharchiver.processing.Video") as mock_video, \
-             patch("twitcharchiver.processing.Chat") as mock_chat, \
-             patch.object(process, "_start_download"), \
-             patch.object(ArchivedVod, "is_live", return_value=False), \
-             patch.object(Channel, "is_live", return_value=False):
+        with (
+            patch("twitcharchiver.processing.Video") as mock_video,
+            patch("twitcharchiver.processing.Chat") as mock_chat,
+            patch.object(process, "_start_download"),
+            patch.object(ArchivedVod, "is_live", return_value=False),
+            patch.object(Channel, "is_live", return_value=False),
+        ):
             process.vod_downloader(queue)
 
         video_calls = [call.args for call in mock_video.call_args_list]
@@ -82,11 +85,11 @@ class TestProcessing(unittest.TestCase):
         chat_dirs = [str(args[1]) for args in chat_calls]
 
         self.assertEqual(
-            video_dirs,
+            [Path(p).as_posix() for p in video_dirs],
             ["/data/parent/channelA", "/data/parent/channelB", "/data/parent/channelA"],
         )
         self.assertEqual(
-            chat_dirs,
+            [Path(p).as_posix() for p in chat_dirs],
             ["/data/parent/channelA", "/data/parent/channelB", "/data/parent/channelA"],
         )
 
