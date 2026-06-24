@@ -1,4 +1,10 @@
+**(2026-06-24) Version 4.4.8**
+
+**Changes and Fixes:**
+* Fix issues running as module on Windows.
+
 **(2026-06-21) Version 4.4.7**
+
 **Changes and Fixes:**
 * Add setup for running package as a Python module (https://github.com/Brisppy/twitch-archiver/pull/76 - Thanks @koroban).
 * Fix issues with VODs being written to the wrong directory (https://github.com/Brisppy/twitch-archiver/pull/75 - Thanks @koroban).
@@ -6,6 +12,7 @@
 
 
 **(2026-03-29) Version 4.4.6**
+
 **Changes and Fixes:**
 * Improve logic for matching streams and VODs.
 * Fix issues with failing chapter download preventing VODs being added to the database.
@@ -15,24 +22,28 @@
 
 
 **(2026-01-05) Version 4.4.5**
+
 **Changes and Fixes:**
 * Fix issue fetching broadcast ID if no VODs exist for a channel.
 * Fix issue matching broadcasts to VODs.
 
 
 **(2025-11-13) Version 4.4.4**
+
 **Changes and Fixes:**
 * Fix exception when video playlist doesn't include framerate.
 * Fix issues fetching VODs due to API changes.
 
 
 **(2025-09-27) Version 4.4.3**
+
 **Changes and Fixes:**
 * Fix invalid UTC import.
 * Fix issues with stream qualities being unordered, causing incorrect quality to be downloaded (https://github.com/Brisppy/twitch-archiver/issues/54).
 
 
 **(2025-04-30) Version 4.4.2**
+
 **Changes and Fixes:**
 * Fix issue with old VODs being sorted incorrectly when downloading.
 * Fix issue fetching highlights from database if multiple highlights exist for a single VOD.
@@ -43,6 +54,7 @@
 
 
 **(2025-04-30) Version 4.4.1**
+
 **Changes and Fixes:**
 * Fix issue with HTTP 500 errors halting VOD archival (#44).
 * Fix issue with highlights being ordered incorrectly (#44).
@@ -61,6 +73,7 @@
 
 
 **(2025-02-24) Version 4.4.0**
+
 **Additions:**
 * Support for downloading Highlights. This must be enabled when archiving channels with the `-H` or `--highlights` argument.
 * Add support for Discord notifications via webhooks. This can be enable by passing the URL for a webhook with the `-W` or `--discord-webhook` argument.
